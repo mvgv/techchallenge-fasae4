@@ -9,9 +9,9 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T05 — Provisionamento e verificação da Azure
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** escrever `scripts/provision_azure.sh` conforme a T05 do plano (seção 5, Fase 0); depois `scripts/check_azure.py`, a fábrica de cliente em `src/medwatch/audio/speech.py` e a seção Azure no README.
-- **Arquivos tocados:** nenhum
+- **Passos concluídos:** 1 (provision_azure.sh)
+- **Próximo passo exato:** fábrica de cliente em `src/medwatch/audio/speech.py` (plano T14: Segment, FakeTranscriber, AzureTranscriber, get_transcriber); depois `scripts/check_azure.py` e a seção Azure no README.
+- **Arquivos tocados:** scripts/provision_azure.sh
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
