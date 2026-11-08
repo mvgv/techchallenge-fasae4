@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T05 concluída)
-- **Tarefa atual:** T06
-- **Estado geral:** T00–T05 concluídas; T06 não iniciada
+- **Última atualização:** 2026-11-08 (T06 concluída)
+- **Tarefa atual:** T07
+- **Estado geral:** T00–T06 concluídas; T07 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T06 — API: pacientes, upload de mídia e documentos
+- **Tarefa:** T07 — Simulador de stream (sintético e MIMIC-IV Demo)
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** passos 1–2 da T06: `api/main.py` (FastAPI, CORS, `/health`, `setup_logging`) e `api/routes_patients.py` usando `db.py`; injetar Bus/Storage via `Depends`.
+- **Próximo passo exato:** implementar `simulator/synthetic.py` (`generate_patient_timeline`) e `tests/test_synthetic.py` conforme a T07 do plano.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -25,8 +25,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T02 | Configuração, logging, contratos e tempo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T03 | Docker Compose, banco e camada de acesso | concluída | 3951ed5 | `docker compose build` OK; db/redis healthy; test_db passa com banco real |
 | T04 | Barramento (Redis Streams) e storage | concluída | 1bd2ab9 | `pytest -q` e `ruff check .` passam (fakeredis e LocalStorage; AzureBlobStorage sem teste real) |
-| T05 | Provisionamento e verificação da Azure | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; verificação real pendente: rodar `scripts/check_azure.py` com chaves reais [HUMANO] |
-| T06 | API: pacientes, upload de mídia e documentos | pendente | | |
+| T05 | Provisionamento e verificação da Azure | concluída | 41feab5 | `pytest -q` e `ruff check .` passam; verificação real pendente: rodar `scripts/check_azure.py` com chaves reais [HUMANO] |
+| T06 | API: pacientes, upload de mídia e documentos | concluída | ver `git log` | `pytest -q` e `ruff check .` passam com banco real; `routes_alerts.py` é stub; B008 isento para Depends/File/Form no ruff |
 | T07 | Simulador de stream (sintético e MIMIC-IV Demo) | pendente | | |
 | T08 | Filtro fisiológico e NEWS2 | pendente | | |
 | T09 | Estatística em streaming (EWMA z-score) | pendente | | |
@@ -106,3 +106,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T03 | ver `git log` | init.sql, Dockerfile, compose, db.py e test_db.py; build, up db/redis, pytest e ruff OK. Próxima: T04. |
 | 2026-11-08 | T04 | ver `git log` | bus.py, storage.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T05. |
 | 2026-11-08 | T05 | ver `git log` | provision_azure.sh, check_azure.py, speech.py (fábrica + Fake), README e teste; `pytest -q` e `ruff check .` OK. Próxima: T06. |
+| 2026-11-08 | T06 | ver `git log` | api (main, deps, routes_patients/media/alerts stub) e test_api_media; `pytest -q` e `ruff check .` OK. Próxima: T07. |
