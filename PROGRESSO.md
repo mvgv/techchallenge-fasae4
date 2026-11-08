@@ -9,9 +9,9 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T07 — Simulador de stream (sintético e MIMIC-IV Demo)
-- **Passos concluídos:** 1 (synthetic.py + test_synthetic.py)
-- **Próximo passo exato:** implementar `simulator/replay.py` (eventos por cenário/demo, fases de velocidade, `sim:clock`, ground_truth, `--fast`, `--start`) + `scripts/seed.py` + `tests/test_replay.py` (fakeredis); depois `mimic.py` e scripts MIMIC.
-- **Arquivos tocados:** src/medwatch/simulator/synthetic.py, tests/test_synthetic.py, docs/DECISOES.md
+- **Passos concluídos:** 2 (synthetic.py; replay.py + seed.py + test_replay.py)
+- **Próximo passo exato:** implementar `simulator/mimic.py` (`load_mimic`), `scripts/download_mimic_demo.sh`, `scripts/prepare_mimic.py` (sem rodar o download); `replay.py` já importa `load_mimic` para `SIM_SCENARIO=mimic`. Depois commit final da T07.
+- **Arquivos tocados:** src/medwatch/simulator/{synthetic,replay}.py, scripts/seed.py, tests/test_{synthetic,replay}.py, docs/DECISOES.md
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
