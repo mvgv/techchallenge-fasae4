@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T12 concluída)
-- **Tarefa atual:** T13
-- **Estado geral:** T00–T12 concluídas; T13 não iniciada
+- **Última atualização:** 2026-11-08 (T13 concluída)
+- **Tarefa atual:** T14
+- **Estado geral:** T00–T13 concluídas; T14 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T13 — Worker de anomalias
+- **Tarefa:** T14 — Conversão de áudio e Azure Speech
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** implementar `anomaly/worker.py` e `tests/test_anomaly_worker.py` conforme a T13 do plano (seção da tarefa em `PLANO_IMPLEMENTACAO.md`, ~linha 1407).
+- **Próximo passo exato:** implementar `audio/convert.py`, `audio/speech.py` (Transcriber) e `tests/test_speech_fake.py` conforme a T14 do plano (~linha 1430 de `PLANO_IMPLEMENTACAO.md`).
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -33,7 +33,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T10 | Isolation Forest para vitais | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; modelo gerado em `models/` (fora do Git); `--mimic` não testado |
 | T11 | Regras de prescrição | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T12 | Regras de movimentação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T13 | Worker de anomalias | pendente | | |
+| T13 | Worker de anomalias | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; aceite com compose + simulador (XLEN evidence) não verificado |
 | T14 | Conversão de áudio e Azure Speech | pendente | | |
 | T15 | Azure AI Language e termos críticos | pendente | | |
 | T16 | Features acústicas e linha de base de voz | pendente | | |
@@ -113,3 +113,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T10 | ver `git log` | iforest.py, train_vitals_iforest.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T11. |
 | 2026-11-08 | T11 | ver `git log` | prescriptions.py (PrescriptionMonitor, normalize_drug) e testes; `pytest -q` e `ruff check .` OK. Próxima: T12. |
 | 2026-11-08 | T12 | ver `git log` | movement.py (MovementMonitor) e testes; `pytest -q` e `ruff check .` OK. Próxima: T13. |
+| 2026-11-08 | T13 | ver `git log` | anomaly/worker.py (AnomalyWorker, db injetável) e testes com fakeredis; `pytest -q` e `ruff check .` OK. Próxima: T14. |
