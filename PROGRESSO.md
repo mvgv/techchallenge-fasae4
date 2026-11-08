@@ -9,8 +9,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T03 — Docker Compose, banco e camada de acesso
-- **Passos concluídos:** 1 (init.sql), 2 (Dockerfile, compose, download_models.py), 3 parcial (`docker compose config` OK; `docker compose build` ainda não executado)
-- **Próximo passo exato:** passo 4 — `src/medwatch/db.py` (funções do plano) e passo 5 `tests/test_db.py`; depois `docker compose build` e `up -d db redis` se o docker permitir.
+- **Passos concluídos:** 1, 2, 3 parcial (`docker compose config` OK; `build` pendente), 4 (db.py), 5 (test_db.py passa com banco real; `up -d db redis` healthy e 9 tabelas OK)
+- **Próximo passo exato:** rodar `docker compose build` (aceite); se OK, commit final `T03: Docker Compose, banco e camada de acesso`.
 - **Arquivos tocados:** db/init.sql, Dockerfile, .dockerignore, docker-compose*.yml, scripts/download_models.py
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
