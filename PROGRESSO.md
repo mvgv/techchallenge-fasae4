@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T13 concluída)
-- **Tarefa atual:** T14
-- **Estado geral:** T00–T13 concluídas; T14 não iniciada
+- **Última atualização:** 2026-11-08 (T14 concluída)
+- **Tarefa atual:** T15
+- **Estado geral:** T00–T14 concluídas; T15 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T14 — Conversão de áudio e Azure Speech
+- **Tarefa:** T15 — Azure AI Language e termos críticos
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** implementar `audio/convert.py`, `audio/speech.py` (Transcriber) e `tests/test_speech_fake.py` conforme a T14 do plano (~linha 1430 de `PLANO_IMPLEMENTACAO.md`).
+- **Próximo passo exato:** ler a T15 em `PLANO_IMPLEMENTACAO.md` (logo após a T14, ~linha 1500) e implementar conforme os passos.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -34,7 +34,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T11 | Regras de prescrição | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T12 | Regras de movimentação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T13 | Worker de anomalias | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; aceite com compose + simulador (XLEN evidence) não verificado |
-| T14 | Conversão de áudio e Azure Speech | pendente | | |
+| T14 | Conversão de áudio e Azure Speech | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; AzureTranscriber sem teste real (chaves [HUMANO]) |
 | T15 | Azure AI Language e termos críticos | pendente | | |
 | T16 | Features acústicas e linha de base de voz | pendente | | |
 | T17 | Sons respiratórios (modelo AudioSet) | pendente | | |
@@ -114,3 +114,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T11 | ver `git log` | prescriptions.py (PrescriptionMonitor, normalize_drug) e testes; `pytest -q` e `ruff check .` OK. Próxima: T12. |
 | 2026-11-08 | T12 | ver `git log` | movement.py (MovementMonitor) e testes; `pytest -q` e `ruff check .` OK. Próxima: T13. |
 | 2026-11-08 | T13 | ver `git log` | anomaly/worker.py (AnomalyWorker, db injetável) e testes com fakeredis; `pytest -q` e `ruff check .` OK. Próxima: T14. |
+| 2026-11-08 | T14 | ver `git log` | audio/convert.py (ffmpeg, duration_seconds), speech.py usa duration_seconds, test_speech_fake.py; `pytest -q` e `ruff check .` OK. Próxima: T15. |

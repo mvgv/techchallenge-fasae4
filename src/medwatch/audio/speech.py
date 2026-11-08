@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from medwatch.audio.convert import duration_seconds
 from medwatch.config import get_settings
 
 
@@ -16,12 +17,6 @@ class Segment:
 
 class Transcriber(Protocol):
     def transcribe(self, wav_path: Path) -> list[Segment]: ...
-
-
-def _duration_seconds(wav_path: Path) -> float:
-    import soundfile as sf
-
-    return float(sf.info(str(wav_path)).duration)
 
 
 class AzureTranscriber:
@@ -59,7 +54,7 @@ class AzureTranscriber:
         tr.canceled.connect(on_canceled)
         tr.session_stopped.connect(lambda evt: done.set())
         tr.start_transcribing_async().get()
-        finished = done.wait(timeout=max(120, _duration_seconds(wav_path) * 3))
+        finished = done.wait(timeout=max(120, duration_seconds(wav_path) * 3))
         tr.stop_transcribing_async().get()
         if errors and not segments:
             raise RuntimeError(f"Azure Speech falhou: {errors[0]}")
