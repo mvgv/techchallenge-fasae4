@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T03 concluída)
-- **Tarefa atual:** T04
-- **Estado geral:** T00–T03 concluídas; T04 não iniciada
+- **Última atualização:** 2026-11-08 (T04 concluída)
+- **Tarefa atual:** T05
+- **Estado geral:** T00–T04 concluídas; T05 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T04 — Barramento (Redis Streams) e storage
+- **Tarefa:** T05 — Provisionamento e verificação da Azure
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** passo 1 da T04 (ver plano).
+- **Próximo passo exato:** escrever `scripts/provision_azure.sh` conforme a T05 do plano (seção 5, Fase 0); depois `scripts/check_azure.py`, a fábrica de cliente em `src/medwatch/audio/speech.py` e a seção Azure no README.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -23,8 +23,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T00 | Arquivos de continuidade | concluída | | arquivos criados no planejamento (37cf1da); identidade do Git verificada |
 | T01 | Esqueleto do repositório | concluída | dafde2b | `pytest -q` e `ruff check .` passam; `requirements.lock` gerado |
 | T02 | Configuração, logging, contratos e tempo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T03 | Docker Compose, banco e camada de acesso | concluída | ver `git log` | `docker compose build` OK; db/redis healthy; test_db passa com banco real |
-| T04 | Barramento (Redis Streams) e storage | pendente | | |
+| T03 | Docker Compose, banco e camada de acesso | concluída | 3951ed5 | `docker compose build` OK; db/redis healthy; test_db passa com banco real |
+| T04 | Barramento (Redis Streams) e storage | concluída | ver `git log` | `pytest -q` e `ruff check .` passam (fakeredis e LocalStorage; AzureBlobStorage sem teste real) |
 | T05 | Provisionamento e verificação da Azure | pendente | | |
 | T06 | API: pacientes, upload de mídia e documentos | pendente | | |
 | T07 | Simulador de stream (sintético e MIMIC-IV Demo) | pendente | | |
@@ -104,3 +104,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T01 | ver `git log` | Verificação com `.venv` (Python 3.11): `pytest -q` e `ruff check .` OK; `requirements.lock` gerado; T01 concluída. |
 | 2026-11-08 | T02 | ver `git log` | config, contracts, logging, timeutil, YAML de config/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T03. |
 | 2026-11-08 | T03 | ver `git log` | init.sql, Dockerfile, compose, db.py e test_db.py; build, up db/redis, pytest e ruff OK. Próxima: T04. |
+| 2026-11-08 | T04 | ver `git log` | bus.py, storage.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T05. |
