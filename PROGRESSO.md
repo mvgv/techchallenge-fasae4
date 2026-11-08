@@ -9,8 +9,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T01 — Esqueleto do repositório
-- **Passos concluídos:** 1, 2, 3, 5 (arquivos escritos no disco, **sem commit**: falta identidade do Git). Criados: `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md`, `src/medwatch/__init__.py` (`__version__`), `tests/test_smoke.py`.
-- **Próximo passo exato:** (1) humano configura a identidade do Git; (2) fazer `git add -A` (exceto `data/`, já ignorado) e commit `T01 [wip]: pyproject, gitignore, README e smoke test`, `git push`; (3) passo 4: instalar e rodar `pytest -q` e `ruff check .` num ambiente Python 3.11 (esta VPS só tem Python 3.12.3; o `pyproject` exige `>=3.11,<3.12`; usar `docker run python:3.11-slim` ou instalar python3.11); (4) passo 6: gerar `requirements.lock` com `pip freeze` e commitar; (5) commit final `T01: Esqueleto do repositório`.
+- **Passos concluídos:** 1, 2, 3, 5 (commit `T01 [wip]` feito localmente, **sem push**: faltam credenciais do GitHub). Criados: `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md`, `src/medwatch/__init__.py` (`__version__`), `tests/test_smoke.py`.
+- **Próximo passo exato:** (1) humano configura credenciais do GitHub e roda `git push`; (3) passo 4: instalar e rodar `pytest -q` e `ruff check .` num ambiente Python 3.11 (esta VPS só tem Python 3.12.3; o `pyproject` exige `>=3.11,<3.12`; usar `docker run python:3.11-slim` ou instalar python3.11); (4) passo 6: gerar `requirements.lock` com `pip freeze` e commitar; (5) commit final `T01: Esqueleto do repositório`.
 - **Arquivos tocados:** `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md`, `src/medwatch/__init__.py`, `tests/test_smoke.py`, mais os `__init__.py`/`.gitkeep` do passo 1 (já em stage)
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** não executados (sem Python 3.11 nesta máquina; execução via docker precisou de aprovação e não foi feita)
@@ -63,8 +63,9 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 | Item | Tarefa afetada | Desde | Situação |
 |---|---|---|---|
 | Identidade do Git (`user.name` e `user.email`) não configurada nesta máquina | T00 (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 |
-| Identidade do Git ausente de novo nesta VPS (`Author identity unknown`); passo 1 da T01 está feito mas sem commit | T01 em diante (todos os commits) | 2026-11-08 | aberto: humano deve rodar `git config --global user.name` e `user.email` |
+| Identidade do Git ausente de novo nesta VPS (`Author identity unknown`); passo 1 da T01 está feito mas sem commit | T01 em diante (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 (identidade `mvgv` presente; commit wip criado) |
 | `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | aberto: aprovar `docker run python:3.11-slim` ou instalar python3.11 |
+| `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | aberto: humano configurar token/SSH ou credential helper |
 | Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | aberto |
 | Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
 | Gravar `consulta_p0001.wav` e leituras de voz saudável | T16, T18, T32 | — | aberto |
@@ -96,3 +97,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | planejamento | — | Modelo recomendado (seção 0.2), guia de ambiente remoto, `scripts/setup_vps.sh`, `.gitattributes` e portas do Compose presas a `127.0.0.1`. |
 | 2026-11-08 | T01 (tentativa) | — | Identidade do Git ainda ausente (sem commit) e docker bloqueado por aprovação; nada novo além do registro dos bloqueios. Todas as tarefas seguintes exigem commit, então não há tarefa avançável. |
 | 2026-11-08 | T01 (nova tentativa) | — | `git config user.name/email` continua vazio e o `docker run` foi bloqueado pelo verificador de permissões. Nada commitado; bloqueios acima seguem abertos. |
+| 2026-11-08 | T01 (parcial) | ver `git log` | Identidade do Git OK; commit wip criado; push falhou (sem credenciais); docker run bloqueado pelo verificador, pytest/ruff ainda não verificados. |
