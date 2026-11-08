@@ -252,7 +252,7 @@ def get_evidence_many(ids: list) -> list[dict]:
 
 # ---------- risco ----------
 
-def insert_risk_snapshot(patient_id, ts, risk, level, contributions: dict) -> None:
+def insert_risk_snapshot(patient_id, ts, risk, level, contributions: list | dict) -> None:
     _exec(
         """INSERT INTO risk_snapshots (patient_id, ts, risk_score, level, contributions)
            VALUES (:pid, :ts, :risk, :level, CAST(:c AS JSONB))

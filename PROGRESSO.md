@@ -4,17 +4,18 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 
 - **Última atualização:** 2026-11-08 (T25 concluída)
 - **Tarefa atual:** T26
-- **Estado geral:** T00–T25 concluídas; T26 não iniciada
+- **Estado geral:** T00–T25 concluídas; T26 em andamento
 
 ## Tarefa em andamento
 
 - **Tarefa:** T26 — Worker de fusão
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T26 em `PLANO_IMPLEMENTACAO.md` (após a T25, ~linha 2000, Fase 5) e implementar conforme os passos. **Recomendação: trocar para Opus 5.5 (seção 0.2).**
-- **Arquivos tocados:** nenhum
+- **Passos (divididos pelo agente):** 1) `fusion/worker.py` (FusionWorker: persistência, snapshot, decisão de alerta, título/resumo, reidratação); 2) `tests/test_fusion_worker.py` + commit final
+- **Passos concluídos:** 1
+- **Próximo passo exato:** escrever `tests/test_fusion_worker.py` com fakeredis e FakeDb (métodos: insert_evidence, insert_risk_snapshot, get_open_alert, last_closed_alert, insert_alert, update_alert, get_patient, recent_evidence_all) cobrindo: news2_medium + respiratory_sound → alerta critical; terceira evidência fraca não cria alerta; info isolada com min_level=warning não cria; escalonamento; cooldown; reidratação
+- **Arquivos tocados:** `src/medwatch/fusion/worker.py`, `src/medwatch/db.py` (type hint de `insert_risk_snapshot`)
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** T26 (worker de fusão) é uma das tarefas com recomendação de Opus 5.5. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
+- **Observações:** sessão rodando em Opus 5.5 (recomendação da seção 0.2 atendida). Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
 
 ## Status das tarefas
 
@@ -81,7 +82,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 
 | Item | Gerado? | Quando / observação |
 |---|---|---|
-| `.env` | não | |
+| `.env` | sim | presente em 2026-11-08 (sem chaves Azure nem Teams; USE_FAKE_AZURE definido) |
 | Imagem `medwatch-app` | não | |
 | Pesos YOLO e AST | não | |
 | `models/vitals_iforest.*` | sim | 2026-11-08, sintético (sem --mimic) |
@@ -126,3 +127,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T23 | ver `git log` | video/surgery.py (analyze_surgery, SurgeryResult) e test_surgery.py; `pytest -q` e `ruff check .` OK. Próxima: T24 (recomenda-se Opus 5.5). |
 | 2026-11-08 | T24 | ver `git log` | video/annotate.py (AnnotatedWriter H.264, overlay), video/worker.py (VideoWorker, duas passagens, evidências, MovementSample, findings.json, frames-chave) e test_video_worker.py; `pytest -q` e `ruff check .` OK. Próxima: T25. |
 | 2026-11-08 | T25 | ver `git log` | config/fusion.yaml, fusion/engine.py (FusionEngine, RiskResult) e test_fusion.py; `pytest -q` e `ruff check .` OK. Próxima: T26 (recomenda-se Opus 5.5). |
+| 2026-11-08 | T26 | (em andamento) | Sessão iniciada em T26 com Opus 5.5; suíte inicial 135 passed. |
