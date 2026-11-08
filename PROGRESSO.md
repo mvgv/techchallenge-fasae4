@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T11 concluída)
-- **Tarefa atual:** T12
-- **Estado geral:** T00–T11 concluídas; T12 não iniciada
+- **Última atualização:** 2026-11-08 (T12 concluída)
+- **Tarefa atual:** T13
+- **Estado geral:** T00–T12 concluídas; T13 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T12 — Regras de movimentação
+- **Tarefa:** T13 — Worker de anomalias
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** implementar `anomaly/movement.py` (`MovementMonitor`) e `tests/test_movement.py` conforme a T12 do plano; registrar em `docs/DECISOES.md` que o horário noturno usa `ts` em UTC.
+- **Próximo passo exato:** implementar `anomaly/worker.py` e `tests/test_anomaly_worker.py` conforme a T13 do plano (seção da tarefa em `PLANO_IMPLEMENTACAO.md`, ~linha 1407).
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -32,7 +32,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T09 | Estatística em streaming (EWMA z-score) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T10 | Isolation Forest para vitais | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; modelo gerado em `models/` (fora do Git); `--mimic` não testado |
 | T11 | Regras de prescrição | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T12 | Regras de movimentação | pendente | | |
+| T12 | Regras de movimentação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T13 | Worker de anomalias | pendente | | |
 | T14 | Conversão de áudio e Azure Speech | pendente | | |
 | T15 | Azure AI Language e termos críticos | pendente | | |
@@ -112,3 +112,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T09 | ver `git log` | streaming_stats.py (EwmaZ, Cooldown) e testes; `pytest -q` e `ruff check .` OK. Próxima: T10. |
 | 2026-11-08 | T10 | ver `git log` | iforest.py, train_vitals_iforest.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T11. |
 | 2026-11-08 | T11 | ver `git log` | prescriptions.py (PrescriptionMonitor, normalize_drug) e testes; `pytest -q` e `ruff check .` OK. Próxima: T12. |
+| 2026-11-08 | T12 | ver `git log` | movement.py (MovementMonitor) e testes; `pytest -q` e `ruff check .` OK. Próxima: T13. |
