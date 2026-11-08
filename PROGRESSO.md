@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T15 concluída)
-- **Tarefa atual:** T16
-- **Estado geral:** T00–T15 concluídas; T16 não iniciada
+- **Última atualização:** 2026-11-08 (T16 concluída)
+- **Tarefa atual:** T17
+- **Estado geral:** T00–T16 concluídas; T17 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T16 — Features acústicas e linha de base de voz
+- **Tarefa:** T17 — Sons respiratórios (modelo AudioSet)
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T16 em `PLANO_IMPLEMENTACAO.md` (~linha 1570) e implementar conforme os passos.
+- **Próximo passo exato:** ler a T17 em `PLANO_IMPLEMENTACAO.md` (~linha 1590) e implementar conforme os passos.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -36,7 +36,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T13 | Worker de anomalias | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; aceite com compose + simulador (XLEN evidence) não verificado |
 | T14 | Conversão de áudio e Azure Speech | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; AzureTranscriber sem teste real (chaves [HUMANO]) |
 | T15 | Azure AI Language e termos críticos | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; AzureLanguageAnalyzer sem teste real (chaves [HUMANO]) |
-| T16 | Features acústicas e linha de base de voz | pendente | | |
+| T16 | Features acústicas e linha de base de voz | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; openSMILE não importa na `.venv` (pyarrow 26 x numpy<2, ver T07): features eGeMAPS ficam None; teste com openSMILE real não feito; baseline real depende de gravações [HUMANO] |
 | T17 | Sons respiratórios (modelo AudioSet) | pendente | | |
 | T18 | Workers de áudio e de texto | pendente | | |
 | T19 | Leitura de frames e wrappers de modelos | pendente | | |
@@ -116,3 +116,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T13 | ver `git log` | anomaly/worker.py (AnomalyWorker, db injetável) e testes com fakeredis; `pytest -q` e `ruff check .` OK. Próxima: T14. |
 | 2026-11-08 | T14 | ver `git log` | audio/convert.py (ffmpeg, duration_seconds), speech.py usa duration_seconds, test_speech_fake.py; `pytest -q` e `ruff check .` OK. Próxima: T15. |
 | 2026-11-08 | T15 | ver `git log` | audio/terms.py, audio/language.py (Azure + Fake + fábrica) e testes; `pytest -q` e `ruff check .` OK. Próxima: T16. |
+| 2026-11-08 | T16 | ver `git log` | audio/acoustic.py (extract_features, assess_voice), build_voice_baseline.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T17. |
