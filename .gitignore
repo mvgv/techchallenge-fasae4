@@ -1,0 +1,13 @@
+.env
+data/*
+!data/samples/
+data/samples/*
+!data/samples/README.md
+models/
+__pycache__/
+.venv/
+*.pt
+runs/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
