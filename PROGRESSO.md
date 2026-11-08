@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T22 concluída)
-- **Tarefa atual:** T23
-- **Estado geral:** T00–T22 concluídas; T23 não iniciada
+- **Última atualização:** 2026-11-08 (T23 concluída)
+- **Tarefa atual:** T24
+- **Estado geral:** T00–T23 concluídas; T24 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T23 — Análise de cirurgia
+- **Tarefa:** T24 — Vídeo anotado e worker de vídeo
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T23 em `PLANO_IMPLEMENTACAO.md` (~linha 1832) e implementar conforme os passos.
+- **Próximo passo exato:** ler a T24 em `PLANO_IMPLEMENTACAO.md` (~linha 1845) e implementar conforme os passos.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -42,8 +42,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T19 | Leitura de frames e wrappers de modelos | concluída | 8bd7cb7 | `pytest -q` e `ruff check .` passam; Detector/PoseEstimator (YOLO) sem teste real (pesos não baixados); T19b opcional não feita |
 | T20 | Geometria, DTW, repetições e referência | concluída | 4e70525 | `pytest -q` e `ruff check .` passam; `build_exercise_reference.py` sem teste real (sem vídeo de agachamento nem pesos YOLO) [HUMANO] |
 | T21 | Análise de fisioterapia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos |
-| T22 | Análise de leito | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos; sem vídeo de queda real [HUMANO] |
-| T23 | Análise de cirurgia | pendente | | |
+| T22 | Análise de leito | concluída | 36e6010 | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos; sem vídeo de queda real [HUMANO] |
+| T23 | Análise de cirurgia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com detecções sintéticas; YOLO COCO só conhece objetos genéricos (documentar no relatório) |
 | T24 | Vídeo anotado e worker de vídeo | pendente | | |
 | T25 | Motor de fusão | pendente | | |
 | T26 | Worker de fusão | pendente | | |
@@ -123,3 +123,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T20 | ver `git log` | video/geometry.py, dtw.py, reps.py, build_exercise_reference.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T21. |
 | 2026-11-08 | T21 | ver `git log` | video/physio.py (analyze_physio, PhysioResult) e test_physio.py; `pytest -q` e `ruff check .` OK. Próxima: T22. |
 | 2026-11-08 | T22 | ver `git log` | video/bed.py (analyze_bed, BedResult) e test_bed.py; `pytest -q` e `ruff check .` OK. Próxima: T23. |
+| 2026-11-08 | T23 | ver `git log` | video/surgery.py (analyze_surgery, SurgeryResult) e test_surgery.py; `pytest -q` e `ruff check .` OK. Próxima: T24 (recomenda-se Opus 5.5). |
