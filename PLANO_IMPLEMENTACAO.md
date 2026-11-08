@@ -9,12 +9,13 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
 ## Sumário
 
 0. [Regras para o agente](#0-regras-para-o-agente)
+   - [0.1 Continuidade entre sessões](#01-continuidade-entre-sessões)
 1. [Visão geral e decisões fixas](#1-visão-geral-e-decisões-fixas)
 2. [Estrutura do repositório](#2-estrutura-do-repositório)
 3. [Contratos compartilhados](#3-contratos-compartilhados)
 4. [Catálogo de evidências](#4-catálogo-de-evidências)
 5. [Tarefas](#5-tarefas)
-   - Fase 0 — Fundação: T01–T05
+   - Fase 0 — Fundação: T00–T05
    - Fase 1 — Ingestão e simulação: T06–T07
    - Fase 2 — Anomalias em séries: T08–T13
    - Fase 3 — Áudio e texto: T14–T18
@@ -31,18 +32,106 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
 
 ## 0. Regras para o agente
 
+0. **Toda sessão começa pelo protocolo de início e termina pelo de encerramento** da seção 0.1. A sessão pode acabar a qualquer momento (orçamento diário, erro, queda); o que não estiver em commit e no `PROGRESSO.md` é considerado perdido.
 1. **Execute as tarefas na ordem numérica.** Cada tarefa lista suas dependências. Não comece uma tarefa sem que as dependências passem nos critérios de aceite.
 2. **Não altere contratos** da seção 3 (modelos Pydantic, nomes de streams, esquema do banco, variáveis de ambiente) sem registrar a mudança em `docs/DECISOES.md` e atualizar todos os usos.
-3. **Ao terminar cada tarefa**, rode `pytest -q` e `ruff check .`. Ambos devem passar. Faça um commit com a mensagem `T<NN>: <título da tarefa>`.
+3. **Commits frequentes com progresso registrado.** Commit `T<NN> [wip]: <passo>` a cada passo concluído; commit final `T<NN>: <título da tarefa>` só com `pytest -q` e `ruff check .` passando. Todo commit inclui o `PROGRESSO.md` atualizado. Faça push depois de cada commit (detalhes na seção 0.1).
 4. **Nunca commite segredos.** Chaves ficam somente em `.env` (que está no `.gitignore`). Use `.env.example` com valores vazios.
 5. **Tudo deve funcionar sem Azure** quando `USE_FAKE_AZURE=true`. Os testes automatizados sempre rodam com clientes falsos. Testes que chamam a Azure de verdade levam o marcador `@pytest.mark.azure` e são pulados se as chaves não existirem.
 6. **Timestamps sempre em UTC e com timezone** (`datetime.now(timezone.utc)`). Nunca use `datetime.utcnow()`.
 7. **Use o tempo do evento, não o relógio da parede**, em toda lógica de janela, cooldown e decaimento (o simulador acelera o tempo).
 8. **Limiares ficam em YAML** dentro de `config/`, nunca fixos no código. O código lê os valores via `medwatch.config.load_yaml(nome)`.
 9. Se algo neste documento estiver ambíguo, escolha a solução mais simples, implemente, e registre a escolha em `docs/DECISOES.md` (uma linha por decisão).
-10. Passos marcados como **[HUMANO]** não podem ser feitos pelo agente (login na Azure, Teams, gravação de áudio). Deixe o código pronto e siga em frente.
+10. Passos marcados como **[HUMANO]** não podem ser feitos pelo agente (login na Azure, Teams, gravação de áudio). Deixe o código pronto, registre o bloqueio no `PROGRESSO.md` (seção 0.1) e siga em frente.
 11. Não adicione dependências fora da lista da T01 sem registrar em `docs/DECISOES.md`.
 12. Funções públicas devem ter type hints e docstring de uma linha. Não é necessário documentação extensa.
+
+### 0.1 Continuidade entre sessões
+
+O trabalho será feito em várias sessões, possivelmente interrompidas sem aviso. Estas regras garantem que uma sessão nova, sem memória das anteriores, retome exatamente de onde a última parou, perdendo no máximo um passo.
+
+#### Arquivos de estado
+
+| Arquivo | Papel |
+|---|---|
+| `CLAUDE.md` | Ponto de entrada, lido automaticamente pelo agente ao abrir o repositório. Curto: aponta para o `PROGRESSO.md` e para este plano. |
+| `PROGRESSO.md` | **Fonte da verdade do andamento:** status de cada tarefa, tarefa em andamento com o próximo passo exato, bloqueios que dependem de pessoas, estado fora do Git e histórico de sessões. |
+| `docs/DECISOES.md` | Decisões tomadas pelo agente onde este plano era ambíguo. |
+| `git log` | Histórico detalhado. Mensagens `T<NN> [wip]: ...` e `T<NN>: ...`. |
+
+Valores de status no `PROGRESSO.md`: `pendente`, `em andamento`, `concluída`, `bloqueada` (a tarefa inteira depende de uma pessoa), `pulada` (só para opcionais da T34).
+
+#### Protocolo de início de sessão (sempre, nesta ordem)
+
+1. Ler `CLAUDE.md` e `PROGRESSO.md`. Neste plano, ler apenas a seção 0, a tarefa atual e as seções que ela referencia. Não releia o plano inteiro.
+2. Verificar o Git:
+   ```bash
+   git status -sb
+   git log --oneline -10
+   git fetch && git status -sb
+   ```
+   Se a branch local estiver atrás da remota, `git pull --ff-only`. Se o `git` não estiver no PATH (Windows), use `"C:\Program Files\Git\cmd\git.exe"`.
+3. Se houver mudanças sem commit, compare com a seção "Tarefa em andamento" do `PROGRESSO.md`:
+   - **correspondem ao próximo passo registrado e parecem completas:** rodar os testes do módulo e fazer o commit `[wip]`;
+   - **são parciais, mas dá para entender o que faltava:** completar o passo e fazer o commit;
+   - **não são reconhecíveis ou estão quebradas:** `git stash push -u -m "sessao-anterior-<AAAA-MM-DD>"`, anotar o nome do stash em "Observações" e refazer o passo.
+   Nunca use `git reset --hard`, `git checkout -- .` ou `git clean` para descartar trabalho sem antes guardá-lo num stash.
+4. Rodar `pytest -q` (e subir os serviços Docker que a tarefa usa, conforme a tabela 9.6). Se algo de uma tarefa já concluída falhar, corrigir isso é o primeiro passo da sessão.
+5. Revisar a tabela de bloqueios: o humano pode ter resolvido algum (`.env` preenchido, amostras em `data/samples/`). Atualizar a tabela.
+6. Adicionar uma linha no "Histórico de sessões" com a data e a tarefa de partida.
+7. Continuar a partir do "Próximo passo exato".
+
+#### Durante a tarefa
+
+- Trate cada item da lista "Passos" da tarefa como um passo. Tarefas sem lista numerada são divididas em passos de até ~30 minutos de trabalho e registradas no `PROGRESSO.md` antes de começar.
+- Ao concluir cada passo:
+  1. atualizar "Tarefa em andamento" (passos concluídos, próximo passo exato, arquivos tocados);
+  2. `git add` dos arquivos do passo **e** do `PROGRESSO.md`;
+  3. commit `T<NN> [wip]: <descrição curta do passo>`;
+  4. `git push`.
+- Num commit `[wip]` os testes podem falhar, mas o código precisa ser importável (`ruff check .` sem erros de sintaxe). Anote em "Observações" quais testes estão falhando e por quê.
+- Limite de segurança: nunca acumule mais de ~5 arquivos alterados ou ~30 minutos de trabalho sem commit.
+- Antes de comandos longos (build Docker, download de modelos, treino), registre no `PROGRESSO.md` o comando e o que ele produz. Se a sessão cair no meio, a próxima sabe que precisa rodar de novo.
+- O "Próximo passo exato" deve ser acionável por quem não viu a sessão anterior. Ruim: "continuar o worker". Bom: "implementar `_handle_prescription` em `src/medwatch/anomaly/worker.py` chamando `PrescriptionMonitor.process` e publicando em `evidence`; depois o teste `test_rx_flow` em `tests/test_anomaly_worker.py`".
+
+#### Ao concluir uma tarefa
+
+1. Verificar o critério de aceite, `pytest -q` e `ruff check .`.
+2. No `PROGRESSO.md`: status `concluída`, limpar "Tarefa em andamento" e preenchê-la com a próxima tarefa e o seu primeiro passo. A coluna "Commit" recebe o hash do commit final no primeiro commit da tarefa seguinte (antes do commit o hash ainda não existe).
+3. Commit `T<NN>: <título da tarefa>` e `git push`.
+
+#### Encerramento (orçamento acabando, contexto longo demais ou erro que impede continuar)
+
+1. Parar de começar trabalho novo.
+2. Deixar o código importável: terminar a função atual se for rápido; senão, comentar o trecho incompleto e marcar com `# TODO(T<NN>): <o que falta>`.
+3. Atualizar "Tarefa em andamento" com o próximo passo exato e o que ficou pela metade.
+4. Completar a linha da sessão no "Histórico de sessões".
+5. Commit `T<NN> [wip]: checkpoint de fim de sessão` e `git push`.
+
+Como o commit é feito a cada passo, uma interrupção abrupta (sem tempo para o encerramento) perde no máximo o passo em andamento.
+
+#### Bloqueios que dependem de pessoas
+
+- Ao encontrar um passo **[HUMANO]** pendente, registrar na tabela "Bloqueios" do `PROGRESSO.md`: o que é preciso, qual tarefa depende, desde quando.
+- Se dá para concluir a tarefa com os clientes falsos (`USE_FAKE_AZURE=true`) ou com dados sintéticos, conclua e anote em "Observação": `verificação real pendente: <o quê>`.
+- Só marque a tarefa como `bloqueada` se nada dela puder ser feito sem a pessoa. Nesse caso, siga para a próxima tarefa cujas dependências estejam concluídas.
+- Se o commit falhar com `Please tell me who you are`, a identidade do Git não está configurada: registre o bloqueio e peça ao humano para rodar `git config --global user.name` e `user.email`. Não invente uma identidade.
+- Se o push falhar por falta de credencial, continue trabalhando com commits locais, registre o bloqueio e peça ao humano para fazer o login.
+
+#### Estado fora do Git
+
+Nada desta tabela vai para o repositório. Nunca suponha que existe: verifique antes de usar e, se faltar, recrie.
+
+| O quê | Onde | Como verificar | Como recriar |
+|---|---|---|---|
+| Variáveis e chaves | `.env` | `Test-Path .env` / `test -f .env` | Copiar `.env.example`; sem chaves, `USE_FAKE_AZURE=true` e pedir as chaves ao humano |
+| Imagem Docker | Docker local | `docker image ls medwatch-app` | `docker compose build` |
+| Banco e streams | volumes `pgdata`, `redisdata` | `docker compose ps` | `docker compose up -d db redis`, `scripts/seed.py`; o simulador repovoa vitais |
+| Pesos YOLO e modelo AST | `models/`, volume `model-cache` | `ls models/` | `docker compose up models-init` |
+| Isolation Forest | `models/vitals_iforest.*` | `ls models/` | `scripts/train_vitals_iforest.py` |
+| Referências de exercício e voz | `data/references/` | `ls data/references/` | `build_exercise_reference.py`, `build_voice_baseline.py` (precisam das amostras) |
+| Amostras de mídia | `data/samples/` | `ls data/samples/` | Humano, conforme `data/samples/README.md` |
+| MIMIC-IV Demo | `data/mimic/` | `ls data/mimic/` | `download_mimic_demo.sh` e `prepare_mimic.py` |
 
 ---
 
@@ -114,6 +203,9 @@ Crie exatamente esta estrutura (arquivos vazios são criados nas tarefas corresp
 ```
 medwatch/
 ├── README.md
+├── CLAUDE.md                  # ponto de entrada do agente (T00)
+├── PROGRESSO.md               # andamento e próximo passo (T00, atualizado em todo commit)
+├── PLANO_IMPLEMENTACAO.md     # este documento
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml         # ambiente completo (seção 9)
@@ -661,11 +753,25 @@ Formato de cada tarefa: **Objetivo · Depende de · Arquivos · Passos · Códig
 
 ### Fase 0 — Fundação
 
+#### T00 — Arquivos de continuidade
+
+- **Objetivo:** garantir que qualquer sessão consiga retomar o trabalho (seção 0.1).
+- **Depende de:** nada.
+- **Arquivos:** `CLAUDE.md`, `PROGRESSO.md`, `docs/DECISOES.md`.
+- **Passos:**
+  1. Os três arquivos foram criados junto com este plano. Confirme que existem na raiz do repositório e em `docs/`.
+  2. Se algum faltar, recrie:
+     - `CLAUDE.md`: no máximo ~40 linhas. Manda ler o `PROGRESSO.md`, seguir o protocolo de início da seção 0.1 e ler só a tarefa atual do plano; resume as regras essenciais (ordem das tarefas, commit `[wip]` a cada passo com o `PROGRESSO.md`, push, nada de segredos, caminho do `git.exe` no Windows).
+     - `PROGRESSO.md`: seções "Tarefa em andamento", "Status das tarefas" (tabela com T00–T34: tarefa, título, status, commit, observação), "Bloqueios que dependem de pessoas" (pré-preenchida com os itens da seção 6), "Estado fora do Git" (aponta para a tabela da seção 0.1) e "Histórico de sessões".
+     - `docs/DECISOES.md`: título e tabela vazia com colunas data, tarefa, decisão, motivo.
+  3. Verificar a identidade do Git (`git config user.name` e `git config user.email`). Se estiver vazia, registrar o bloqueio no `PROGRESSO.md` e pedir ao humano para configurar antes de qualquer commit.
+- **Aceite:** os três arquivos existem; "Tarefa em andamento" aponta para a T01 e seu primeiro passo; commit `T00: Arquivos de continuidade` enviado com push (se a identidade estiver configurada).
+
 #### T01 — Esqueleto do repositório
 
 - **Objetivo:** projeto Python instalável, lint e testes funcionando.
-- **Depende de:** nada.
-- **Arquivos:** `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md` (stub), `src/medwatch/__init__.py`, `tests/test_smoke.py`, `docs/DECISOES.md`.
+- **Depende de:** T00.
+- **Arquivos:** `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md` (stub), `src/medwatch/__init__.py`, `tests/test_smoke.py`. Não sobrescreva `CLAUDE.md`, `PROGRESSO.md` nem `docs/DECISOES.md` (criados na T00).
 - **Passos:**
   1. No repositório já clonado, criar a estrutura de diretórios da seção 2 (com `__init__.py` vazios). O Git não versiona pastas vazias e o `Dockerfile` copia `config/`, `db/`, `scripts/` e `tests/`: coloque um `.gitkeep` em toda pasta que ainda não tiver arquivo.
   2. Criar `pyproject.toml`:
@@ -2045,6 +2151,8 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 
 ## 6. Passos manuais (somente humanos)
 
+Cada item abaixo também aparece na tabela "Bloqueios que dependem de pessoas" do `PROGRESSO.md`. O agente atualiza a tabela; o humano avisa quando resolver.
+
 | Quando | Passo |
 |---|---|
 | Antes da T05 | Criar/ativar assinatura Azure (Azure for Students, se disponível), `az login`, rodar `scripts/provision_azure.sh`, copiar a saída para `.env`. Criar alerta de orçamento. |
@@ -2113,6 +2221,7 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] `docs/relatorio-tecnico.md` cobre fluxo multimodal, modelos por tipo de dado, resultados e exemplos de anomalias.
 - [ ] README permite rodar do zero; link do vídeo incluído.
 - [ ] Nenhum segredo ou dado real de paciente no repositório.
+- [ ] `PROGRESSO.md` com T00–T33 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 
