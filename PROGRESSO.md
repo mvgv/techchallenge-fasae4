@@ -2,16 +2,16 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T04 concluída)
-- **Tarefa atual:** T05
-- **Estado geral:** T00–T04 concluídas; T05 não iniciada
+- **Última atualização:** 2026-11-08 (T05 concluída)
+- **Tarefa atual:** T06
+- **Estado geral:** T00–T05 concluídas; T06 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T05 — Provisionamento e verificação da Azure
-- **Passos concluídos:** 1 (provision_azure.sh)
-- **Próximo passo exato:** fábrica de cliente em `src/medwatch/audio/speech.py` (plano T14: Segment, FakeTranscriber, AzureTranscriber, get_transcriber); depois `scripts/check_azure.py` e a seção Azure no README.
-- **Arquivos tocados:** scripts/provision_azure.sh
+- **Tarefa:** T06 — API: pacientes, upload de mídia e documentos
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passos 1–2 da T06: `api/main.py` (FastAPI, CORS, `/health`, `setup_logging`) e `api/routes_patients.py` usando `db.py`; injetar Bus/Storage via `Depends`.
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
@@ -24,8 +24,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T01 | Esqueleto do repositório | concluída | dafde2b | `pytest -q` e `ruff check .` passam; `requirements.lock` gerado |
 | T02 | Configuração, logging, contratos e tempo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T03 | Docker Compose, banco e camada de acesso | concluída | 3951ed5 | `docker compose build` OK; db/redis healthy; test_db passa com banco real |
-| T04 | Barramento (Redis Streams) e storage | concluída | ver `git log` | `pytest -q` e `ruff check .` passam (fakeredis e LocalStorage; AzureBlobStorage sem teste real) |
-| T05 | Provisionamento e verificação da Azure | pendente | | |
+| T04 | Barramento (Redis Streams) e storage | concluída | 1bd2ab9 | `pytest -q` e `ruff check .` passam (fakeredis e LocalStorage; AzureBlobStorage sem teste real) |
+| T05 | Provisionamento e verificação da Azure | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; verificação real pendente: rodar `scripts/check_azure.py` com chaves reais [HUMANO] |
 | T06 | API: pacientes, upload de mídia e documentos | pendente | | |
 | T07 | Simulador de stream (sintético e MIMIC-IV Demo) | pendente | | |
 | T08 | Filtro fisiológico e NEWS2 | pendente | | |
@@ -105,3 +105,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T02 | ver `git log` | config, contracts, logging, timeutil, YAML de config/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T03. |
 | 2026-11-08 | T03 | ver `git log` | init.sql, Dockerfile, compose, db.py e test_db.py; build, up db/redis, pytest e ruff OK. Próxima: T04. |
 | 2026-11-08 | T04 | ver `git log` | bus.py, storage.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T05. |
+| 2026-11-08 | T05 | ver `git log` | provision_azure.sh, check_azure.py, speech.py (fábrica + Fake), README e teste; `pytest -q` e `ruff check .` OK. Próxima: T06. |
