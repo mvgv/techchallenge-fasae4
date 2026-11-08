@@ -2,16 +2,16 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T06 concluída)
-- **Tarefa atual:** T07
-- **Estado geral:** T00–T06 concluídas; T07 não iniciada
+- **Última atualização:** 2026-11-08 (T07 concluída)
+- **Tarefa atual:** T08
+- **Estado geral:** T00–T07 concluídas; T08 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T07 — Simulador de stream (sintético e MIMIC-IV Demo)
-- **Passos concluídos:** 2 (synthetic.py; replay.py + seed.py + test_replay.py)
-- **Próximo passo exato:** implementar `simulator/mimic.py` (`load_mimic`), `scripts/download_mimic_demo.sh`, `scripts/prepare_mimic.py` (sem rodar o download); `replay.py` já importa `load_mimic` para `SIM_SCENARIO=mimic`. Depois commit final da T07.
-- **Arquivos tocados:** src/medwatch/simulator/{synthetic,replay}.py, scripts/seed.py, tests/test_{synthetic,replay}.py, docs/DECISOES.md
+- **Tarefa:** T08 — Filtro fisiológico e NEWS2
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** implementar `anomaly/filters.py` (`clean_observation`) e `anomaly/news2.py` + `tests/test_news2.py` conforme a T08 do plano (linha ~1232).
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
@@ -27,7 +27,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T04 | Barramento (Redis Streams) e storage | concluída | 1bd2ab9 | `pytest -q` e `ruff check .` passam (fakeredis e LocalStorage; AzureBlobStorage sem teste real) |
 | T05 | Provisionamento e verificação da Azure | concluída | 41feab5 | `pytest -q` e `ruff check .` passam; verificação real pendente: rodar `scripts/check_azure.py` com chaves reais [HUMANO] |
 | T06 | API: pacientes, upload de mídia e documentos | concluída | ver `git log` | `pytest -q` e `ruff check .` passam com banco real; `routes_alerts.py` é stub; B008 isento para Depends/File/Form no ruff |
-| T07 | Simulador de stream (sintético e MIMIC-IV Demo) | pendente | | |
+| T07 | Simulador de stream (sintético e MIMIC-IV Demo) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `test_mimic` pulado (pyarrow 26 da `.venv` incompatível com numpy<2: `pip install "pyarrow<18"`); aceite com `docker compose --profile demo up simulator` (XLEN vitals) não verificado; MIMIC não baixado |
 | T08 | Filtro fisiológico e NEWS2 | pendente | | |
 | T09 | Estatística em streaming (EWMA z-score) | pendente | | |
 | T10 | Isolation Forest para vitais | pendente | | |
@@ -107,3 +107,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T04 | ver `git log` | bus.py, storage.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T05. |
 | 2026-11-08 | T05 | ver `git log` | provision_azure.sh, check_azure.py, speech.py (fábrica + Fake), README e teste; `pytest -q` e `ruff check .` OK. Próxima: T06. |
 | 2026-11-08 | T06 | ver `git log` | api (main, deps, routes_patients/media/alerts stub) e test_api_media; `pytest -q` e `ruff check .` OK. Próxima: T07. |
+| 2026-11-08 | T07 | ver `git log` | synthetic, replay (fases de velocidade, sim:clock, ground truth), seed, mimic + scripts, testes; `pytest -q` e `ruff check .` OK. Próxima: T08. |
