@@ -2,16 +2,16 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T02 concluída)
-- **Tarefa atual:** T03
-- **Estado geral:** T00–T02 concluídas; T03 não iniciada
+- **Última atualização:** 2026-11-08 (T03 concluída)
+- **Tarefa atual:** T04
+- **Estado geral:** T00–T03 concluídas; T04 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T03 — Docker Compose, banco e camada de acesso
-- **Passos concluídos:** 1, 2, 3 parcial (`docker compose config` OK; `build` pendente), 4 (db.py), 5 (test_db.py passa com banco real; `up -d db redis` healthy e 9 tabelas OK)
-- **Próximo passo exato:** rodar `docker compose build` (aceite); se OK, commit final `T03: Docker Compose, banco e camada de acesso`.
-- **Arquivos tocados:** db/init.sql, Dockerfile, .dockerignore, docker-compose*.yml, scripts/download_models.py
+- **Tarefa:** T04 — Barramento (Redis Streams) e storage
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passo 1 da T04 (ver plano).
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
@@ -23,7 +23,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T00 | Arquivos de continuidade | concluída | | arquivos criados no planejamento (37cf1da); identidade do Git verificada |
 | T01 | Esqueleto do repositório | concluída | dafde2b | `pytest -q` e `ruff check .` passam; `requirements.lock` gerado |
 | T02 | Configuração, logging, contratos e tempo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T03 | Docker Compose, banco e camada de acesso | pendente | | |
+| T03 | Docker Compose, banco e camada de acesso | concluída | ver `git log` | `docker compose build` OK; db/redis healthy; test_db passa com banco real |
 | T04 | Barramento (Redis Streams) e storage | pendente | | |
 | T05 | Provisionamento e verificação da Azure | pendente | | |
 | T06 | API: pacientes, upload de mídia e documentos | pendente | | |
@@ -103,3 +103,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T01 (nova tentativa) | ver `git log` | Estado inalterado: sem python3.11, pytest nem ruff nesta VPS; `docker run` e criação de venv já foram barrados antes e não foram reexecutados. Aguardando o humano: aprovar `docker run python:3.11-slim` ou instalar python3.11 (ou pytest/ruff). Nenhuma tarefa seguinte avança sem a verificação da T01. |
 | 2026-11-08 | T01 | ver `git log` | Verificação com `.venv` (Python 3.11): `pytest -q` e `ruff check .` OK; `requirements.lock` gerado; T01 concluída. |
 | 2026-11-08 | T02 | ver `git log` | config, contracts, logging, timeutil, YAML de config/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T03. |
+| 2026-11-08 | T03 | ver `git log` | init.sql, Dockerfile, compose, db.py e test_db.py; build, up db/redis, pytest e ruff OK. Próxima: T04. |
