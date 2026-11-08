@@ -25,6 +25,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
+9. [Ambiente Docker (referência completa)](#9-ambiente-docker-referência-completa)
 
 ---
 
@@ -115,9 +116,12 @@ medwatch/
 ├── README.md
 ├── pyproject.toml
 ├── Dockerfile
-├── docker-compose.yml
+├── docker-compose.yml         # ambiente completo (seção 9)
+├── docker-compose.dev.yml     # override de desenvolvimento: código montado + reload
+├── docker-compose.gpu.yml     # override opcional: GPU NVIDIA no worker-video
 ├── .env.example
 ├── .gitignore
+├── .gitattributes             # força LF em scripts (essencial no Windows)
 ├── .dockerignore
 ├── config/
 │   ├── thresholds.yaml        # limiares de vitais, voz, vídeo
@@ -201,6 +205,7 @@ medwatch/
 │       ├── app.py
 │       └── api_client.py
 ├── scripts/
+│   ├── download_models.py     # baixa pesos YOLO e o modelo AST (seção 9.4)
 │   ├── provision_azure.sh
 │   ├── check_azure.py
 │   ├── download_mimic_demo.sh
@@ -234,17 +239,26 @@ medwatch/
 ### 3.1 Variáveis de ambiente (`.env.example`)
 
 ```dotenv
-# Infra
-DATABASE_URL=postgresql+psycopg://medwatch:medwatch@db:5432/medwatch
-REDIS_URL=redis://redis:6379/0
-API_BASE_URL=http://api:8000
-CONFIG_DIR=/app/config
-MODELS_DIR=/app/models
+# Infra — valores para rodar FORA do Docker (python local).
+# Dentro do Docker, o docker-compose.yml sobrescreve DATABASE_URL, REDIS_URL, API_BASE_URL,
+# CONFIG_DIR, MODELS_DIR, LOCAL_STORAGE_DIR e YOLO_*_WEIGHTS (seção 9.3). Não edite esses aqui para o Docker.
+DATABASE_URL=postgresql+psycopg://medwatch:medwatch@localhost:5432/medwatch
+REDIS_URL=redis://localhost:6379/0
+API_BASE_URL=http://localhost:8000
+CONFIG_DIR=config
+MODELS_DIR=models
 LOG_LEVEL=INFO
+
+# Docker (usados pelo docker-compose.yml)
+DB_PORT=5432                     # mude se a porta 5432 já estiver em uso na máquina
+REDIS_PORT=6379
+API_PORT=8000
+DASHBOARD_PORT=8501
+TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu   # GPU: https://download.pytorch.org/whl/cu121
 
 # Storage
 STORAGE_BACKEND=local            # local | azure
-LOCAL_STORAGE_DIR=/data/storage
+LOCAL_STORAGE_DIR=data/storage
 AZURE_STORAGE_CONNECTION_STRING=
 AZURE_STORAGE_CONTAINER=media
 
@@ -258,9 +272,12 @@ AZURE_LANGUAGE_ENDPOINT=
 LANGUAGE_CODE=pt
 
 # Vídeo
-YOLO_DET_WEIGHTS=yolov8n.pt
-YOLO_POSE_WEIGHTS=yolov8n-pose.pt
+YOLO_DET_WEIGHTS=models/yolov8n.pt
+YOLO_POSE_WEIGHTS=models/yolov8n-pose.pt
 VIDEO_TARGET_FPS=8
+
+# Áudio
+AUDIO_DISABLE_EVENTS=false       # true pula o modelo AST (máquinas com pouca memória)
 
 # Simulador
 SIM_SPEEDUP=60                   # 60 = 1 min simulado por segundo real
@@ -304,9 +321,10 @@ class Settings(BaseSettings):
     azure_language_key: str = ""
     azure_language_endpoint: str = ""
     language_code: str = "pt"
-    yolo_det_weights: str = "yolov8n.pt"
-    yolo_pose_weights: str = "yolov8n-pose.pt"
+    yolo_det_weights: str = "models/yolov8n.pt"
+    yolo_pose_weights: str = "models/yolov8n-pose.pt"
     video_target_fps: int = 8
+    audio_disable_events: bool = False
     sim_speedup: float = 60.0
     sim_patients: int = 5
     sim_scenario: str = "demo"
@@ -649,7 +667,7 @@ Formato de cada tarefa: **Objetivo · Depende de · Arquivos · Passos · Códig
 - **Depende de:** nada.
 - **Arquivos:** `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md` (stub), `src/medwatch/__init__.py`, `tests/test_smoke.py`, `docs/DECISOES.md`.
 - **Passos:**
-  1. `git init`, criar a estrutura de diretórios da seção 2 (com `__init__.py` vazios).
+  1. No repositório já clonado, criar a estrutura de diretórios da seção 2 (com `__init__.py` vazios). O Git não versiona pastas vazias e o `Dockerfile` copia `config/`, `db/`, `scripts/` e `tests/`: coloque um `.gitkeep` em toda pasta que ainda não tiver arquivo.
   2. Criar `pyproject.toml`:
 
 ```toml
@@ -869,83 +887,8 @@ burst_changes_24h: 4
 - **Arquivos:** `Dockerfile`, `docker-compose.yml`, `db/init.sql`, `src/medwatch/db.py`, `tests/test_db.py`.
 - **Passos:**
   1. `db/init.sql` conforme seção 3.5.
-  2. `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      ffmpeg libgl1 libglib2.0-0 libsndfile1 \
-      libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libffi-dev \
-      curl && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-COPY pyproject.toml README.md ./
-COPY src ./src
-RUN pip install -e ".[audio,video,reports,dashboard,dev]"
-COPY . .
-CMD ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-  3. `docker-compose.yml`:
-
-```yaml
-x-app: &app
-  build: .
-  env_file: .env
-  volumes:
-    - ./data:/data
-    - ./models:/app/models
-    - ./config:/app/config
-    - hf-cache:/root/.cache
-  depends_on:
-    db: {condition: service_healthy}
-    redis: {condition: service_started}
-  restart: unless-stopped
-
-services:
-  db:
-    image: timescale/timescaledb:latest-pg16
-    environment:
-      POSTGRES_USER: medwatch
-      POSTGRES_PASSWORD: medwatch
-      POSTGRES_DB: medwatch
-    ports: ["5432:5432"]
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medwatch"]
-      interval: 5s
-      retries: 20
-  redis:
-    image: redis:7-alpine
-    ports: ["6379:6379"]
-  api:
-    <<: *app
-    command: uvicorn medwatch.api.main:app --host 0.0.0.0 --port 8000
-    ports: ["8000:8000"]
-  worker-video:   {<<: *app, command: python -m medwatch.video.worker}
-  worker-audio:   {<<: *app, command: python -m medwatch.audio.worker}
-  worker-text:    {<<: *app, command: python -m medwatch.text.worker}
-  worker-anomaly: {<<: *app, command: python -m medwatch.anomaly.worker}
-  worker-fusion:  {<<: *app, command: python -m medwatch.fusion.worker}
-  worker-alerts:  {<<: *app, command: python -m medwatch.alerts.worker}
-  dashboard:
-    <<: *app
-    command: streamlit run src/medwatch/dashboard/app.py --server.port 8501 --server.address 0.0.0.0
-    ports: ["8501:8501"]
-  simulator:
-    <<: *app
-    command: python -m medwatch.simulator.replay
-    profiles: ["demo"]
-    restart: "no"
-
-volumes:
-  pgdata:
-  hf-cache:
-```
-
+  2. Criar o ambiente Docker **exatamente como na [seção 9](#9-ambiente-docker-referência-completa)**: `Dockerfile`, `.dockerignore`, `.gitattributes`, `docker-compose.yml`, `docker-compose.dev.yml`, `docker-compose.gpu.yml` e `scripts/download_models.py`. Não invente variações; se algo não funcionar, corrija e registre em `docs/DECISOES.md`.
+  3. Validar com `docker compose config` (não pode haver erro) e `docker compose build`.
   4. `db.py` — funções usadas por todo o projeto. Use `sqlalchemy.create_engine(settings.database_url, pool_pre_ping=True)` num singleton `get_engine()`. Escreva com `text()` e parâmetros nomeados. Funções obrigatórias:
 
 ```python
@@ -983,7 +926,7 @@ def alerts_to_escalate(minutes: int) -> list[dict]   # open, critical, not escal
   JSONB: passe `json.dumps(...)` e use `CAST(:x AS JSONB)` no SQL. Arrays de UUID: `CAST(:ids AS UUID[])` passando lista de strings.
 
   5. `tests/test_db.py`: marque o módulo com `pytest.mark.skipif` se `DATABASE_URL` não conectar. Teste insert/consulta de paciente, evidência e alerta.
-- **Aceite:** `docker compose up -d db redis` sobe; `psql` mostra as tabelas; testes de banco passam com o banco no ar.
+- **Aceite:** `docker compose build` termina sem erro; `docker compose up -d db redis` sobe com os dois serviços `healthy` em `docker compose ps`; `docker compose exec db psql -U medwatch -d medwatch -c "\dt"` mostra as tabelas; testes de banco passam com o banco no ar. Os demais serviços só sobem quando os módulos existirem (tabela 9.6).
 
 #### T04 — Barramento (Redis Streams) e storage
 
@@ -1572,7 +1515,7 @@ class RespiratoryEventDetector:
   12. Publicar todas as evidências em `evidence` com `source_ref = media:<media_id>#t=<offset>`, `model_name` = `azure-speech+language`, `egemaps-rules` ou `ast-audioset`.
   13. Em exceção: `update_media(status="failed", error=str(exc))` e relançar (a mensagem fica pendente no stream; tudo bem).
   - Os modelos pesados (AST, openSMILE) são carregados **uma vez** na inicialização do worker.
-  - Variável `AUDIO_DISABLE_EVENTS=true` (opcional) pula a T17 em máquinas fracas.
+  - `AUDIO_DISABLE_EVENTS=true` (`settings.audio_disable_events`) pula a T17 em máquinas fracas.
 - **`text/worker.py`** — para `jobs.text`: ler o `.txt`, dividir em parágrafos (documentos ≤ 5000 caracteres), rodar `LanguageAnalyzer` e termos críticos; emitir `text_critical_term` e `clinical_entity` (modality `text`). Gravar `analysis.json` como artefato e atualizar o status.
 - **Testes:** com `USE_FAKE_AZURE=true`, detector de eventos falso e um WAV sintético, o worker publica ao menos um `speech_critical_term` com `term="falta de ar"` e marca a mídia como `done` (db falso injetado).
 - **Aceite:** testes passam; upload de áudio pela API com o compose no ar termina com status `done` e transcrição visível em `GET /media/{id}`.
@@ -2079,7 +2022,7 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 
 - **Depende de:** todas as anteriores.
 - **Arquivos:** `README.md`, `docs/arquitetura.md`, `docs/relatorio-tecnico.md`.
-- **README:** visão geral; requisitos (Docker, 8 GB de RAM, ~10 GB de disco); passo a passo (`cp .env.example .env`, preencher chaves ou `USE_FAKE_AZURE=true`, `docker compose up -d --build`, `python scripts/seed.py`, `python scripts/train_vitals_iforest.py`, `docker compose --profile demo up simulator`, abrir `http://localhost:8501`); como rodar os testes; estrutura de pastas; link do vídeo; aviso de uso.
+- **README:** visão geral; requisitos (seção 9.1); passo a passo copiado da seção 9.7, em bash e PowerShell; problemas comuns (seção 9.9); como rodar os testes; estrutura de pastas; link do vídeo; aviso de uso.
 - **`docs/arquitetura.md`:** diagrama (Mermaid), descrição de cada serviço, streams, tabelas e o catálogo de evidências.
 - **`docs/relatorio-tecnico.md`** (estrutura obrigatória, alinhada ao enunciado):
   1. Introdução e objetivo.
@@ -2155,7 +2098,7 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 
 ## 8. Checklist final de aceite
 
-- [ ] `docker compose up -d --build` sobe todos os serviços sem erro; `GET /health` retorna `ok`.
+- [ ] Num clone limpo, a sequência da seção 9.7 sobe o ambiente; `docker compose ps` mostra todos os serviços `running`/`healthy` (e `models-init` com `exited (0)`); `GET /health` retorna `ok`.
 - [ ] `pytest -q` e `ruff check .` passam.
 - [ ] Com `USE_FAKE_AZURE=true`, o fluxo completo funciona sem chaves.
 - [ ] Com chaves reais, `scripts/check_azure.py` retorna 0.
@@ -2170,3 +2113,508 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] `docs/relatorio-tecnico.md` cobre fluxo multimodal, modelos por tipo de dado, resultados e exemplos de anomalias.
 - [ ] README permite rodar do zero; link do vídeo incluído.
 - [ ] Nenhum segredo ou dado real de paciente no repositório.
+
+---
+
+## 9. Ambiente Docker (referência completa)
+
+Esta seção contém o conteúdo **final** de todos os arquivos de container. A T03 manda criá-los exatamente assim. Todo o sistema roda com Docker Compose numa única máquina: uma imagem Python compartilhada por todos os serviços da aplicação, mais PostgreSQL/TimescaleDB e Redis.
+
+### 9.1 Pré-requisitos
+
+| Item | Requisito |
+|---|---|
+| Docker | Docker Desktop 4.30+ (Windows/macOS) ou Docker Engine 26+ (Linux), com **Compose v2** (comando `docker compose`, sem hífen) |
+| Windows | Backend WSL 2 ativado no Docker Desktop |
+| Memória para o Docker | Mínimo 8 GB, recomendado 10–12 GB. No Windows, defina em `%UserProfile%\.wslconfig`: `[wsl2]` e `memory=10GB`, depois `wsl --shutdown` |
+| Disco | ~15 GB (imagem ~5 GB com Torch CPU, modelos ~0,5 GB, banco e mídias) |
+| Rede | Acesso a PyPI, download.pytorch.org, Docker Hub, GitHub (pesos YOLO) e Hugging Face (modelo AST) no primeiro build/execução |
+| GPU (opcional) | NVIDIA com driver recente e suporte a CUDA no WSL 2 / NVIDIA Container Toolkit no Linux |
+
+### 9.2 Visão dos serviços
+
+| Serviço | Imagem | Comando | Porta no host | Depende de |
+|---|---|---|---|---|
+| `db` | `timescale/timescaledb:latest-pg16` | padrão da imagem | `${DB_PORT:-5432}` | — |
+| `redis` | `redis:7-alpine` | `redis-server --appendonly yes` | `${REDIS_PORT:-6379}` | — |
+| `models-init` | `medwatch-app` | `python scripts/download_models.py` (roda uma vez e sai) | — | — |
+| `api` | `medwatch-app` | `uvicorn medwatch.api.main:app` | `${API_PORT:-8000}` | db, redis |
+| `worker-video` | `medwatch-app` | `python -m medwatch.video.worker` | — | db, redis, models-init |
+| `worker-audio` | `medwatch-app` | `python -m medwatch.audio.worker` | — | db, redis, models-init |
+| `worker-text` | `medwatch-app` | `python -m medwatch.text.worker` | — | db, redis |
+| `worker-anomaly` | `medwatch-app` | `python -m medwatch.anomaly.worker` | — | db, redis |
+| `worker-fusion` | `medwatch-app` | `python -m medwatch.fusion.worker` | — | db, redis |
+| `worker-alerts` | `medwatch-app` | `python -m medwatch.alerts.worker` | — | db, redis |
+| `dashboard` | `medwatch-app` | `streamlit run ...` | `${DASHBOARD_PORT:-8501}` | api (healthy) |
+| `simulator` | `medwatch-app` | `python -m medwatch.simulator.replay` | — | api (healthy); só no profile `demo` |
+
+Volumes: `pgdata` (banco), `redisdata` (streams), `model-cache` (cache do Hugging Face e afins). Pastas do host montadas: `./data` → `/app/data`, `./models` → `/app/models`, `./config` → `/app/config` (somente leitura).
+
+### 9.3 Arquivos
+
+#### `Dockerfile`
+
+```dockerfile
+# syntax=docker/dockerfile:1
+FROM python:3.11-slim-bookworm
+
+# CPU por padrão. Para GPU: docker compose build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+ARG EXTRAS=audio,video,reports,dashboard,dev
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    HF_HOME=/root/.cache/huggingface \
+    YOLO_CONFIG_DIR=/tmp/Ultralytics \
+    MPLBACKEND=Agg
+
+# ffmpeg: conversão de áudio/vídeo | libgl1, libglib2.0-0: OpenCV | libsndfile1: soundfile/librosa
+# libpango*, libharfbuzz-subset0, fonts-dejavu-core: WeasyPrint (PDF) | curl: healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg libgl1 libglib2.0-0 libsndfile1 \
+        libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 fonts-dejavu-core \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 1) Torch (camada grande, muda raramente)
+RUN pip install torch torchvision --index-url ${TORCH_INDEX_URL}
+
+# 2) Dependências do projeto SEM o código, para aproveitar o cache de camadas:
+#    alterar código em src/ não reinstala dependências.
+COPY pyproject.toml README.md ./
+RUN mkdir -p src/medwatch \
+    && echo '__version__ = "0.1.0"' > src/medwatch/__init__.py \
+    && pip install -e ".[${EXTRAS}]"
+
+# 3) Código e arquivos de apoio (o install editável aponta para /app/src)
+COPY src ./src
+COPY config ./config
+COPY db ./db
+COPY scripts ./scripts
+COPY tests ./tests
+
+RUN mkdir -p /app/data/storage /app/data/references /app/data/samples /app/models
+
+EXPOSE 8000 8501
+CMD ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Notas:
+- `python:3.11-slim-bookworm` fixa a versão do Debian para que os nomes dos pacotes `apt` não mudem.
+- Se o `pip install -e` falhar por conflito de versões, ajuste o `pyproject.toml` (não o Dockerfile) e registre em `DECISOES.md`.
+- O container roda como root. É aceitável para desenvolvimento e para a demo; não é configuração de produção.
+
+#### `.dockerignore`
+
+```
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.env
+data/
+models/
+runs/
+docs/resultados/
+**/*.mp4
+**/*.wav
+**/*.mp3
+**/*.pt
+```
+
+Sem isso, o contexto de build envia mídias e modelos para o Docker e o build fica lento.
+
+#### `.gitattributes`
+
+```
+* text=auto
+*.sh      text eol=lf
+*.py      text eol=lf
+*.sql     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.toml    text eol=lf
+*.j2      text eol=lf
+Dockerfile text eol=lf
+*.ps1     text eol=crlf
+*.png     binary
+*.jpg     binary
+*.mp4     binary
+*.wav     binary
+```
+
+No Windows, sem `eol=lf`, scripts `.sh` executados dentro do container falham com `/usr/bin/env: 'bash\r': No such file or directory`. Crie este arquivo **antes** de commitar qualquer `.sh`. Se já houver arquivos com CRLF, rode `git add --renormalize .` e commite.
+
+#### `docker-compose.yml`
+
+```yaml
+name: medwatch
+
+x-app: &app
+  image: medwatch-app:latest
+  build:
+    context: .
+    args:
+      TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+  env_file: .env
+  # Sobrescreve os valores "locais" do .env com os endereços da rede Docker.
+  environment:
+    DATABASE_URL: postgresql+psycopg://medwatch:medwatch@db:5432/medwatch
+    REDIS_URL: redis://redis:6379/0
+    API_BASE_URL: http://api:8000
+    CONFIG_DIR: /app/config
+    MODELS_DIR: /app/models
+    LOCAL_STORAGE_DIR: /app/data/storage
+    YOLO_DET_WEIGHTS: /app/models/yolov8n.pt
+    YOLO_POSE_WEIGHTS: /app/models/yolov8n-pose.pt
+  volumes:
+    - ./data:/app/data
+    - ./models:/app/models
+    - ./config:/app/config:ro
+    - model-cache:/root/.cache
+  depends_on: &app-deps
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+x-needs-models: &needs-models
+  depends_on:
+    <<: *app-deps
+    models-init:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: medwatch
+      POSTGRES_PASSWORD: medwatch
+      POSTGRES_DB: medwatch
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medwatch -d medwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  models-init:
+    <<: *app
+    command: ["python", "scripts/download_models.py"]
+    depends_on: {}
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker-video:
+    <<: [*needs-models, *app]
+    command: ["python", "-m", "medwatch.video.worker"]
+
+  worker-audio:
+    <<: [*needs-models, *app]
+    command: ["python", "-m", "medwatch.audio.worker"]
+
+  worker-text:
+    <<: *app
+    command: ["python", "-m", "medwatch.text.worker"]
+
+  worker-anomaly:
+    <<: *app
+    command: ["python", "-m", "medwatch.anomaly.worker"]
+
+  worker-fusion:
+    <<: *app
+    command: ["python", "-m", "medwatch.fusion.worker"]
+
+  worker-alerts:
+    <<: *app
+    command: ["python", "-m", "medwatch.alerts.worker"]
+
+  dashboard:
+    <<: *app
+    command: ["streamlit", "run", "src/medwatch/dashboard/app.py",
+              "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  simulator:
+    <<: *app
+    command: ["python", "-m", "medwatch.simulator.replay"]
+    profiles: ["demo"]
+    restart: "no"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  model-cache:
+```
+
+Notas sobre o YAML:
+- **Merge de âncoras é raso.** Um serviço que declara `depends_on` ou `environment` substitui o bloco inteiro da âncora. Por isso `worker-video` e `worker-audio` usam `<<: [*needs-models, *app]` (a primeira âncora da lista tem prioridade e traz o `depends_on` completo), e `dashboard`/`simulator` declaram o `depends_on` completo.
+- Todos os serviços da aplicação compartilham `build` e `image: medwatch-app:latest`. O Compose constrói a imagem uma vez (os demais builds usam o cache) e todos os serviços usam a mesma imagem.
+- `models-init` usa `depends_on: {}` porque não precisa do banco nem do Redis.
+- O `init.sql` só roda quando o volume `pgdata` está vazio. Para recriar o banco do zero: `docker compose down -v` (apaga os dados).
+
+#### `docker-compose.dev.yml` (override de desenvolvimento)
+
+Monta o código do host dentro dos containers e reinicia os processos quando um arquivo `.py` muda. Use durante o desenvolvimento; para a demo e para a gravação, use só o `docker-compose.yml`.
+
+```yaml
+x-dev-mounts: &dev-mounts
+  volumes:
+    - ./src:/app/src
+    - ./scripts:/app/scripts
+    - ./tests:/app/tests
+
+services:
+  api:
+    <<: *dev-mounts
+    command: ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000",
+              "--reload", "--reload-dir", "/app/src"]
+  worker-video:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.video.worker", "/app/src"]
+  worker-audio:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.audio.worker", "/app/src"]
+  worker-text:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.text.worker", "/app/src"]
+  worker-anomaly:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.anomaly.worker", "/app/src"]
+  worker-fusion:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.fusion.worker", "/app/src"]
+  worker-alerts:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.alerts.worker", "/app/src"]
+  dashboard:
+    <<: *dev-mounts
+    command: ["streamlit", "run", "src/medwatch/dashboard/app.py", "--server.port", "8501",
+              "--server.address", "0.0.0.0", "--server.headless", "true", "--server.runOnSave", "true"]
+```
+
+- `watchfiles` já vem instalado com `uvicorn[standard]`.
+- Em arquivos de override, o Compose junta as listas de `volumes` usando o caminho de destino como chave, então as montagens do arquivo base continuam valendo.
+- No Windows, a detecção de mudanças em pastas montadas pode atrasar alguns segundos. Se não reiniciar, use `docker compose restart <serviço>`.
+
+#### `docker-compose.gpu.yml` (opcional)
+
+```yaml
+services:
+  worker-video:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+```
+
+Uso: definir `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121` no `.env`, rodar `docker compose build` e subir com `-f docker-compose.yml -f docker-compose.gpu.yml`. O Ultralytics usa a GPU automaticamente quando `torch.cuda.is_available()`. Conferir com `docker compose exec worker-video python -c "import torch; print(torch.cuda.is_available())"`.
+
+### 9.4 `scripts/download_models.py`
+
+Baixa os pesos para a pasta `models/` (montada do host, então o download acontece uma vez) e o modelo AST para o cache do Hugging Face (volume `model-cache`). É idempotente: se os arquivos já existem, não baixa de novo.
+
+```python
+"""Baixa os modelos usados pelos workers (idempotente)."""
+import shutil
+import sys
+from pathlib import Path
+
+from medwatch.config import get_settings
+
+YOLO_WEIGHTS = ["yolov8n.pt", "yolov8n-pose.pt"]
+AST_MODEL = "MIT/ast-finetuned-audioset-10-10-0.4593"
+
+
+def download_yolo(models_dir: Path) -> None:
+    from ultralytics import YOLO
+
+    for name in YOLO_WEIGHTS:
+        dest = models_dir / name
+        if dest.exists():
+            print(f"[ok] {dest}")
+            continue
+        model = YOLO(name)  # baixa para o diretório atual se não existir
+        src = Path(getattr(model, "ckpt_path", None) or name)
+        shutil.copy2(src, dest)
+        if src.resolve() != dest.resolve() and src.parent.resolve() == Path.cwd().resolve():
+            src.unlink(missing_ok=True)
+        print(f"[baixado] {dest}")
+
+
+def download_ast() -> None:
+    from transformers import ASTForAudioClassification, AutoFeatureExtractor
+
+    AutoFeatureExtractor.from_pretrained(AST_MODEL)
+    ASTForAudioClassification.from_pretrained(AST_MODEL)
+    print(f"[ok] {AST_MODEL} no cache do Hugging Face")
+
+
+def main() -> int:
+    settings = get_settings()
+    settings.models_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        download_yolo(settings.models_dir)
+        if not settings.audio_disable_events:
+            download_ast()
+    except Exception as exc:  # falha de rede, por exemplo
+        print(f"[erro] download de modelos falhou: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+### 9.5 Variáveis e caminhos dentro do container
+
+| Caminho no container | Origem | Uso |
+|---|---|---|
+| `/app/src` | imagem (ou host, no modo dev) | código |
+| `/app/config` | host `./config` (somente leitura) | YAMLs de limiares e regras |
+| `/app/data` | host `./data` | `storage/` (mídias e artefatos), `references/`, `samples/`, `mimic/` |
+| `/app/models` | host `./models` | pesos YOLO, Isolation Forest, OpenPose (opcional) |
+| `/root/.cache` | volume `model-cache` | cache do Hugging Face |
+
+Os scripts devem usar caminhos relativos a `/app` (diretório de trabalho), por exemplo `data/references/squat.json`. Assim, o mesmo script funciona dentro do container e localmente na raiz do repositório.
+
+### 9.6 Quais serviços subir em cada fase
+
+Serviços cujo módulo Python ainda não existe entram em loop de reinício. Durante o desenvolvimento, suba só o que já foi implementado:
+
+| Após a tarefa | Comando |
+|---|---|
+| T03 | `docker compose up -d db redis` |
+| T06 | `docker compose up -d db redis api` |
+| T13 | `docker compose up -d db redis api worker-anomaly` + `docker compose --profile demo up simulator` |
+| T18 | acrescentar `models-init worker-audio worker-text` |
+| T24 | acrescentar `worker-video` |
+| T27 | acrescentar `worker-fusion worker-alerts` |
+| T30 em diante | `docker compose up -d` (tudo) |
+
+### 9.7 Subir o ambiente do zero
+
+Os comandos `docker` são iguais no PowerShell e no bash. Só a cópia do `.env` muda.
+
+1. Criar o `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   Preencha as chaves Azure ou defina `USE_FAKE_AZURE=true`.
+2. Construir a imagem (o primeiro build leva de 10 a 20 minutos):
+   ```bash
+   docker compose build
+   ```
+3. Subir tudo (o `models-init` baixa os modelos e termina; os workers de áudio e vídeo esperam por ele):
+   ```bash
+   docker compose up -d
+   ```
+4. Conferir o estado:
+   ```bash
+   docker compose ps
+   ```
+5. Criar os pacientes de demonstração:
+   ```bash
+   docker compose run --rm api python scripts/seed.py
+   ```
+6. Treinar o Isolation Forest e reiniciar o worker que o carrega:
+   ```bash
+   docker compose run --rm api python scripts/train_vitals_iforest.py
+   ```
+   ```bash
+   docker compose restart worker-anomaly
+   ```
+7. Iniciar o simulador da demo:
+   ```bash
+   docker compose --profile demo up simulator
+   ```
+8. Abrir o dashboard em `http://localhost:8501` e a documentação da API em `http://localhost:8000/docs`.
+
+Modo desenvolvimento (código montado e reload automático):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```
+
+### 9.8 Comandos do dia a dia
+
+| Objetivo | Comando |
+|---|---|
+| Rodar os testes no container | `docker compose run --rm api pytest -q` |
+| Lint | `docker compose run --rm api ruff check .` |
+| Ver logs de um serviço | `docker compose logs -f worker-fusion` |
+| Shell dentro da imagem | `docker compose run --rm api bash` |
+| Consultar o banco | `docker compose exec db psql -U medwatch -d medwatch -c "select count(*) from evidence"` |
+| Tamanho de um stream | `docker compose exec redis redis-cli XLEN evidence` |
+| Mensagens pendentes de um grupo | `docker compose exec redis redis-cli XPENDING evidence worker-fusion` |
+| Reconstruir após mudar dependências | `docker compose build && docker compose up -d` |
+| Parar tudo (mantém dados) | `docker compose down` |
+| Apagar banco, streams e caches | `docker compose down -v` |
+
+### 9.9 Problemas comuns
+
+| Sintoma | Causa provável | Solução |
+|---|---|---|
+| `Bind for 0.0.0.0:5432 failed: port is already allocated` | Postgres local usando a porta | Mude `DB_PORT` no `.env` (ex.: `5433`); vale o mesmo para `REDIS_PORT`, `API_PORT`, `DASHBOARD_PORT` |
+| Tabelas não existem | `pgdata` já existia quando o `init.sql` mudou | `docker compose down -v` e subir de novo |
+| `env file .env not found` | `.env` não foi criado | Passo 1 da seção 9.7 |
+| Worker reiniciando em loop com `ModuleNotFoundError` | Módulo ainda não implementado | Suba só os serviços da tabela 9.6 |
+| Container encerrado com código 137 | Falta de memória (YOLO, AST, Torch) | Aumentar a memória do WSL 2/Docker Desktop; `AUDIO_DISABLE_EVENTS=true`; `VIDEO_TARGET_FPS=5` |
+| `bash\r: No such file or directory` | Script com CRLF | `.gitattributes` da seção 9.3 e `git add --renormalize .` |
+| `models-init` termina com código 1 | Sem acesso a GitHub ou Hugging Face | Verificar rede/proxy e rodar `docker compose up models-init` de novo |
+| Dashboard não mostra vídeo | URL da API passada ao navegador | Baixar os bytes no servidor do Streamlit (T30) |
+| `could not translate host name "db"` ao rodar Python fora do Docker | `.env` com host do Docker | Fora do Docker use `localhost`, como no `.env.example` |
+| Build muito lento ou enorme | `.dockerignore` ausente | Criar o `.dockerignore` da seção 9.3 |

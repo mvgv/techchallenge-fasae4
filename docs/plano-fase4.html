@@ -1,0 +1,545 @@
+<title>Monitoramento Multimodal Hospitalar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: coluna única de leitura (~72ch) com faixas largas para diagrama e tabelas; tom de documento técnico clínico */
+:root{
+  --bg:#f6f8f8; --surface:#ffffff; --fg:#14211f; --muted:#56635f; --line:#d5dedb;
+  --accent:#0f766e; --accent-soft:#e0f0ed;
+  --video:#7c3aed; --audio:#c2410c; --anom:#0369a1; --fusion:#0f766e; --out:#b91c1c;
+  --crit:#b91c1c; --warn:#b45309; --ok:#15803d;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1514; --surface:#14201e; --fg:#e3ecea; --muted:#9aaba6; --line:#2a3a37;
+  --accent:#4fd1c0; --accent-soft:#16302c;
+  --video:#a78bfa; --audio:#fb923c; --anom:#38bdf8; --fusion:#4fd1c0; --out:#f87171;
+  --crit:#f87171; --warn:#fbbf24; --ok:#4ade80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1514; --surface:#14201e; --fg:#e3ecea; --muted:#9aaba6; --line:#2a3a37;
+  --accent:#4fd1c0; --accent-soft:#16302c;
+  --video:#a78bfa; --audio:#fb923c; --anom:#38bdf8; --fusion:#4fd1c0; --out:#f87171;
+  --crit:#f87171; --warn:#fbbf24; --ok:#4ade80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+.prose{max-width:72ch}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:clamp(2rem,4.5vw,2.9rem)}
+h2{font-size:1.75rem;margin-bottom:14px}
+h3{font-size:1.25rem;margin-bottom:8px}
+p{margin:0 0 12px}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+header{display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line);padding-bottom:28px}
+.lede{font-size:1.1rem;color:var(--muted);max-width:68ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--f-mono);font-size:.75rem;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--surface)}
+.chip.k{color:var(--accent);border-color:var(--accent)}
+nav ol{display:flex;flex-wrap:wrap;gap:6px 18px;padding:0;margin:0;list-style:none;font-size:.9rem}
+nav a{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--line)}
+nav a:hover,nav a:focus-visible{color:var(--accent);border-color:var(--accent)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--accent-soft)}
+tr:last-child td{border-bottom:0}
+td code,p code,li code{font-family:var(--f-mono);font-size:.84em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.diagram{padding:12px;min-width:0}
+.diagram svg{display:block;width:100%;min-width:900px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--c)}
+ol.flow{margin:16px 0 0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px}
+.mod{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:10px;padding:20px 22px;min-width:0}
+.mod h3{display:flex;align-items:baseline;gap:10px}
+.mod h3 small{font-family:var(--f-mono);font-size:.7rem;color:var(--c);letter-spacing:.06em;text-transform:uppercase}
+.mod dl{margin:0;display:grid;grid-template-columns:110px 1fr;gap:6px 14px;font-size:.92rem}
+.mod dt{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;padding-top:3px}
+.mod dd{margin:0;min-width:0}
+.mod ul{margin:0;padding-left:1.1em}
+@media (max-width:520px){.mod dl{grid-template-columns:1fr}.mod dt{padding-top:8px}}
+.stacks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
+.stack{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.stack.rec{border:2px solid var(--accent)}
+.stack .tag{align-self:flex-start;font-family:var(--f-mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:var(--accent);color:var(--bg)}
+.stack .tag.alt{background:var(--line);color:var(--fg)}
+.stack ul{margin:0;padding-left:1.1em;font-size:.9rem}
+.stack .pc{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+pre{font-family:var(--f-mono);font-size:.82rem;line-height:1.55;margin:0;padding:16px 18px;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--fg)}
+.timeline{display:flex;flex-direction:column;border-left:2px solid var(--line);margin-left:6px}
+.week{position:relative;padding:0 0 22px 24px}
+.week::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.week h3{font-family:var(--f-body);font-size:1rem;font-weight:600}
+.week h3 span{font-family:var(--f-mono);font-size:.75rem;color:var(--accent);margin-right:8px}
+.week ul{margin:4px 0 0;padding-left:1.1em;font-size:.93rem}
+.week .dod{font-size:.85rem;color:var(--muted);margin-top:4px}
+.note{border-left:3px solid var(--warn);padding:10px 16px;background:var(--surface);border-radius:0 8px 8px 0;font-size:.93rem;max-width:80ch}
+.note.crit{border-color:var(--crit)}
+.sev{font-family:var(--f-mono);font-size:.75rem;padding:1px 7px;border-radius:4px;border:1px solid currentColor;white-space:nowrap}
+.sev.c{color:var(--crit)}.sev.w{color:var(--warn)}.sev.o{color:var(--ok)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:.85rem;white-space:nowrap}
+section{display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+/* SVG */
+.d-col{font:600 11px var(--f-mono);letter-spacing:.08em;fill:var(--muted)}
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.d-t{font:600 13px var(--f-body);fill:var(--fg)}
+.d-s{font:400 11px var(--f-body);fill:var(--muted)}
+.d-m{font:500 10.5px var(--f-mono);fill:var(--muted)}
+.d-arrow{fill:none;stroke:var(--muted);stroke-width:1.3}
+.d-band{fill:var(--accent-soft);stroke:var(--line)}
+@media (prefers-reduced-motion:no-preference){nav a{transition:color .15s}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Tech Challenge · Fase 4 · IADT</div>
+  <h1>Plano de implementação: monitoramento multimodal de pacientes</h1>
+  <p class="lede">Arquitetura, módulos, stacks e cronograma para analisar vídeo, áudio, texto e sinais vitais, fundir as evidências em um escore de risco por paciente e alertar a equipe médica em tempo quase real, com serviços Azure.</p>
+  <div class="meta">
+    <span class="chip k">Vídeo · YOLOv8 + pose</span><span class="chip k">Áudio · Azure Speech</span><span class="chip k">Texto · Azure AI Language</span><span class="chip k">Anomalias · séries temporais</span><span class="chip">Entrega: repositório Git + relatório + vídeo ≤ 15 min</span>
+  </div>
+  <nav aria-label="Seções"><ol>
+    <li><a href="#requisitos">Requisitos</a></li><li><a href="#arquitetura">Arquitetura</a></li><li><a href="#modulos">Módulos</a></li><li><a href="#contrato">Contrato de eventos</a></li><li><a href="#stacks">Stacks</a></li><li><a href="#dados">Datasets</a></li><li><a href="#cronograma">Cronograma</a></li><li><a href="#repo">Repositório</a></li><li><a href="#entregaveis">Relatório e vídeo</a></li><li><a href="#riscos">Riscos e LGPD</a></li>
+  </ol></nav>
+</header>
+
+<section id="requisitos">
+  <h2>1. O que o enunciado exige</h2>
+  <p class="prose">Cada requisito obrigatório vira um componente rastreável e uma evidência concreta no relatório e no vídeo. Use esta tabela como checklist de aceite do grupo.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Requisito</th><th>Componente da solução</th><th>Evidência na entrega</th></tr></thead>
+    <tbody>
+      <tr><td>Processar vídeos clínicos (fisioterapia, cirurgia)</td><td><code>video-pipeline</code>: extração de frames, YOLOv8 e estimativa de pose</td><td>Vídeo anotado com bounding boxes e esqueleto</td></tr>
+      <tr><td>Detectar movimentos e eventos fora do padrão (OpenPose, YOLOv8)</td><td>Ângulos articulares + DTW contra execução de referência; zonas críticas com YOLOv8</td><td>Trechos marcados com timestamp e motivo</td></tr>
+      <tr><td>Relatórios automáticos de desvios</td><td><code>report-service</code>: PDF/HTML por sessão</td><td>Relatório de exemplo no repositório</td></tr>
+      <tr><td>Processar áudios de consultas; alterações vocais (cansaço, respiração)</td><td><code>audio-pipeline</code>: features acústicas (eGeMAPS) + classificador de eventos (tosse, chiado)</td><td>Gráfico de features e score por consulta</td></tr>
+      <tr><td>Azure Speech to Text</td><td>Transcrição pt-BR com diarização e timestamps por palavra</td><td>Transcrição exibida no dashboard</td></tr>
+      <tr><td>Azure Text Analytics: termos críticos e sentimento</td><td>Azure AI Language: NER de saúde, sentimento, frases-chave</td><td>Termos destacados na transcrição</td></tr>
+      <tr><td>Anomalias em sinais vitais, prescrições e movimentação</td><td><code>anomaly-service</code>: NEWS2 + modelos estatísticos/ML por fluxo</td><td>Séries com anomalias marcadas, métricas de precisão/recall</td></tr>
+      <tr><td>Alertas automáticos à equipe médica</td><td><code>fusion-engine</code> + <code>alert-service</code> (Teams/e-mail/dashboard)</td><td>Alerta chegando no Teams durante o vídeo</td></tr>
+      <tr><td>Fusão multimodal e uso de nuvem</td><td>Late fusion por paciente em janela deslizante; serviços Azure gerenciados</td><td>Diagrama + demonstração de um caso combinado</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="arquitetura">
+  <h2>2. Arquitetura da solução</h2>
+  <p class="prose">Arquitetura orientada a eventos. Cada modalidade é um pipeline independente que publica <em>evidências</em> padronizadas. Um motor de fusão consolida as evidências por paciente e decide quando alertar. Isso deixa os módulos desacoplados, o que permite dividir o trabalho do grupo por modalidade.</p>
+  <div class="scroll diagram">
+  <svg viewBox="0 0 1120 650" role="img" aria-labelledby="dg-t dg-d">
+    <title id="dg-t">Diagrama de arquitetura</title>
+    <desc id="dg-d">Fontes de dados entram pela camada de ingestão, seguem para três pipelines de processamento, que publicam evidências para o motor de fusão, que gera alertas, dashboard e relatórios. Uma camada de dados e governança sustenta tudo.</desc>
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/></marker></defs>
+
+    <text x="20" y="30" class="d-col">FONTES</text>
+    <text x="235" y="30" class="d-col">INGESTÃO</text>
+    <text x="455" y="30" class="d-col">PROCESSAMENTO</text>
+    <text x="755" y="30" class="d-col">FUSÃO</text>
+    <text x="945" y="30" class="d-col">SAÍDA</text>
+
+    <!-- Fontes -->
+    <g>
+      <rect x="20" y="60" width="175" height="60" rx="8" class="d-box"/><text x="34" y="85" class="d-t">Vídeos clínicos</text><text x="34" y="103" class="d-s">fisioterapia, cirurgia, leito</text>
+      <rect x="20" y="140" width="175" height="60" rx="8" class="d-box"/><text x="34" y="165" class="d-t">Áudio de consultas</text><text x="34" y="183" class="d-s">WAV/MP3 gravados</text>
+      <rect x="20" y="220" width="175" height="60" rx="8" class="d-box"/><text x="34" y="245" class="d-t">Laudos e evolução</text><text x="34" y="263" class="d-s">texto livre, PDF</text>
+      <rect x="20" y="300" width="175" height="60" rx="8" class="d-box"/><text x="34" y="325" class="d-t">Sinais vitais</text><text x="34" y="343" class="d-s">FC, PA, SpO₂, FR (stream)</text>
+      <rect x="20" y="380" width="175" height="60" rx="8" class="d-box"/><text x="34" y="405" class="d-t">Prescrições</text><text x="34" y="423" class="d-s">prontuário / MIMIC demo</text>
+      <rect x="20" y="460" width="175" height="60" rx="8" class="d-box"/><text x="34" y="485" class="d-t">Movimentação</text><text x="34" y="503" class="d-s">câmera de leito / sensor</text>
+    </g>
+
+    <!-- Ingestão -->
+    <g>
+      <rect x="235" y="90" width="180" height="70" rx="8" class="d-box"/><text x="249" y="117" class="d-t">API de ingestão</text><text x="249" y="135" class="d-s">FastAPI · upload de arquivos</text><text x="249" y="150" class="d-m">POST /media</text>
+      <rect x="235" y="180" width="180" height="60" rx="8" class="d-box"/><text x="249" y="205" class="d-t">Blob Storage</text><text x="249" y="223" class="d-s">mídia bruta + Event Grid</text>
+      <rect x="235" y="330" width="180" height="70" rx="8" class="d-box"/><text x="249" y="357" class="d-t">Event Hubs</text><text x="249" y="375" class="d-s">stream de vitais e eventos</text><text x="249" y="390" class="d-m">(ou Redis Streams local)</text>
+      <rect x="235" y="420" width="180" height="60" rx="8" class="d-box"/><text x="249" y="445" class="d-t">Simulador de stream</text><text x="249" y="463" class="d-s">replay PhysioNet / MIMIC</text>
+    </g>
+
+    <!-- Processamento -->
+    <g style="--c:var(--video)">
+      <rect x="455" y="50" width="255" height="130" rx="8" class="d-box" style="stroke:var(--video);stroke-width:1.8"/>
+      <text x="470" y="75" class="d-t" style="fill:var(--video)">Pipeline de vídeo</text>
+      <text x="470" y="97" class="d-s">• YOLOv8: objetos, pessoas, zonas</text>
+      <text x="470" y="115" class="d-s">• Pose: OpenPose / YOLOv8-pose</text>
+      <text x="470" y="133" class="d-s">• Ângulos + DTW vs. referência</text>
+      <text x="470" y="151" class="d-s">• Queda, assimetria, zona estéril</text>
+      <text x="470" y="170" class="d-m">worker GPU · Container Apps</text>
+    </g>
+    <g>
+      <rect x="455" y="200" width="255" height="140" rx="8" class="d-box" style="stroke:var(--audio);stroke-width:1.8"/>
+      <text x="470" y="225" class="d-t" style="fill:var(--audio)">Pipeline de áudio e texto</text>
+      <text x="470" y="247" class="d-s">• Azure Speech to Text (pt-BR)</text>
+      <text x="470" y="265" class="d-s">• Azure AI Language: NER, sentimento</text>
+      <text x="470" y="283" class="d-s">• Features vocais: pausas, jitter, F0</text>
+      <text x="470" y="301" class="d-s">• Eventos: tosse, chiado (AudioSet)</text>
+      <text x="470" y="319" class="d-s">• Laudos: termos críticos</text>
+      <text x="470" y="333" class="d-m">worker CPU · Functions</text>
+    </g>
+    <g>
+      <rect x="455" y="360" width="255" height="140" rx="8" class="d-box" style="stroke:var(--anom);stroke-width:1.8"/>
+      <text x="470" y="385" class="d-t" style="fill:var(--anom)">Detecção de anomalias</text>
+      <text x="470" y="407" class="d-s">• Vitais: NEWS2 + z-score/EWMA</text>
+      <text x="470" y="425" class="d-s">• Multivariado: Isolation Forest</text>
+      <text x="470" y="443" class="d-s">• Online: River HalfSpaceTrees</text>
+      <text x="470" y="461" class="d-s">• Prescrições: regras + desvio</text>
+      <text x="470" y="479" class="d-s">• Movimentação: inatividade, agitação</text>
+      <text x="470" y="493" class="d-m">consumidor de stream</text>
+    </g>
+
+    <!-- Fusão -->
+    <rect x="755" y="190" width="155" height="190" rx="10" class="d-box" style="stroke:var(--fusion);stroke-width:2.2"/>
+    <text x="770" y="217" class="d-t" style="fill:var(--fusion)">Motor de fusão</text>
+    <text x="770" y="239" class="d-s">evidências por paciente</text>
+    <text x="770" y="257" class="d-s">janela deslizante 30 min</text>
+    <text x="770" y="275" class="d-s">pesos + regras clínicas</text>
+    <text x="770" y="293" class="d-s">escore de risco 0–100</text>
+    <text x="770" y="311" class="d-s">deduplicação e escalonamento</text>
+    <text x="770" y="335" class="d-m">topic: evidence.*</text>
+    <text x="770" y="352" class="d-m">out: alerts</text>
+
+    <!-- Saída -->
+    <g>
+      <rect x="945" y="60" width="160" height="80" rx="8" class="d-box" style="stroke:var(--out);stroke-width:1.8"/><text x="959" y="85" class="d-t" style="fill:var(--out)">Alertas</text><text x="959" y="105" class="d-s">Logic Apps / Functions</text><text x="959" y="121" class="d-s">Teams, e-mail, SMS</text>
+      <rect x="945" y="160" width="160" height="80" rx="8" class="d-box"/><text x="959" y="185" class="d-t">Dashboard</text><text x="959" y="205" class="d-s">tempo real via WebSocket</text><text x="959" y="221" class="d-s">Streamlit ou React</text>
+      <rect x="945" y="260" width="160" height="70" rx="8" class="d-box"/><text x="959" y="285" class="d-t">Relatórios</text><text x="959" y="305" class="d-s">PDF por sessão/paciente</text>
+      <rect x="945" y="350" width="160" height="80" rx="8" class="d-box"/><text x="959" y="375" class="d-t">Feedback médico</text><text x="959" y="395" class="d-s">confirmar / descartar</text><text x="959" y="411" class="d-s">rótulos para re-treino</text>
+    </g>
+
+    <!-- Arrows: fontes -> ingestão -->
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,90 C215,90 215,115 233,115"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,170 C215,170 215,135 233,135"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,250 C215,250 215,150 233,150"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,330 C215,330 215,355 233,355"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,410 C215,410 215,375 233,375"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M195,490 C215,490 215,390 233,390"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M325,420 L325,402"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M325,160 L325,178"/>
+    <!-- ingestão -> processamento -->
+    <path class="d-arrow" marker-end="url(#ah)" d="M415,200 C435,200 435,115 453,115"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M415,215 C435,215 435,270 453,270"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M415,365 C435,365 435,430 453,430"/>
+    <!-- processamento -> fusão -->
+    <path class="d-arrow" marker-end="url(#ah)" d="M710,115 C735,115 730,230 753,230"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M710,270 L753,270"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M710,430 C735,430 730,340 753,340"/>
+    <!-- fusão -> saída -->
+    <path class="d-arrow" marker-end="url(#ah)" d="M910,230 C928,230 925,100 943,100"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M910,260 C928,260 925,200 943,200"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M910,290 L943,295"/>
+    <path class="d-arrow" marker-end="url(#ah)" d="M943,390 C925,390 928,350 912,350"/>
+    <!-- vídeo -> relatórios -->
+    <path class="d-arrow" marker-end="url(#ah)" stroke-dasharray="4 4" d="M710,60 C850,40 930,40 1025,58"/>
+
+    <!-- Banda de dados -->
+    <rect x="235" y="540" width="870" height="90" rx="10" class="d-band"/>
+    <text x="255" y="566" class="d-col">DADOS, SEGURANÇA E OBSERVABILIDADE</text>
+    <text x="255" y="592" class="d-s">PostgreSQL + TimescaleDB (séries, eventos, alertas) · Blob (mídia, relatórios) · Key Vault (segredos)</text>
+    <text x="255" y="612" class="d-s">Application Insights (latência, erros) · MLflow (modelos e métricas) · anonimização LGPD na ingestão</text>
+    <path class="d-arrow" stroke-dasharray="3 4" d="M582,500 L582,538"/>
+    <path class="d-arrow" stroke-dasharray="3 4" d="M832,380 L832,538"/>
+  </svg>
+  </div>
+  <div class="legend">
+    <span style="--c:var(--video)">Vídeo</span><span style="--c:var(--audio)">Áudio e texto</span><span style="--c:var(--anom)">Anomalias</span><span style="--c:var(--fusion)">Fusão</span><span style="--c:var(--out)">Alerta</span>
+  </div>
+
+  <h3 style="margin-top:18px">Fluxo ponta a ponta</h3>
+  <ol class="flow">
+    <li>Mídia (vídeo, áudio, laudo) chega pela API e vai para o Blob Storage; o Event Grid enfileira um job.</li>
+    <li>Sinais vitais, prescrições e eventos de movimentação chegam como stream (Event Hubs). Na demo, um simulador reproduz registros do PhysioNet/MIMIC em velocidade acelerada.</li>
+    <li>Cada pipeline processa sua modalidade e publica evidências no formato padrão (seção 4), com tipo, escore 0–1, severidade, timestamp e explicação.</li>
+    <li>O motor de fusão agrega as evidências por paciente numa janela de 30 minutos, aplica pesos e regras de combinação e calcula o escore de risco.</li>
+    <li>Acima do limiar, gera alerta com nível (<span class="sev o">informativo</span> <span class="sev w">atenção</span> <span class="sev c">crítico</span>), deduplica e envia para Teams, e-mail e dashboard.</li>
+    <li>O médico confirma ou descarta no dashboard. O feedback vira rótulo para recalibrar limiares e pesos.</li>
+  </ol>
+</section>
+
+<section id="modulos">
+  <h2>3. Módulos e propostas de solução</h2>
+  <div class="grid2">
+    <article class="mod" style="--c:var(--video)">
+      <h3>Análise de vídeo <small>Req. 1</small></h3>
+      <dl>
+        <dt>Entrada</dt><dd>MP4 de fisioterapia, cirurgia ou câmera de leito; amostragem de 5–10 fps.</dd>
+        <dt>Modelos</dt><dd><ul>
+          <li><b>YOLOv8</b> (Ultralytics) para pessoas, instrumentos e objetos; zonas críticas definidas como polígonos (campo estéril, leito, porta).</li>
+          <li><b>Pose:</b> YOLOv8-pose como modelo principal (mesma biblioteca do detector). OpenPose, citado no enunciado, entra como módulo opcional via OpenCV DNN. Comparar os dois no relatório é um bom diferencial.</li>
+        </ul></dd>
+        <dt>Anomalias</dt><dd><ul>
+          <li><b>Fisioterapia:</b> ângulos articulares (joelho, quadril, ombro) por frame; DTW contra execução de referência; amplitude abaixo do esperado, assimetria esquerda/direita, compensação de tronco.</li>
+          <li><b>Cirurgia:</b> pessoa sem paramentação na zona estéril, instrumento fora de área, contagem de instrumentos inconsistente no início e no fim.</li>
+          <li><b>Leito:</b> queda (queda brusca do centroide do quadril + pessoa deitada fora do leito), saída do leito à noite.</li>
+        </ul></dd>
+        <dt>Saída</dt><dd>Vídeo anotado, linha do tempo de eventos e relatório PDF com frames-chave e desvios.</dd>
+        <dt>Métricas</dt><dd>mAP do detector, PCK da pose, precisão/recall dos eventos anotados manualmente.</dd>
+      </dl>
+    </article>
+
+    <article class="mod" style="--c:var(--audio)">
+      <h3>Análise de áudio e texto <small>Req. 2</small></h3>
+      <dl>
+        <dt>Entrada</dt><dd>Áudio de consulta (16 kHz mono) e laudos em texto.</dd>
+        <dt>Azure</dt><dd><ul>
+          <li><b>Azure AI Speech</b>: transcrição pt-BR em lote, diarização médico/paciente, timestamps por palavra.</li>
+          <li><b>Azure AI Language</b> (antigo Text Analytics): sentimento por frase, frases-chave e Text Analytics for Health para entidades clínicas (sintomas, medicamentos, dosagens).</li>
+          <li>Dicionário próprio de termos críticos ("falta de ar", "dor no peito", "desmaio") para cobrir lacunas do NER em português.</li>
+        </ul></dd>
+        <dt>Voz</dt><dd><ul>
+          <li><b>Fadiga e disartria:</b> taxa de fala (palavras/min a partir dos timestamps), proporção de pausas, jitter, shimmer, HNR e variação de F0 com openSMILE (eGeMAPS) ou Praat/parselmouth.</li>
+          <li><b>Respiração:</b> classificador AST pré-treinado no AudioSet (Hugging Face) para tosse, chiado e respiração ofegante.</li>
+          <li>Comparação com a linha de base do próprio paciente quando houver mais de uma consulta.</li>
+        </ul></dd>
+        <dt>Saída</dt><dd>Transcrição com termos destacados, curva de sentimento e escore vocal.</dd>
+        <dt>Métricas</dt><dd>WER em amostra revisada, F1 do classificador de eventos sonoros.</dd>
+      </dl>
+    </article>
+
+    <article class="mod" style="--c:var(--anom)">
+      <h3>Detecção de anomalias <small>Req. 3</small></h3>
+      <dl>
+        <dt>Vitais</dt><dd><ul>
+          <li><b>Camada 1 (explicável):</b> NEWS2 e limites clínicos fixos.</li>
+          <li><b>Camada 2 (estatística):</b> z-score em janela móvel e EWMA por paciente; picos, quedas e tendências.</li>
+          <li><b>Camada 3 (ML):</b> Isolation Forest multivariado (FC, PA, SpO₂, FR) e, se houver tempo, autoencoder LSTM. Para streaming, River HalfSpaceTrees.</li>
+        </ul></dd>
+        <dt>Prescrições</dt><dd>Regras: variação de dose acima de X% da linha de base, medicamento de alta vigilância novo, troca de via, frequência fora do padrão, interação conhecida. Isolation Forest sobre features por paciente/dia.</dd>
+        <dt>Movimento</dt><dd>Séries de atividade a partir da pose ou de sensor: inatividade prolongada (risco de lesão por pressão), agitação noturna, tentativa de saída do leito.</dd>
+        <dt>Avaliação</dt><dd>Injetar anomalias sintéticas rotuladas nas séries do PhysioNet e medir precisão, recall e tempo até a detecção. Mostrar a comparação entre camadas no relatório.</dd>
+      </dl>
+    </article>
+
+    <article class="mod" style="--c:var(--fusion)">
+      <h3>Fusão e alertas <small>Objetivo</small></h3>
+      <dl>
+        <dt>Estratégia</dt><dd><b>Late fusion</b>: cada modalidade publica evidências normalizadas. É simples de explicar, tolera falta de modalidade e permite atribuir a causa do alerta.</dd>
+        <dt>Escore</dt><dd>Risco = soma ponderada das evidências na janela com decaimento temporal, mais regras de combinação. Exemplo: queda de SpO₂ e respiração ofegante na voz na mesma hora dobram o peso.</dd>
+        <dt>Alerta</dt><dd>Limiar por nível, deduplicação (um alerta aberto por paciente e causa), escalonamento se não houver confirmação em N minutos.</dd>
+        <dt>Resumo</dt><dd>Opcional: Azure OpenAI gera um texto curto do alerta a partir das evidências estruturadas, sempre com os dados de origem anexados.</dd>
+        <dt>Canais</dt><dd>Logic Apps para Teams e e-mail; WebSocket para o dashboard; histórico no banco.</dd>
+      </dl>
+    </article>
+  </div>
+  <div class="note crit"><b>Atenção:</b> o Azure AI Anomaly Detector foi descontinuado pela Microsoft em outubro de 2026 e não deve ser usado. Para anomalias gerenciadas na Azure, use as funções nativas do Azure Stream Analytics (<code>AnomalyDetection_SpikeAndDip</code>, <code>AnomalyDetection_ChangePoint</code>) ou o Azure Data Explorer (<code>series_decompose_anomalies</code>). Também vale citar no relatório que "Cognitive Services" hoje se chama Azure AI Services.</div>
+</section>
+
+<section id="contrato">
+  <h2>4. Contrato de eventos (evidência)</h2>
+  <p class="prose">Definir este formato na primeira semana deixa o grupo trabalhar em paralelo: cada pipeline só precisa emitir esse JSON, e o motor de fusão pode ser testado com eventos falsos desde o começo.</p>
+<pre>{
+  "evidence_id": "9f1c2e7a-...",
+  "patient_id": "P-0042",              // pseudonimizado
+  "modality": "audio",                 // video | audio | text | vitals | prescription | movement
+  "type": "respiratory_distress",
+  "score": 0.82,                       // 0..1, normalizado pelo pipeline
+  "severity": "warning",               // info | warning | critical
+  "ts_start": "2026-11-08T14:02:10Z",
+  "ts_end":   "2026-11-08T14:03:40Z",
+  "explanation": "Chiado detectado em 4 trechos; taxa de fala 38% abaixo da linha de base",
+  "source_ref": "blob://audio/P-0042/consulta-03.wav#t=130",
+  "model": {"name": "yamnet+egemaps-rf", "version": "0.3.1"}
+}</pre>
+</section>
+
+<section id="stacks">
+  <h2>5. Propostas de stack</h2>
+  <p class="prose">Três opções com níveis diferentes de esforço. A recomendação para o Tech Challenge é a opção A, incorporando alguns serviços da B para deixar clara a integração com a Azure, que é um item explícito do vídeo.</p>
+  <div class="stacks">
+    <div class="stack rec">
+      <span class="tag">Recomendada</span>
+      <h3>A · Python enxuta + Azure AI</h3>
+      <ul>
+        <li><b>Linguagem:</b> Python 3.11, Poetry ou uv</li>
+        <li><b>API e workers:</b> FastAPI e workers Python ligados por Redis Streams</li>
+        <li><b>Visão:</b> Ultralytics YOLOv8 e YOLOv8-pose, OpenPose opcional, OpenCV</li>
+        <li><b>Áudio:</b> Azure Speech SDK, openSMILE, librosa, modelo AST (AudioSet)</li>
+        <li><b>Texto:</b> Azure AI Language SDK</li>
+        <li><b>Anomalias:</b> scikit-learn, PyOD, River, tslearn (DTW)</li>
+        <li><b>Dados:</b> PostgreSQL + TimescaleDB, Azure Blob</li>
+        <li><b>Front:</b> Streamlit com auto-refresh</li>
+        <li><b>Alertas:</b> webhook do Teams ou Logic App</li>
+        <li><b>Infra:</b> Docker Compose com uma imagem Python para todos os serviços, PostgreSQL/TimescaleDB e Redis; deploy opcional em Azure Container Apps</li>
+      </ul>
+      <p class="pc">Esta é a stack escolhida. O passo a passo para implementá-la, incluindo Dockerfile e Docker Compose, está em <code>PLANO_IMPLEMENTACAO.md</code>.</p>
+      <p class="pc">Prós: rápida de construir, barata (créditos Azure for Students bastam), fácil de demonstrar localmente. Contras: streaming e escala só simulados.</p>
+    </div>
+    <div class="stack">
+      <span class="tag alt">Azure-native</span>
+      <h3>B · Serverless e gerenciada</h3>
+      <ul>
+        <li><b>Ingestão:</b> Blob + Event Grid, Event Hubs, IoT Hub para dispositivos</li>
+        <li><b>Processamento:</b> Azure Functions (áudio, texto), Container Apps com GPU (vídeo)</li>
+        <li><b>Streaming:</b> Azure Stream Analytics com funções de anomalia</li>
+        <li><b>ML:</b> Azure Machine Learning (registry, managed endpoints)</li>
+        <li><b>Vídeo extra:</b> Azure AI Video Indexer</li>
+        <li><b>Dados:</b> Cosmos DB, Azure Data Explorer</li>
+        <li><b>Tempo real:</b> Azure SignalR Service</li>
+        <li><b>Alertas:</b> Logic Apps</li>
+        <li><b>Ops:</b> Bicep/Terraform, GitHub Actions, Key Vault, App Insights</li>
+      </ul>
+      <p class="pc">Prós: arquitetura de produção e pontos fortes para "integração dos serviços Azure". Contras: custo, curva de aprendizado e risco de prazo.</p>
+    </div>
+    <div class="stack">
+      <span class="tag alt">Open-source</span>
+      <h3>C · Streaming e MLOps</h3>
+      <ul>
+        <li><b>Mensageria:</b> Kafka ou Redpanda</li>
+        <li><b>Stream:</b> Bytewax ou Faust (Python)</li>
+        <li><b>ML:</b> MLflow, PyTorch, ONNX Runtime</li>
+        <li><b>Séries:</b> TimescaleDB ou InfluxDB</li>
+        <li><b>Observação:</b> Grafana com alerting, Prometheus</li>
+        <li><b>Front:</b> Next.js + WebSocket</li>
+        <li><b>Infra:</b> Kubernetes local (k3d) ou AKS</li>
+        <li><b>Azure:</b> só Speech e Language</li>
+      </ul>
+      <p class="pc">Prós: streaming real, portabilidade, ótimo para portfólio. Contras: muita infraestrutura para o prazo e menos uso de nuvem gerenciada.</p>
+    </div>
+  </div>
+  <div class="scroll" style="margin-top:6px"><table>
+    <thead><tr><th>Critério</th><th>A · Enxuta</th><th>B · Azure-native</th><th>C · Open-source</th></tr></thead>
+    <tbody>
+      <tr><td>Esforço estimado</td><td>Baixo</td><td>Alto</td><td>Alto</td></tr>
+      <tr><td>Custo Azure no projeto</td><td class="num">≈ US$ 10–30</td><td class="num">≈ US$ 60–150</td><td class="num">≈ US$ 5–15</td></tr>
+      <tr><td>Aderência ao enunciado (Azure)</td><td>Boa</td><td>Excelente</td><td>Suficiente</td></tr>
+      <tr><td>Tempo real de verdade</td><td>Simulado</td><td>Sim</td><td>Sim</td></tr>
+      <tr><td>Facilidade de demonstrar no vídeo</td><td>Alta</td><td>Média</td><td>Média</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="font-size:.88rem;color:var(--muted)">Custos são ordens de grandeza para volumes de demonstração (poucas horas de áudio, dezenas de vídeos curtos); confirme na calculadora de preços da Azure antes de criar recursos e configure um alerta de orçamento.</p>
+</section>
+
+<section id="dados">
+  <h2>6. Datasets</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Uso</th><th>Dataset</th><th>Observação</th></tr></thead>
+    <tbody>
+      <tr><td>Sinais vitais</td><td>PhysioNet: BIDMC PPG and Respiration, MIMIC-IV Demo, MIT-BIH</td><td>Sugerido no enunciado. O MIMIC-IV Demo (100 pacientes) é aberto e traz vitais e prescrições juntos.</td></tr>
+      <tr><td>Prescrições</td><td>MIMIC-IV Demo (tabela <code>prescriptions</code>), Synthea</td><td>Synthea gera pacientes sintéticos sem restrição de uso.</td></tr>
+      <tr><td>Sons respiratórios</td><td>AudioSet (tosse, chiado, respiração), ICBHI Respiratory Sound</td><td>AudioSet sugerido no enunciado; use modelos já treinados nele.</td></tr>
+      <tr><td>Voz e disartria</td><td>TORGO, UA-Speech, Saarbrücken Voice Database</td><td>Exigem cadastro ou aceite de licença; em inglês/alemão, usar para features acústicas.</td></tr>
+      <tr><td>Fisioterapia</td><td>KIMORE, UI-PRMD</td><td>Exercícios de reabilitação com execuções corretas e incorretas.</td></tr>
+      <tr><td>Quedas</td><td>Le2i Fall Detection, UR Fall Detection</td><td>Vídeos curtos, bons para a demo de leito.</td></tr>
+      <tr><td>Cirurgia</td><td>Cholec80, m2cai16-tool</td><td>Acesso mediante solicitação; alternativa é gravar simulações com o grupo.</td></tr>
+      <tr><td>Consultas em pt-BR</td><td>Gravações encenadas pelo grupo</td><td>Roteiros com sintomas definidos; necessário para mostrar o Speech em português.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="cronograma">
+  <h2>7. Cronograma sugerido (6 semanas)</h2>
+  <p class="prose">Considera um grupo de 4 a 5 pessoas com papéis: <b>CV</b> (vídeo), <b>Áudio/NLP</b>, <b>Dados/Anomalias</b>, <b>Plataforma</b> (backend, Azure, fusão) e <b>Produto</b> (dashboard, relatório, vídeo). Com 4 pessoas, Plataforma e Produto se juntam. Ajuste a duração ao prazo real de entrega.</p>
+  <div class="timeline">
+    <div class="week"><h3><span>Semana 1</span>Fundação</h3><ul>
+      <li>Repositório, padrões (ruff, pre-commit, pytest), Docker Compose com Postgres/Timescale e Redis.</li>
+      <li>Criação dos recursos Azure (Speech, Language, Blob, Key Vault) em resource group único, com alerta de orçamento.</li>
+      <li>Contrato de evidências, esquema do banco, download dos datasets, roteiro das gravações encenadas.</li>
+    </ul><p class="dod">Pronto quando: <code>docker compose up</code> sobe tudo e um evento falso aparece no banco.</p></div>
+    <div class="week"><h3><span>Semana 2</span>Ingestão e linhas de base</h3><ul>
+      <li>API de upload e simulador de stream de vitais/prescrições.</li>
+      <li>Transcrição com Azure Speech e análise com Azure AI Language funcionando ponta a ponta.</li>
+      <li>YOLOv8 e pose rodando em vídeo de exemplo; NEWS2 implementado.</li>
+    </ul><p class="dod">Pronto quando: cada modalidade gera pelo menos uma evidência real.</p></div>
+    <div class="week"><h3><span>Semana 3</span>Inteligência por modalidade</h3><ul>
+      <li>Vídeo: ângulos, DTW contra referência, regras de zona e queda.</li>
+      <li>Áudio: features eGeMAPS, classificador de eventos respiratórios, dicionário de termos críticos.</li>
+      <li>Anomalias: z-score/EWMA, Isolation Forest, regras de prescrição, injeção de anomalias para avaliação.</li>
+    </ul><p class="dod">Pronto quando: há métricas preliminares em notebook para cada módulo.</p></div>
+    <div class="week"><h3><span>Semana 4</span>Fusão e alertas</h3><ul>
+      <li>Motor de fusão com janela, pesos, regras de combinação e deduplicação.</li>
+      <li>Alertas no Teams/e-mail via Logic App e no dashboard via WebSocket; fluxo de confirmação.</li>
+      <li>Relatório automático de vídeo (PDF).</li>
+    </ul><p class="dod">Pronto quando: um cenário combinado gera um alerta crítico no Teams.</p></div>
+    <div class="week"><h3><span>Semana 5</span>Dashboard, avaliação e robustez</h3><ul>
+      <li>Dashboard com visão por paciente, linha do tempo de evidências e alertas.</li>
+      <li>Métricas finais, matrizes de confusão, exemplos de anomalias para o relatório.</li>
+      <li>Testes de integração, tratamento de falhas (modalidade ausente, timeout da Azure), logs no App Insights.</li>
+    </ul><p class="dod">Pronto quando: o roteiro da demo roda do início ao fim sem intervenção.</p></div>
+    <div class="week"><h3><span>Semana 6</span>Entrega</h3><ul>
+      <li>Relatório técnico, README com instruções de execução, diagrama final.</li>
+      <li>Gravação e edição do vídeo (até 15 min), upload no YouTube não listado.</li>
+      <li>Revisão cruzada e congelamento do repositório (tag <code>v1.0</code>).</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="repo">
+  <h2>8. Estrutura do repositório</h2>
+  <p class="prose">Um único pacote Python e uma única imagem Docker; cada serviço do Compose roda a mesma imagem com um comando diferente. A estrutura completa, arquivo por arquivo, está na seção 2 do <code>PLANO_IMPLEMENTACAO.md</code>.</p>
+<pre>techchallenge-fasae4/
+├── README.md                  # visão geral, como rodar, link do vídeo
+├── PLANO_IMPLEMENTACAO.md     # plano detalhado por tarefas (T01–T34)
+├── Dockerfile                 # imagem única da aplicação
+├── docker-compose.yml         # db, redis, api, workers, dashboard, simulador
+├── docker-compose.dev.yml     # código montado + reload
+├── .env.example               # chaves Azure (nunca commitar .env)
+├── config/                    # limiares, exercícios, zonas, termos, fusão (YAML)
+├── db/init.sql                # schema PostgreSQL + TimescaleDB
+├── src/medwatch/
+│   ├── api/                   # FastAPI: upload, leitura, confirmação de alertas
+│   ├── simulator/             # replay sintético e MIMIC-IV Demo
+│   ├── video/                 # YOLOv8, pose, DTW, fisioterapia, leito, cirurgia
+│   ├── audio/ e text/         # Azure Speech, Azure AI Language, openSMILE, AST
+│   ├── anomaly/               # NEWS2, EWMA, Isolation Forest, prescrições, movimento
+│   ├── fusion/                # escore de risco e criação de alertas
+│   ├── alerts/                # console, Teams, e-mail, escalonamento
+│   ├── reports/               # relatórios HTML/PDF
+│   └── dashboard/             # Streamlit
+├── scripts/                   # Azure, modelos, treino, avaliação, demo
+├── tests/                     # unitários e integração
+└── docs/
+    ├── plano-fase4.html       # esta página
+    ├── relatorio-tecnico.md
+    └── resultados/</pre>
+</section>
+
+<section id="entregaveis">
+  <h2>9. Relatório técnico e roteiro do vídeo</h2>
+  <div class="grid2">
+    <div class="mod" style="--c:var(--accent)">
+      <h3>Relatório técnico</h3>
+      <ul>
+        <li><b>Fluxo multimodal:</b> diagrama, contrato de evidências, sequência de um alerta.</li>
+        <li><b>Modelos por tipo de dado:</b> tabela com modelo, motivo da escolha, entrada, saída e limitações.</li>
+        <li><b>Resultados:</b> métricas por módulo, comparação das camadas de anomalia, latência ponta a ponta.</li>
+        <li><b>Exemplos de anomalias:</b> 3 a 5 casos com prints (frame anotado, trecho de transcrição, gráfico de vital) e o alerta gerado.</li>
+        <li><b>Limitações e próximos passos:</b> dados em inglês, ausência de validação clínica, viés.</li>
+      </ul>
+    </div>
+    <div class="mod" style="--c:var(--out)">
+      <h3>Vídeo (até 15 min)</h3>
+      <div class="scroll" style="border:0"><table>
+        <tbody>
+          <tr><td class="num">00:00–01:30</td><td>Problema, objetivo e arquitetura</td></tr>
+          <tr><td class="num">01:30–04:30</td><td>Vídeo: fisioterapia com desvio e queda no leito</td></tr>
+          <tr><td class="num">04:30–07:30</td><td>Áudio: consulta encenada, transcrição, termos, voz</td></tr>
+          <tr><td class="num">07:30–10:00</td><td>Vitais e prescrições com anomalias ao vivo</td></tr>
+          <tr><td class="num">10:00–12:00</td><td>Portal Azure: recursos, chamadas, logs</td></tr>
+          <tr><td class="num">12:00–14:00</td><td>Caso combinado: fusão, alerta no Teams, confirmação</td></tr>
+          <tr><td class="num">14:00–15:00</td><td>Resultados e conclusão</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<section id="riscos">
+  <h2>10. Riscos, LGPD e ética</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Risco</th><th>Mitigação</th></tr></thead>
+    <tbody>
+      <tr><td>Dados sensíveis de saúde (LGPD, art. 11)</td><td>Só dados públicos ou encenados; pseudonimização na ingestão; recursos na região Brazil South; segredos no Key Vault; nada de dado real no Git.</td></tr>
+      <tr><td>Excesso de alarmes (fadiga de alerta)</td><td>Níveis de severidade, deduplicação, limiares calibrados com feedback, métricas de falso positivo no relatório.</td></tr>
+      <tr><td>Modelos treinados em inglês ou outra população</td><td>Usar features acústicas independentes de idioma; declarar a limitação; validar com gravações próprias.</td></tr>
+      <tr><td>OpenPose pesado e difícil de instalar</td><td>Container pronto ou OpenCV DNN; manter YOLOv8-pose como plano B e comparar.</td></tr>
+      <tr><td>GPU indisponível</td><td>Processar vídeos offline em lote (Colab/Kaggle) e salvar resultados; modelos <code>n</code>/<code>s</code> do YOLOv8.</td></tr>
+      <tr><td>Custos e cotas Azure</td><td>Camada gratuita (F0) quando possível, alerta de orçamento, desligar recursos após a gravação.</td></tr>
+      <tr><td>Uso clínico indevido</td><td>Deixar claro que é apoio à decisão com médico no circuito, sem diagnóstico automático; toda explicação aponta para o dado de origem.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+</div>
