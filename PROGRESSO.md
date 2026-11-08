@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T08 concluída)
-- **Tarefa atual:** T09
-- **Estado geral:** T00–T08 concluídas; T09 não iniciada
+- **Última atualização:** 2026-11-08 (T09 concluída)
+- **Tarefa atual:** T10
+- **Estado geral:** T00–T09 concluídas; T10 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T09 — Estatística em streaming (EWMA z-score)
+- **Tarefa:** T10 — Isolation Forest para vitais
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** implementar `anomaly/streaming_stats.py` (`EwmaZ`) e `tests/test_streaming_stats.py` conforme a T09 do plano.
+- **Próximo passo exato:** implementar `anomaly/iforest.py`, `scripts/train_vitals_iforest.py` e `tests/test_iforest.py` conforme a T10 do plano.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -29,7 +29,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T06 | API: pacientes, upload de mídia e documentos | concluída | ver `git log` | `pytest -q` e `ruff check .` passam com banco real; `routes_alerts.py` é stub; B008 isento para Depends/File/Form no ruff |
 | T07 | Simulador de stream (sintético e MIMIC-IV Demo) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `test_mimic` pulado (pyarrow 26 da `.venv` incompatível com numpy<2: `pip install "pyarrow<18"`); aceite com `docker compose --profile demo up simulator` (XLEN vitals) não verificado; MIMIC não baixado |
 | T08 | Filtro fisiológico e NEWS2 | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T09 | Estatística em streaming (EWMA z-score) | pendente | | |
+| T09 | Estatística em streaming (EWMA z-score) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T10 | Isolation Forest para vitais | pendente | | |
 | T11 | Regras de prescrição | pendente | | |
 | T12 | Regras de movimentação | pendente | | |
@@ -109,3 +109,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T06 | ver `git log` | api (main, deps, routes_patients/media/alerts stub) e test_api_media; `pytest -q` e `ruff check .` OK. Próxima: T07. |
 | 2026-11-08 | T07 | ver `git log` | synthetic, replay (fases de velocidade, sim:clock, ground truth), seed, mimic + scripts, testes; `pytest -q` e `ruff check .` OK. Próxima: T08. |
 | 2026-11-08 | T08 | ver `git log` | filters.py, news2.py e test_news2.py; `pytest -q` e `ruff check .` OK. Próxima: T09. |
+| 2026-11-08 | T09 | ver `git log` | streaming_stats.py (EwmaZ, Cooldown) e testes; `pytest -q` e `ruff check .` OK. Próxima: T10. |
