@@ -2,16 +2,16 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (planejamento)
-- **Tarefa atual:** T00
-- **Estado geral:** implementação não iniciada
+- **Última atualização:** 2026-11-08 (T00 concluída)
+- **Tarefa atual:** T01
+- **Estado geral:** T00 concluída; implementação do código não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T00 — Arquivos de continuidade
-- **Passos concluídos:** 1 e 2 (arquivos `CLAUDE.md`, `PROGRESSO.md` e `docs/DECISOES.md` criados no planejamento)
-- **Próximo passo exato:** passo 3 da T00: rodar `git config user.name` e `git config user.email`. Se vierem vazios, manter o bloqueio "Identidade do Git" aberto e pedir ao humano para configurar. Se estiverem preenchidos, fechar o bloqueio, marcar T00 como `concluída`, preencher esta seção com a T01 (passo 1) e fazer o commit `T00: Arquivos de continuidade` com push.
-- **Arquivos tocados:** `CLAUDE.md`, `PROGRESSO.md`, `docs/DECISOES.md`
+- **Tarefa:** T01 — Esqueleto do repositório
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passo 1 da T01: criar a estrutura de diretórios da seção 2 do plano com `__init__.py` vazios nos pacotes de `src/medwatch/` e `.gitkeep` nas pastas sem arquivo (`config/`, `db/`, `scripts/`, `tests/`, `data/samples/`, `data/references/`, `docs/resultados/`). Não sobrescrever `CLAUDE.md`, `PROGRESSO.md`, `PLANO_IMPLEMENTACAO.md` nem `docs/DECISOES.md`.
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum (ainda não há código)
 - **Observações:** nenhuma
@@ -20,7 +20,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 
 | Tarefa | Título | Status | Commit | Observação |
 |---|---|---|---|---|
-| T00 | Arquivos de continuidade | em andamento | | |
+| T00 | Arquivos de continuidade | concluída | | arquivos criados no planejamento (37cf1da); identidade do Git verificada |
 | T01 | Esqueleto do repositório | pendente | | |
 | T02 | Configuração, logging, contratos e tempo | pendente | | |
 | T03 | Docker Compose, banco e camada de acesso | pendente | | |
@@ -62,7 +62,7 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 
 | Item | Tarefa afetada | Desde | Situação |
 |---|---|---|---|
-| Identidade do Git (`user.name` e `user.email`) não configurada nesta máquina | T00 (todos os commits) | 2026-11-08 | aberto |
+| Identidade do Git (`user.name` e `user.email`) não configurada nesta máquina | T00 (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 |
 | Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
 | Gravar `consulta_p0001.wav` e leituras de voz saudável | T16, T18, T32 | — | aberto |
 | Vídeos de agachamento (correto e incorreto) | T20, T21, T32 | — | aberto |
@@ -88,4 +88,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 
 | Data | Tarefas trabalhadas | Último commit | Resumo |
 |---|---|---|---|
-| 2026-11-08 | planejamento | — | Plano, ambiente Docker e arquivos de continuidade criados. |
+| 2026-11-08 | planejamento, T00 | 37cf1da | Plano, ambiente Docker e arquivos de continuidade criados; identidade do Git configurada pelo humano; T00 concluída. |
