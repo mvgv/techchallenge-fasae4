@@ -65,7 +65,7 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 | Identidade do Git (`user.name` e `user.email`) não configurada nesta máquina | T00 (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 |
 | Identidade do Git ausente de novo nesta VPS (`Author identity unknown`); passo 1 da T01 está feito mas sem commit | T01 em diante (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 (identidade `mvgv` presente; commit wip criado) |
 | `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | aberto: aprovar `docker run python:3.11-slim` ou instalar python3.11 |
-| `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | aberto: humano configurar token/SSH ou credential helper |
+| `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | resolvido em 2026-11-08 (push funciona; origin/main em dia) |
 | Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | aberto |
 | Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
 | Gravar `consulta_p0001.wav` e leituras de voz saudável | T16, T18, T32 | — | aberto |
@@ -98,3 +98,5 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T01 (tentativa) | — | Identidade do Git ainda ausente (sem commit) e docker bloqueado por aprovação; nada novo além do registro dos bloqueios. Todas as tarefas seguintes exigem commit, então não há tarefa avançável. |
 | 2026-11-08 | T01 (nova tentativa) | — | `git config user.name/email` continua vazio e o `docker run` foi bloqueado pelo verificador de permissões. Nada commitado; bloqueios acima seguem abertos. |
 | 2026-11-08 | T01 (parcial) | ver `git log` | Identidade do Git OK; commit wip criado; push falhou (sem credenciais); docker run bloqueado pelo verificador, pytest/ruff ainda não verificados. |
+| 2026-11-08 | T01 (nova tentativa) | ver `git log` | `git push` ainda falha (sem credenciais). Criar venv e instalar pytest/ruff (alternativa à falta de Python 3.11) foi bloqueado pelo verificador de permissões. Nenhum código novo; T01 segue sem verificação e T02+ dependem dela. |
+| 2026-11-08 | T01 (nova tentativa) | ver `git log` | Push OK. `docker run python:3.11-slim ...` foi barrado pelo verificador (comando não verificável); sem Python 3.11 local. T01 continua sem verificação de `pytest -q`/`ruff check .`; nenhuma tarefa seguinte avança sem isso. |
