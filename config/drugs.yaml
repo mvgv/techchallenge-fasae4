@@ -1,0 +1,17 @@
+high_alert: [insulina, insulin, heparina, heparin, varfarina, warfarin, morfina, morphine,
+             fentanil, fentanyl, noradrenalina, norepinephrine, cloreto de potassio,
+             potassium chloride, midazolam, propofol, enoxaparina, enoxaparin]
+classes:
+  anticoagulante: [heparina, heparin, varfarina, warfarin, enoxaparina, enoxaparin, apixabana, apixaban]
+  opioide: [morfina, morphine, fentanil, fentanyl, tramadol, oxicodona, oxycodone, hydromorphone]
+  benzodiazepinico: [midazolam, diazepam, lorazepam, clonazepam]
+  aine: [ibuprofeno, ibuprofen, cetorolaco, ketorolac, diclofenaco, diclofenac]
+interactions:
+  - {a: anticoagulante, b: aine, note: "Risco aumentado de sangramento"}
+  - {a: opioide, b: benzodiazepinico, note: "Risco de depressão respiratória"}
+  - {a: varfarina, b: aas, note: "Risco aumentado de sangramento"}
+  - {a: warfarin, b: aspirin, note: "Risco aumentado de sangramento"}
+sedatives_classes: [opioide, benzodiazepinico]
+dose_change_ratio_high: 1.5
+dose_change_ratio_low: 0.5
+burst_changes_24h: 4

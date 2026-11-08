@@ -1,0 +1,43 @@
+vitals:
+  physiologic_bounds:          # fora disso = artefato de sensor, valor descartado
+    hr: [20, 250]
+    sbp: [50, 260]
+    dbp: [20, 180]
+    spo2: [50, 100]
+    rr: [4, 60]
+    temp: [30, 43]
+  zscore:
+    alpha: 0.1
+    warmup: 20
+    threshold: 3.0
+    cooldown_minutes: 10
+  iforest:
+    cooldown_minutes: 10
+  news2:
+    repeat_minutes: 15         # reemite se o nível se mantém >= medium
+movement:
+  inactivity_activity_max: 5
+  inactivity_minutes: 120
+  night_start_hour: 23
+  night_end_hour: 6
+  night_agitation_fixed: 80
+  night_agitation_min_history: 60
+voice:                         # valores PROVISÓRIOS; recalibrar com build_voice_baseline.py
+  speech_rate_wpm_min: 100
+  pause_ratio_max: 0.40
+  z_threshold: 2.0
+audio_events:
+  window_s: 10
+  hop_s: 5
+  min_score: 0.30
+  labels: ["Cough", "Wheeze", "Breathing", "Gasp", "Pant", "Snoring", "Throat clearing"]
+video:
+  keypoint_min_conf: 0.5
+  fall:
+    window_s: 1.0
+    hip_drop_min: 0.25         # fração da altura do frame
+    lying_aspect_min: 1.3      # largura/altura da bbox
+    lying_min_s: 2.0
+  inactivity_motion_max: 0.01  # deslocamento médio normalizado por frame
+  instrument_out_min_s: 5
+  count_window_s: 10

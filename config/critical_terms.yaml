@@ -1,0 +1,18 @@
+terms:
+  - {term: "falta de ar", category: respiratorio, weight: 0.8}
+  - {term: "dificuldade para respirar", category: respiratorio, weight: 0.8}
+  - {term: "chiado", category: respiratorio, weight: 0.6}
+  - {term: "tosse", category: respiratorio, weight: 0.4}
+  - {term: "dor no peito", category: cardiovascular, weight: 0.9}
+  - {term: "aperto no peito", category: cardiovascular, weight: 0.8}
+  - {term: "palpitacao", category: cardiovascular, weight: 0.6}
+  - {term: "desmaio", category: neurologico, weight: 0.8}
+  - {term: "tontura", category: neurologico, weight: 0.5}
+  - {term: "fala enrolada", category: neurologico, weight: 0.9}
+  - {term: "formigamento", category: neurologico, weight: 0.5}
+  - {term: "fraqueza", category: geral, weight: 0.5}
+  - {term: "cansaco", category: geral, weight: 0.5}
+  - {term: "febre", category: infeccioso, weight: 0.5}
+  - {term: "sangramento", category: hemorragico, weight: 0.8}
+  - {term: "confusao", category: neurologico, weight: 0.7}
+  - {term: "queda", category: trauma, weight: 0.7}

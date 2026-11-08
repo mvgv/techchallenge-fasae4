@@ -9,8 +9,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T02 — Configuração, logging, contratos e tempo
-- **Passos concluídos:** 1 (config.py, contracts.py, .env.example), 2 (logging_setup.py), 3 (timeutil.py)
-- **Próximo passo exato:** passo 4 — criar os YAML de `config/` (thresholds, exercises, zones, critical_terms, drugs, fusion `{}`), copiando do plano (linhas 867–1002); depois passo 5, `tests/test_contracts.py` (+ teste de `load_yaml` e `timeutil`).
+- **Passos concluídos:** 1 (config.py, contracts.py, .env.example), 2 (logging_setup.py), 3 (timeutil.py), 4 (YAML de `config/`)
+- **Próximo passo exato:** passo 5 — `tests/test_contracts.py` (Evidence válido, score=1.5 → ValidationError, round-trip JSON, `load_yaml` com monkeypatch de `CONFIG_DIR`, timeutil); depois commit final `T02`.
 - **Arquivos tocados:** `.env.example`, `src/medwatch/{config,contracts,logging_setup,timeutil}.py`, `docs/DECISOES.md`
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum

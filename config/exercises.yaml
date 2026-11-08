@@ -1,0 +1,30 @@
+squat:
+  label: "Agachamento"
+  primary_joint: knee_left
+  joints:
+    knee_left:  [11, 13, 15]   # quadril, joelho, tornozelo (índices COCO)
+    knee_right: [12, 14, 16]
+    hip_left:   [5, 11, 13]
+    hip_right:  [6, 12, 14]
+  pairs: [[knee_left, knee_right], [hip_left, hip_right]]
+  rep_min_prominence_deg: 20
+  rep_min_distance_s: 0.8
+  rom_min_ratio: 0.8           # ROM < 80% da referência => physio_low_rom
+  asymmetry_max_deg: 15
+  dtw_max: 15                  # graus médios
+  trunk_max_deg: 30
+shoulder_abduction:
+  label: "Abdução de ombro"
+  primary_joint: shoulder_left
+  joints:
+    shoulder_left:  [11, 5, 7]
+    shoulder_right: [12, 6, 8]
+    elbow_left:     [5, 7, 9]
+    elbow_right:    [6, 8, 10]
+  pairs: [[shoulder_left, shoulder_right]]
+  rep_min_prominence_deg: 30
+  rep_min_distance_s: 1.0
+  rom_min_ratio: 0.8
+  asymmetry_max_deg: 15
+  dtw_max: 18
+  trunk_max_deg: 20
