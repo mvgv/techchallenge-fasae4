@@ -1,0 +1,135 @@
+name: medwatch
+
+x-app: &app
+  image: medwatch-app:latest
+  build:
+    context: .
+    args:
+      TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+  env_file: .env
+  # Sobrescreve os valores "locais" do .env com os endereços da rede Docker.
+  environment:
+    DATABASE_URL: postgresql+psycopg://medwatch:medwatch@db:5432/medwatch
+    REDIS_URL: redis://redis:6379/0
+    API_BASE_URL: http://api:8000
+    CONFIG_DIR: /app/config
+    MODELS_DIR: /app/models
+    LOCAL_STORAGE_DIR: /app/data/storage
+    YOLO_DET_WEIGHTS: /app/models/yolov8n.pt
+    YOLO_POSE_WEIGHTS: /app/models/yolov8n-pose.pt
+  volumes:
+    - ./data:/app/data
+    - ./models:/app/models
+    - ./config:/app/config:ro
+    - model-cache:/root/.cache
+  depends_on: &app-deps
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+x-needs-models: &needs-models
+  depends_on:
+    <<: *app-deps
+    models-init:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: medwatch
+      POSTGRES_PASSWORD: medwatch
+      POSTGRES_DB: medwatch
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medwatch -d medwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  models-init:
+    <<: *app
+    command: ["python", "scripts/download_models.py"]
+    depends_on: {}
+    restart: "no"
+
+  api:
+    <<: *app
+    command: ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker-video:
+    <<: [*needs-models, *app]
+    command: ["python", "-m", "medwatch.video.worker"]
+
+  worker-audio:
+    <<: [*needs-models, *app]
+    command: ["python", "-m", "medwatch.audio.worker"]
+
+  worker-text:
+    <<: *app
+    command: ["python", "-m", "medwatch.text.worker"]
+
+  worker-anomaly:
+    <<: *app
+    command: ["python", "-m", "medwatch.anomaly.worker"]
+
+  worker-fusion:
+    <<: *app
+    command: ["python", "-m", "medwatch.fusion.worker"]
+
+  worker-alerts:
+    <<: *app
+    command: ["python", "-m", "medwatch.alerts.worker"]
+
+  dashboard:
+    <<: *app
+    command: ["streamlit", "run", "src/medwatch/dashboard/app.py",
+              "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-8501}:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  simulator:
+    <<: *app
+    command: ["python", "-m", "medwatch.simulator.replay"]
+    profiles: ["demo"]
+    restart: "no"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  model-cache:

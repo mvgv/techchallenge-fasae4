@@ -9,9 +9,9 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T03 — Docker Compose, banco e camada de acesso
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** passo 1 — criar `db/init.sql` conforme seção 3.5 do plano (linhas 582–702); depois passo 2 (seção 9: Dockerfile, compose, `scripts/download_models.py`).
-- **Arquivos tocados:** nenhum
+- **Passos concluídos:** 1 (init.sql), 2 (Dockerfile, compose, download_models.py), 3 parcial (`docker compose config` OK; `docker compose build` ainda não executado)
+- **Próximo passo exato:** passo 4 — `src/medwatch/db.py` (funções do plano) e passo 5 `tests/test_db.py`; depois `docker compose build` e `up -d db redis` se o docker permitir.
+- **Arquivos tocados:** db/init.sql, Dockerfile, .dockerignore, docker-compose*.yml, scripts/download_models.py
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).

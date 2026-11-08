@@ -1,0 +1,33 @@
+x-dev-mounts: &dev-mounts
+  volumes:
+    - ./src:/app/src
+    - ./scripts:/app/scripts
+    - ./tests:/app/tests
+
+services:
+  api:
+    <<: *dev-mounts
+    command: ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000",
+              "--reload", "--reload-dir", "/app/src"]
+  worker-video:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.video.worker", "/app/src"]
+  worker-audio:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.audio.worker", "/app/src"]
+  worker-text:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.text.worker", "/app/src"]
+  worker-anomaly:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.anomaly.worker", "/app/src"]
+  worker-fusion:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.fusion.worker", "/app/src"]
+  worker-alerts:
+    <<: *dev-mounts
+    command: ["watchfiles", "--filter", "python", "python -m medwatch.alerts.worker", "/app/src"]
+  dashboard:
+    <<: *dev-mounts
+    command: ["streamlit", "run", "src/medwatch/dashboard/app.py", "--server.port", "8501",
+              "--server.address", "0.0.0.0", "--server.headless", "true", "--server.runOnSave", "true"]
