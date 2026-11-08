@@ -2,19 +2,19 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T23 concluída)
-- **Tarefa atual:** T24
-- **Estado geral:** T00–T23 concluídas; T24 em andamento
+- **Última atualização:** 2026-11-08 (T24 concluída)
+- **Tarefa atual:** T25
+- **Estado geral:** T00–T24 concluídas; T25 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T24 — Vídeo anotado e worker de vídeo
-- **Passos concluídos:** 1) `video/annotate.py` (AnnotatedWriter, base_image, draw_overlay, active_findings)
-- **Próximo passo exato:** implementar `src/medwatch/video/worker.py` (VideoWorker, passos 1–9 da T24) e `tests/test_video_worker.py` com modelos falsos.
-- **Arquivos tocados:** `src/medwatch/video/annotate.py`
+- **Tarefa:** T25 — Motor de fusão
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** ler a T25 em `PLANO_IMPLEMENTACAO.md` (~linha 1860, Fase 5) e implementar conforme os passos.
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** recomendação: trocar para Opus 5.5 (T24). Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS (passos 3 da T03 e testes de banco real podem ficar bloqueados).
+- **Observações:** T26 (worker de fusão) é uma das tarefas com recomendação de Opus 5.5. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
 
 ## Status das tarefas
 
@@ -44,7 +44,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T21 | Análise de fisioterapia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos |
 | T22 | Análise de leito | concluída | 36e6010 | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos; sem vídeo de queda real [HUMANO] |
 | T23 | Análise de cirurgia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com detecções sintéticas; YOLO COCO só conhece objetos genéricos (documentar no relatório) |
-| T24 | Vídeo anotado e worker de vídeo | em andamento | | |
+| T24 | Vídeo anotado e worker de vídeo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com modelos falsos; aceite (upload de agachamento pela API + YOLO real + compose) não verificado: sem pesos YOLO nem vídeo [HUMANO] |
 | T25 | Motor de fusão | pendente | | |
 | T26 | Worker de fusão | pendente | | |
 | T27 | Canais de alerta e escalonamento | pendente | | |
@@ -123,5 +123,5 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T20 | ver `git log` | video/geometry.py, dtw.py, reps.py, build_exercise_reference.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T21. |
 | 2026-11-08 | T21 | ver `git log` | video/physio.py (analyze_physio, PhysioResult) e test_physio.py; `pytest -q` e `ruff check .` OK. Próxima: T22. |
 | 2026-11-08 | T22 | ver `git log` | video/bed.py (analyze_bed, BedResult) e test_bed.py; `pytest -q` e `ruff check .` OK. Próxima: T23. |
-| 2026-11-08 | T24 | ver `git log` | Início da T24 (sessão no Opus 5.5). |
 | 2026-11-08 | T23 | ver `git log` | video/surgery.py (analyze_surgery, SurgeryResult) e test_surgery.py; `pytest -q` e `ruff check .` OK. Próxima: T24 (recomenda-se Opus 5.5). |
+| 2026-11-08 | T24 | ver `git log` | video/annotate.py (AnnotatedWriter H.264, overlay), video/worker.py (VideoWorker, duas passagens, evidências, MovementSample, findings.json, frames-chave) e test_video_worker.py; `pytest -q` e `ruff check .` OK. Próxima: T25. |
