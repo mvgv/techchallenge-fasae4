@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T10 concluída)
-- **Tarefa atual:** T11
-- **Estado geral:** T00–T10 concluídas; T11 não iniciada
+- **Última atualização:** 2026-11-08 (T11 concluída)
+- **Tarefa atual:** T12
+- **Estado geral:** T00–T11 concluídas; T12 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T11 — Regras de prescrição
+- **Tarefa:** T12 — Regras de movimentação
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** implementar `anomaly/prescriptions.py` e `tests/test_prescriptions.py` conforme a T11 do plano.
+- **Próximo passo exato:** implementar `anomaly/movement.py` (`MovementMonitor`) e `tests/test_movement.py` conforme a T12 do plano; registrar em `docs/DECISOES.md` que o horário noturno usa `ts` em UTC.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -31,7 +31,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T08 | Filtro fisiológico e NEWS2 | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T09 | Estatística em streaming (EWMA z-score) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T10 | Isolation Forest para vitais | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; modelo gerado em `models/` (fora do Git); `--mimic` não testado |
-| T11 | Regras de prescrição | pendente | | |
+| T11 | Regras de prescrição | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T12 | Regras de movimentação | pendente | | |
 | T13 | Worker de anomalias | pendente | | |
 | T14 | Conversão de áudio e Azure Speech | pendente | | |
@@ -111,3 +111,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T08 | ver `git log` | filters.py, news2.py e test_news2.py; `pytest -q` e `ruff check .` OK. Próxima: T09. |
 | 2026-11-08 | T09 | ver `git log` | streaming_stats.py (EwmaZ, Cooldown) e testes; `pytest -q` e `ruff check .` OK. Próxima: T10. |
 | 2026-11-08 | T10 | ver `git log` | iforest.py, train_vitals_iforest.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T11. |
+| 2026-11-08 | T11 | ver `git log` | prescriptions.py (PrescriptionMonitor, normalize_drug) e testes; `pytest -q` e `ruff check .` OK. Próxima: T12. |
