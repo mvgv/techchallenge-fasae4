@@ -2,26 +2,26 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T00 concluída)
-- **Tarefa atual:** T01
-- **Estado geral:** T00 concluída; implementação do código não iniciada
+- **Última atualização:** 2026-11-08 (T01 concluída)
+- **Tarefa atual:** T02
+- **Estado geral:** T00 e T01 concluídas; T02 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T01 — Esqueleto do repositório
-- **Passos concluídos:** 1, 2, 3, 5 (commit `T01 [wip]` feito localmente, **sem push**: faltam credenciais do GitHub). Criados: `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md`, `src/medwatch/__init__.py` (`__version__`), `tests/test_smoke.py`.
-- **Próximo passo exato:** (1) humano configura credenciais do GitHub e roda `git push`; (3) passo 4: instalar e rodar `pytest -q` e `ruff check .` num ambiente Python 3.11 (esta VPS só tem Python 3.12.3; o `pyproject` exige `>=3.11,<3.12`; usar `docker run python:3.11-slim` ou instalar python3.11); (4) passo 6: gerar `requirements.lock` com `pip freeze` e commitar; (5) commit final `T01: Esqueleto do repositório`.
-- **Arquivos tocados:** `pyproject.toml`, `.gitignore`, `.dockerignore`, `README.md`, `src/medwatch/__init__.py`, `tests/test_smoke.py`, mais os `__init__.py`/`.gitkeep` do passo 1 (já em stage)
+- **Tarefa:** T02 — Configuração, logging, contratos e tempo
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** ler a seção da T02 no `PLANO_IMPLEMENTACAO.md` e iniciar o primeiro passo.
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
-- **Testes falhando conhecidos:** não executados (sem Python 3.11 nesta máquina; execução via docker precisou de aprovação e não foi feita)
-- **Observações:** aceite da T01 (`pytest -q` e `ruff check .`) ainda não verificado.
+- **Testes falhando conhecidos:** nenhum
+- **Observações:** ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`).
 
 ## Status das tarefas
 
 | Tarefa | Título | Status | Commit | Observação |
 |---|---|---|---|---|
 | T00 | Arquivos de continuidade | concluída | | arquivos criados no planejamento (37cf1da); identidade do Git verificada |
-| T01 | Esqueleto do repositório | pendente | | |
+| T01 | Esqueleto do repositório | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `requirements.lock` gerado |
 | T02 | Configuração, logging, contratos e tempo | pendente | | |
 | T03 | Docker Compose, banco e camada de acesso | pendente | | |
 | T04 | Barramento (Redis Streams) e storage | pendente | | |
@@ -64,7 +64,7 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 |---|---|---|---|
 | Identidade do Git (`user.name` e `user.email`) não configurada nesta máquina | T00 (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 |
 | Identidade do Git ausente de novo nesta VPS (`Author identity unknown`); passo 1 da T01 está feito mas sem commit | T01 em diante (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 (identidade `mvgv` presente; commit wip criado) |
-| `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | aberto: aprovar `docker run python:3.11-slim` ou instalar python3.11 |
+| `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | resolvido em 2026-11-08 (`.venv` com Python 3.11 disponível) |
 | `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | resolvido em 2026-11-08 (push funciona; origin/main em dia) |
 | Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | aberto |
 | Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
@@ -101,3 +101,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T01 (nova tentativa) | ver `git log` | `git push` ainda falha (sem credenciais). Criar venv e instalar pytest/ruff (alternativa à falta de Python 3.11) foi bloqueado pelo verificador de permissões. Nenhum código novo; T01 segue sem verificação e T02+ dependem dela. |
 | 2026-11-08 | T01 (nova tentativa) | ver `git log` | Push OK. `docker run python:3.11-slim ...` foi barrado pelo verificador (comando não verificável); sem Python 3.11 local. T01 continua sem verificação de `pytest -q`/`ruff check .`; nenhuma tarefa seguinte avança sem isso. |
 | 2026-11-08 | T01 (nova tentativa) | ver `git log` | Estado inalterado: sem python3.11, pytest nem ruff nesta VPS; `docker run` e criação de venv já foram barrados antes e não foram reexecutados. Aguardando o humano: aprovar `docker run python:3.11-slim` ou instalar python3.11 (ou pytest/ruff). Nenhuma tarefa seguinte avança sem a verificação da T01. |
+| 2026-11-08 | T01 | ver `git log` | Verificação com `.venv` (Python 3.11): `pytest -q` e `ruff check .` OK; `requirements.lock` gerado; T01 concluída. |
