@@ -2,20 +2,19 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T25 concluída)
-- **Tarefa atual:** T26
-- **Estado geral:** T00–T25 concluídas; T26 em andamento
+- **Última atualização:** 2026-11-08 (T26 concluída)
+- **Tarefa atual:** T27
+- **Estado geral:** T00–T26 concluídas; T27 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T26 — Worker de fusão
-- **Passos (divididos pelo agente):** 1) `fusion/worker.py` (FusionWorker: persistência, snapshot, decisão de alerta, título/resumo, reidratação); 2) `tests/test_fusion_worker.py` + commit final
-- **Passos concluídos:** 1
-- **Próximo passo exato:** escrever `tests/test_fusion_worker.py` com fakeredis e FakeDb (métodos: insert_evidence, insert_risk_snapshot, get_open_alert, last_closed_alert, insert_alert, update_alert, get_patient, recent_evidence_all) cobrindo: news2_medium + respiratory_sound → alerta critical; terceira evidência fraca não cria alerta; info isolada com min_level=warning não cria; escalonamento; cooldown; reidratação
-- **Arquivos tocados:** `src/medwatch/fusion/worker.py`, `src/medwatch/db.py` (type hint de `insert_risk_snapshot`)
+- **Tarefa:** T27 — Canais de alerta e escalonamento
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** ler a T27 em `PLANO_IMPLEMENTACAO.md` (~linha 2020, Fase 5) e implementar `src/medwatch/alerts/channels.py` (ConsoleChannel, TeamsChannel com `teams_payload`, EmailChannel); depois `src/medwatch/alerts/worker.py` e `tests/test_channels.py` (httpx.MockTransport).
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** sessão rodando em Opus 5.5 (recomendação da seção 0.2 atendida). Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
+- **Observações:** webhook do Teams e Logic App são [HUMANO] (já na tabela de bloqueios); concluir a T27 com MockTransport. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
 
 ## Status das tarefas
 
@@ -47,7 +46,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T23 | Análise de cirurgia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com detecções sintéticas; YOLO COCO só conhece objetos genéricos (documentar no relatório) |
 | T24 | Vídeo anotado e worker de vídeo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com modelos falsos; aceite (upload de agachamento pela API + YOLO real + compose) não verificado: sem pesos YOLO nem vídeo [HUMANO] |
 | T25 | Motor de fusão | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
-| T26 | Worker de fusão | pendente | | |
+| T26 | Worker de fusão | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e db falso; aceite (simulador `demo` + `GET /alerts`) depende da T28 e do compose, não verificado |
 | T27 | Canais de alerta e escalonamento | pendente | | |
 | T28 | API de leitura e confirmação de alertas | pendente | | |
 | T29 | Relatórios (HTML e PDF) | pendente | | |
@@ -127,4 +126,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T23 | ver `git log` | video/surgery.py (analyze_surgery, SurgeryResult) e test_surgery.py; `pytest -q` e `ruff check .` OK. Próxima: T24 (recomenda-se Opus 5.5). |
 | 2026-11-08 | T24 | ver `git log` | video/annotate.py (AnnotatedWriter H.264, overlay), video/worker.py (VideoWorker, duas passagens, evidências, MovementSample, findings.json, frames-chave) e test_video_worker.py; `pytest -q` e `ruff check .` OK. Próxima: T25. |
 | 2026-11-08 | T25 | ver `git log` | config/fusion.yaml, fusion/engine.py (FusionEngine, RiskResult) e test_fusion.py; `pytest -q` e `ruff check .` OK. Próxima: T26 (recomenda-se Opus 5.5). |
-| 2026-11-08 | T26 | (em andamento) | Sessão iniciada em T26 com Opus 5.5; suíte inicial 135 passed. |
+| 2026-11-08 | T26 | ver `git log` | fusion/worker.py (FusionWorker: evidência no banco, snapshot top 10, criação/escalonamento/cooldown de alertas, título e resumo pt-BR, reidratação) e test_fusion_worker.py; `pytest -q` (143 passed) e `ruff check .` OK. Próxima: T27. |
