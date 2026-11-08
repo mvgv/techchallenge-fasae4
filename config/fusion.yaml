@@ -1,1 +1,89 @@
-{}
+tau_minutes: 15            # decaimento: exp(-Δt/τ)
+window_minutes: 360        # evidências mais antigas que isso (tempo do evento) são descartadas
+levels: {critical: 70, warning: 40, info: 20}
+default_weight_by_modality: {vitals: 0.4, prescription: 0.3, movement: 0.3, video: 0.3, audio: 0.3, text: 0.3}
+weights:
+  news2_low_medium: 0.45
+  news2_medium: 0.65
+  news2_high: 0.95
+  vital_zscore: 0.40
+  vital_iforest: 0.50
+  rx_dose_change: 0.40
+  rx_high_alert_start: 0.35
+  rx_interaction: 0.60
+  rx_duplicate_class: 0.30
+  rx_change_burst: 0.40
+  movement_inactivity: 0.35
+  movement_night_agitation: 0.40
+  movement_bed_exit: 0.50
+  fall_detected: 0.95
+  bed_exit_video: 0.50
+  physio_low_rom: 0.25
+  physio_asymmetry: 0.25
+  physio_pattern_deviation: 0.30
+  physio_trunk_compensation: 0.20
+  surgery_zone_intrusion: 0.50
+  surgery_instrument_out_of_zone: 0.40
+  surgery_instrument_count_mismatch: 0.70
+  speech_critical_term: 0.50
+  speech_negative_sentiment: 0.20
+  voice_fatigue: 0.35
+  voice_dysarthria_indicator: 0.45
+  respiratory_sound: 0.45
+  clinical_entity: 0.10
+  text_critical_term: 0.45
+floor_critical: [news2_high, fall_detected, surgery_instrument_count_mismatch]
+rules:
+  - name: respiratorio_multimodal
+    label: "Piora respiratória confirmada por sinais vitais e voz"
+    window_minutes: 60
+    all_of:
+      - any_of: [{type: news2_medium}, {type: news2_high}, {type: vital_zscore, payload: {vital: spo2}},
+                 {type: vital_zscore, payload: {vital: rr}}]
+      - any_of: [{type: respiratory_sound}, {type: voice_fatigue},
+                 {type: speech_critical_term, payload: {category: respiratorio}}]
+    multiplier: 1.5
+  - name: queda_com_sedativo
+    label: "Queda em paciente com sedativo/opioide recente"
+    window_minutes: 360
+    all_of:
+      - any_of: [{type: fall_detected}, {type: movement_bed_exit}, {type: bed_exit_video}]
+      - any_of: [{type: rx_high_alert_start}, {type: rx_interaction}]
+    multiplier: 1.4
+  - name: neurologico
+    label: "Sinais neurológicos em voz e movimento"
+    window_minutes: 360
+    all_of:
+      - any_of: [{type: voice_dysarthria_indicator}, {type: speech_critical_term, payload: {category: neurologico}}]
+      - any_of: [{type: physio_asymmetry}, {type: movement_inactivity}]
+    multiplier: 1.4
+labels:                    # rótulos pt-BR para títulos e dashboard
+  news2_low_medium: "NEWS2 com parâmetro crítico"
+  news2_medium: "NEWS2 médio"
+  news2_high: "NEWS2 alto"
+  vital_zscore: "Sinal vital fora do padrão"
+  vital_iforest: "Padrão multivariado anômalo"
+  rx_dose_change: "Mudança brusca de dose"
+  rx_high_alert_start: "Medicamento de alta vigilância"
+  rx_interaction: "Interação medicamentosa"
+  rx_duplicate_class: "Duplicidade terapêutica"
+  rx_change_burst: "Muitas alterações de prescrição"
+  movement_inactivity: "Inatividade prolongada"
+  movement_night_agitation: "Agitação noturna"
+  movement_bed_exit: "Saída do leito à noite"
+  fall_detected: "Queda detectada"
+  bed_exit_video: "Saída do leito (vídeo)"
+  physio_low_rom: "Amplitude reduzida"
+  physio_asymmetry: "Assimetria de movimento"
+  physio_pattern_deviation: "Padrão de movimento divergente"
+  physio_trunk_compensation: "Compensação de tronco"
+  surgery_zone_intrusion: "Excesso de pessoas no campo estéril"
+  surgery_instrument_out_of_zone: "Instrumento fora da área"
+  surgery_instrument_count_mismatch: "Contagem de instrumentos divergente"
+  speech_critical_term: "Termo crítico na fala"
+  speech_negative_sentiment: "Sentimento negativo na consulta"
+  voice_fatigue: "Indícios de fadiga na voz"
+  voice_dysarthria_indicator: "Indícios de alteração da fala"
+  respiratory_sound: "Som respiratório anormal"
+  clinical_entity: "Entidades clínicas"
+  text_critical_term: "Termo crítico no laudo"

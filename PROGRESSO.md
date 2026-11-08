@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T24 concluída)
-- **Tarefa atual:** T25
-- **Estado geral:** T00–T24 concluídas; T25 não iniciada
+- **Última atualização:** 2026-11-08 (T25 concluída)
+- **Tarefa atual:** T26
+- **Estado geral:** T00–T25 concluídas; T26 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T25 — Motor de fusão
+- **Tarefa:** T26 — Worker de fusão
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T25 em `PLANO_IMPLEMENTACAO.md` (~linha 1860, Fase 5) e implementar conforme os passos.
+- **Próximo passo exato:** ler a T26 em `PLANO_IMPLEMENTACAO.md` (após a T25, ~linha 2000, Fase 5) e implementar conforme os passos. **Recomendação: trocar para Opus 5.5 (seção 0.2).**
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -45,7 +45,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T22 | Análise de leito | concluída | 36e6010 | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos; sem vídeo de queda real [HUMANO] |
 | T23 | Análise de cirurgia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com detecções sintéticas; YOLO COCO só conhece objetos genéricos (documentar no relatório) |
 | T24 | Vídeo anotado e worker de vídeo | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com modelos falsos; aceite (upload de agachamento pela API + YOLO real + compose) não verificado: sem pesos YOLO nem vídeo [HUMANO] |
-| T25 | Motor de fusão | pendente | | |
+| T25 | Motor de fusão | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T26 | Worker de fusão | pendente | | |
 | T27 | Canais de alerta e escalonamento | pendente | | |
 | T28 | API de leitura e confirmação de alertas | pendente | | |
@@ -125,3 +125,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T22 | ver `git log` | video/bed.py (analyze_bed, BedResult) e test_bed.py; `pytest -q` e `ruff check .` OK. Próxima: T23. |
 | 2026-11-08 | T23 | ver `git log` | video/surgery.py (analyze_surgery, SurgeryResult) e test_surgery.py; `pytest -q` e `ruff check .` OK. Próxima: T24 (recomenda-se Opus 5.5). |
 | 2026-11-08 | T24 | ver `git log` | video/annotate.py (AnnotatedWriter H.264, overlay), video/worker.py (VideoWorker, duas passagens, evidências, MovementSample, findings.json, frames-chave) e test_video_worker.py; `pytest -q` e `ruff check .` OK. Próxima: T25. |
+| 2026-11-08 | T25 | ver `git log` | config/fusion.yaml, fusion/engine.py (FusionEngine, RiskResult) e test_fusion.py; `pytest -q` e `ruff check .` OK. Próxima: T26 (recomenda-se Opus 5.5). |
