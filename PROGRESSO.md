@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T19 concluída)
-- **Tarefa atual:** T20
-- **Estado geral:** T00–T19 concluídas; T20 não iniciada
+- **Última atualização:** 2026-11-08 (T20 concluída)
+- **Tarefa atual:** T21
+- **Estado geral:** T00–T20 concluídas; T21 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T20 — Geometria, DTW, repetições e referência de exercício
+- **Tarefa:** T21 — Análise de fisioterapia
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T20 em `PLANO_IMPLEMENTACAO.md` (~linha 1735) e implementar conforme os passos.
+- **Próximo passo exato:** ler a T21 em `PLANO_IMPLEMENTACAO.md` (~linha 1790) e implementar conforme os passos.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -39,8 +39,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T16 | Features acústicas e linha de base de voz | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; openSMILE não importa na `.venv` (pyarrow 26 x numpy<2, ver T07): features eGeMAPS ficam None; teste com openSMILE real não feito; baseline real depende de gravações [HUMANO] |
 | T17 | Sons respiratórios (modelo AudioSet) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; teste com AST real (`slow`) não executado (modelo ~350 MB não baixado, sem WAV de tosse) |
 | T18 | Workers de áudio e de texto | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; aceite com compose + upload pela API não verificado; Azure real e AST real sem teste |
-| T19 | Leitura de frames e wrappers de modelos | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; Detector/PoseEstimator (YOLO) sem teste real (pesos não baixados); T19b opcional não feita |
-| T20 | Geometria, DTW, repetições e referência | pendente | | |
+| T19 | Leitura de frames e wrappers de modelos | concluída | 8bd7cb7 | `pytest -q` e `ruff check .` passam; Detector/PoseEstimator (YOLO) sem teste real (pesos não baixados); T19b opcional não feita |
+| T20 | Geometria, DTW, repetições e referência | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `build_exercise_reference.py` sem teste real (sem vídeo de agachamento nem pesos YOLO) [HUMANO] |
 | T21 | Análise de fisioterapia | pendente | | |
 | T22 | Análise de leito | pendente | | |
 | T23 | Análise de cirurgia | pendente | | |
@@ -120,3 +120,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T17 | ver `git log` | audio/events.py (RespiratoryEventDetector, clf injetável, filtro de Breathing) e test_events.py; `pytest -q` e `ruff check .` OK. Próxima: T18. |
 | 2026-11-08 | T18 | ver `git log` | audio/worker.py (AudioWorker), text/worker.py (TextWorker, split_paragraphs) e testes com fakes; `pytest -q` e `ruff check .` OK. Próxima: T19. |
 | 2026-11-08 | T19 | ver `git log` | video/frames.py (iter_frames, video_info), video/models.py (Detector, PoseEstimator, main_person) e test_frames.py; `pytest -q` e `ruff check .` OK. Próxima: T20. |
+| 2026-11-08 | T20 | ver `git log` | video/geometry.py, dtw.py, reps.py, build_exercise_reference.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T21. |
