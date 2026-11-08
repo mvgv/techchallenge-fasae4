@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T21 concluída)
-- **Tarefa atual:** T22
-- **Estado geral:** T00–T21 concluídas; T22 não iniciada
+- **Última atualização:** 2026-11-08 (T22 concluída)
+- **Tarefa atual:** T23
+- **Estado geral:** T00–T22 concluídas; T23 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T22 — Análise de leito
+- **Tarefa:** T23 — Análise de cirurgia
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T22 em `PLANO_IMPLEMENTACAO.md` (~linha 1815) e implementar conforme os passos.
+- **Próximo passo exato:** ler a T23 em `PLANO_IMPLEMENTACAO.md` (~linha 1832) e implementar conforme os passos.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -42,7 +42,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T19 | Leitura de frames e wrappers de modelos | concluída | 8bd7cb7 | `pytest -q` e `ruff check .` passam; Detector/PoseEstimator (YOLO) sem teste real (pesos não baixados); T19b opcional não feita |
 | T20 | Geometria, DTW, repetições e referência | concluída | 4e70525 | `pytest -q` e `ruff check .` passam; `build_exercise_reference.py` sem teste real (sem vídeo de agachamento nem pesos YOLO) [HUMANO] |
 | T21 | Análise de fisioterapia | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos |
-| T22 | Análise de leito | pendente | | |
+| T22 | Análise de leito | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com keypoints sintéticos; sem vídeo de queda real [HUMANO] |
 | T23 | Análise de cirurgia | pendente | | |
 | T24 | Vídeo anotado e worker de vídeo | pendente | | |
 | T25 | Motor de fusão | pendente | | |
@@ -122,3 +122,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T19 | ver `git log` | video/frames.py (iter_frames, video_info), video/models.py (Detector, PoseEstimator, main_person) e test_frames.py; `pytest -q` e `ruff check .` OK. Próxima: T20. |
 | 2026-11-08 | T20 | ver `git log` | video/geometry.py, dtw.py, reps.py, build_exercise_reference.py e testes; `pytest -q` e `ruff check .` OK. Próxima: T21. |
 | 2026-11-08 | T21 | ver `git log` | video/physio.py (analyze_physio, PhysioResult) e test_physio.py; `pytest -q` e `ruff check .` OK. Próxima: T22. |
+| 2026-11-08 | T22 | ver `git log` | video/bed.py (analyze_bed, BedResult) e test_bed.py; `pytest -q` e `ruff check .` OK. Próxima: T23. |
