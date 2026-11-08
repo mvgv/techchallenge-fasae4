@@ -10,6 +10,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
 
 0. [Regras para o agente](#0-regras-para-o-agente)
    - [0.1 Continuidade entre sessões](#01-continuidade-entre-sessões)
+   - [0.2 Modelo e escalonamento](#02-modelo-e-escalonamento)
 1. [Visão geral e decisões fixas](#1-visão-geral-e-decisões-fixas)
 2. [Estrutura do repositório](#2-estrutura-do-repositório)
 3. [Contratos compartilhados](#3-contratos-compartilhados)
@@ -132,6 +133,19 @@ Nada desta tabela vai para o repositório. Nunca suponha que existe: verifique a
 | Referências de exercício e voz | `data/references/` | `ls data/references/` | `build_exercise_reference.py`, `build_voice_baseline.py` (precisam das amostras) |
 | Amostras de mídia | `data/samples/` | `ls data/samples/` | Humano, conforme `data/samples/README.md` |
 | MIMIC-IV Demo | `data/mimic/` | `ls data/mimic/` | `download_mimic_demo.sh` e `prepare_mimic.py` |
+
+### 0.2 Modelo e escalonamento
+
+O humano escolhe o modelo da sessão (o agente não consegue trocar o próprio modelo). Recomendação:
+
+| Situação | Modelo |
+|---|---|
+| Padrão para todas as tarefas | **Claude Sonnet 5.5** |
+| T24 (worker de vídeo), T26 (worker de fusão), T30 (dashboard), T32 (demo automatizada) | **Claude Opus 5.5** |
+| Mesmo erro persistindo depois de 2 tentativas de correção, em qualquer tarefa | **Claude Opus 5.5** até destravar; depois volte ao Sonnet |
+| Revisão ao fim de cada fase (opcional) | **Claude Opus 5.5** |
+
+Quando o agente estiver no Sonnet e cair numa das situações marcadas como Opus, ele registra em "Observações" do `PROGRESSO.md`: `recomendação: trocar para Opus 5.5 — <motivo>`, faz o commit `[wip]` e avisa o humano na resposta. Se o humano não trocar, continue no modelo atual.
 
 ---
 
@@ -298,6 +312,7 @@ medwatch/
 │       └── api_client.py
 ├── scripts/
 │   ├── download_models.py     # baixa pesos YOLO e o modelo AST (seção 9.4)
+│   ├── setup_vps.sh           # prepara uma VPS Ubuntu 24.04 (já existe; docs/AMBIENTE_REMOTO.md)
 │   ├── provision_azure.sh
 │   ├── check_azure.py
 │   ├── download_mimic_demo.sh
@@ -319,6 +334,8 @@ medwatch/
 ├── models/                    # gitignored
 └── docs/
     ├── DECISOES.md
+    ├── AMBIENTE_REMOTO.md     # nuvem do Claude Code ou VPS (já existe)
+    ├── plano-fase4.html       # visão geral (já existe)
     ├── relatorio-tecnico.md
     ├── arquitetura.md
     └── resultados/
@@ -2155,6 +2172,7 @@ Cada item abaixo também aparece na tabela "Bloqueios que dependem de pessoas" d
 
 | Quando | Passo |
 |---|---|
+| Antes de começar (opcional) | Escolher onde o agente roda e configurar conforme `docs/AMBIENTE_REMOTO.md` (sessões na nuvem ou VPS). Escolher o modelo conforme a seção 0.2. |
 | Antes da T05 | Criar/ativar assinatura Azure (Azure for Students, se disponível), `az login`, rodar `scripts/provision_azure.sh`, copiar a saída para `.env`. Criar alerta de orçamento. |
 | Antes da T18 | Gravar `consulta_p0001.wav` (2–3 min, dois falantes, roteiro na seção 7) e 5–10 leituras de voz saudável para `voice_healthy/`. |
 | Antes da T21 | Gravar ou obter um vídeo de agachamento correto e um incorreto (amplitude reduzida e joelho valgo). Rodar `build_exercise_reference.py` com o correto. |
@@ -2410,7 +2428,7 @@ services:
       POSTGRES_PASSWORD: medwatch
       POSTGRES_DB: medwatch
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
@@ -2425,7 +2443,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -2445,7 +2463,7 @@ services:
     <<: *app
     command: ["uvicorn", "medwatch.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
       interval: 10s
@@ -2482,7 +2500,7 @@ services:
     command: ["streamlit", "run", "src/medwatch/dashboard/app.py",
               "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
     ports:
-      - "${DASHBOARD_PORT:-8501}:8501"
+      - "127.0.0.1:${DASHBOARD_PORT:-8501}:8501"
     depends_on:
       api:
         condition: service_healthy
@@ -2507,6 +2525,7 @@ Notas sobre o YAML:
 - Todos os serviços da aplicação compartilham `build` e `image: medwatch-app:latest`. O Compose constrói a imagem uma vez (os demais builds usam o cache) e todos os serviços usam a mesma imagem.
 - `models-init` usa `depends_on: {}` porque não precisa do banco nem do Redis.
 - O `init.sql` só roda quando o volume `pgdata` está vazio. Para recriar o banco do zero: `docker compose down -v` (apaga os dados).
+- **Portas só em `127.0.0.1`.** Todas as portas publicadas ficam presas ao localhost. Numa VPS, o Docker publica portas por cima das regras do firewall (`ufw`), então `"5432:5432"` deixaria o banco, com a senha `medwatch`, aberto para a internet. Para abrir o dashboard ou a API de outra máquina, use um túnel SSH (`docs/AMBIENTE_REMOTO.md`). Não remova o `127.0.0.1:`.
 
 #### `docker-compose.dev.yml` (override de desenvolvimento)
 
