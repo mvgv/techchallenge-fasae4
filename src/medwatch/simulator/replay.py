@@ -26,15 +26,24 @@ def default_start(scenario: str, now: datetime | None = None) -> datetime:
     return (now - timedelta(hours=24)).replace(second=0, microsecond=0)
 
 
-def build_events(scenario: str, n_patients: int, start: datetime, seed: int = 0):
-    """Retorna (eventos [(ts, stream, modelo)], rótulos) já ordenados por ts."""
+def build_events(scenario: str, n_patients: int, start: datetime, seed: int = 0,
+                 mimic_split: str | None = None, mimic_hours: float | None = None):
+    """Retorna (eventos [(ts, stream, modelo)], rótulos) já ordenados por ts.
+
+    No cenário `mimic` com `mimic_split`, usa todos os pacientes da divisão, com a
+    primeira observação de cada um deslocada para `start`.
+    """
     events: list[tuple[datetime, str, object]] = []
     labels: list[dict] = []
     if scenario == "demo":
         timelines = [demo_timeline(p, start, seed + i) for i, p in enumerate(DEMO_PATIENTS)]
     elif scenario == "mimic":
         from medwatch.simulator.mimic import load_mimic
-        vitals, rx = load_mimic(n_patients)
+        if mimic_split:
+            vitals, rx = load_mimic(None, split=mimic_split, rebase_start=start,
+                                    window_hours=mimic_hours)
+        else:
+            vitals, rx = load_mimic(n_patients, window_hours=mimic_hours)
         for v in vitals:
             events.append((v.ts, "vitals", v))
         for e in rx:
@@ -61,10 +70,11 @@ def speedup_at(phases: list[tuple[int, float]], sim_minute: float) -> float:
 
 
 def run(scenario: str, n_patients: int, speedup: float, start: datetime, fast: bool = False,
-        bus: Bus | None = None, sleep=time.sleep, seed: int = 0) -> int:
+        bus: Bus | None = None, sleep=time.sleep, seed: int = 0,
+        mimic_split: str | None = None, mimic_hours: float | None = None) -> int:
     """Publica os eventos; retorna quantas mensagens foram publicadas."""
     bus = bus or Bus()
-    events, labels = build_events(scenario, n_patients, start, seed)
+    events, labels = build_events(scenario, n_patients, start, seed, mimic_split, mimic_hours)
     gt_dir = get_settings().local_storage_dir / "ground_truth"
     gt_dir.mkdir(parents=True, exist_ok=True)
     (gt_dir / f"{scenario}.json").write_text(json.dumps(labels, indent=2), encoding="utf-8")
@@ -93,15 +103,25 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", help="início do tempo simulado (ISO 8601)")
     ap.add_argument("--fast", action="store_true", help="publica sem espera")
+    ap.add_argument("--mimic-split", help="replay do MIMIC só com esta divisão de "
+                    "config/splits.yaml (calibracao, validacao, reservado); implica cenário mimic")
+    ap.add_argument("--mimic-hours", type=float, default=None,
+                    help="MIMIC: só as primeiras N horas de cada paciente")
     args = ap.parse_args()
     logging.basicConfig(level=st.log_level)
-    scenario = st.sim_scenario
+    scenario = "mimic" if args.mimic_split else st.sim_scenario
     if scenario == "demo":
         from medwatch import db
         for i, pid in enumerate(DEMO_PATIENTS, 1):
             db.upsert_patient(pid, f"Paciente {i:02d}", f"UTI-{i:02d}")
     start = parse_ts(args.start) if args.start else default_start(scenario)
-    run(scenario, st.sim_patients, st.sim_speedup, start, fast=args.fast)
+    if scenario == "mimic" and args.mimic_split:
+        from medwatch import db
+        from medwatch.simulator.mimic import split_patients
+        for pid in split_patients(args.mimic_split):
+            db.upsert_patient(pid, f"MIMIC {pid[2:]}", f"MIMIC-{args.mimic_split}")
+    run(scenario, st.sim_patients, st.sim_speedup, start, fast=args.fast,
+        mimic_split=args.mimic_split, mimic_hours=args.mimic_hours)
 
 
 if __name__ == "__main__":

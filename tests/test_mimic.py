@@ -17,6 +17,71 @@ def test_load_mimic(tmp_path):
     assert rx[0].drug == "Heparin"
 
 
+def _two_patients(tmp_path):
+    t0 = pd.Timestamp("2150-03-01T08:00:00Z")
+    t1 = pd.Timestamp("2180-07-01T20:00:00Z")
+    pd.DataFrame({
+        "patient_id": ["M-1", "M-1", "M-1", "M-2", "M-2"],
+        "ts": [t0, t0 + pd.Timedelta(hours=1), t0 + pd.Timedelta(hours=30),
+               t1, t1 + pd.Timedelta(minutes=30)],
+        "hr": [80.0, 81.0, 82.0, 90.0, 91.0]}).to_parquet(tmp_path / "vitals.parquet")
+    pd.DataFrame({"patient_id": ["M-1", "M-1"],
+                  "ts": [t0 + pd.Timedelta(minutes=10), t0 - pd.Timedelta(days=400)],
+                  "drug": ["Heparin", "Old"], "dose": [1.0, 1.0], "unit": ["U", "U"],
+                  "route": ["SC", "PO"]}).to_parquet(tmp_path / "prescriptions.parquet")
+    (tmp_path / "splits.yaml").write_text(
+        "mimic:\n  calibracao: [M-2]\n  reservado: [M-1]\n", encoding="utf-8")
+
+
+def test_load_mimic_split_rebase_window(tmp_path):
+    from datetime import UTC, datetime
+    _two_patients(tmp_path)
+    start = datetime(2026, 11, 8, 19, 0, tzinfo=UTC)
+    v, rx = load_mimic(None, tmp_path, split="reservado", rebase_start=start,
+                       window_hours=24, splits_path=tmp_path / "splits.yaml")
+    assert {o.patient_id for o in v} == {"M-1"}
+    assert [o.ts for o in v] == [start, start.replace(hour=20)]  # 30 h fica de fora
+    assert [e.drug for e in rx] == ["Heparin"]                  # fora da janela: removida
+    assert rx[0].ts == start.replace(minute=10)
+
+
+def test_load_mimic_rebase_each_patient(tmp_path):
+    from datetime import UTC, datetime
+    _two_patients(tmp_path)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    v, _ = load_mimic(None, tmp_path, rebase_start=start)
+    firsts = {}
+    for o in v:
+        firsts.setdefault(o.patient_id, o.ts)
+    assert firsts == {"M-1": start, "M-2": start}
+
+
+def test_unknown_split(tmp_path):
+    _two_patients(tmp_path)
+    with pytest.raises(KeyError):
+        load_mimic(None, tmp_path, split="validacao", splits_path=tmp_path / "splits.yaml")
+
+
+def test_replay_mimic_split(tmp_path, monkeypatch):
+    from datetime import UTC, datetime
+
+    import fakeredis
+
+    from medwatch.bus import Bus
+    from medwatch.config import get_settings
+    from medwatch.simulator import mimic, replay
+    _two_patients(tmp_path)
+    monkeypatch.setattr(mimic, "MIMIC_DIR", tmp_path)
+    monkeypatch.setattr(mimic, "load_yaml", lambda name: {"mimic": {"reservado": ["M-1"]}})
+    monkeypatch.setattr(get_settings(), "local_storage_dir", tmp_path)
+    bus = Bus(fakeredis.FakeRedis(decode_responses=True))
+    start = datetime(2026, 11, 8, 19, 0, tzinfo=UTC)
+    n = replay.run("mimic", 5, 60, start, fast=True, bus=bus, mimic_split="reservado",
+                   mimic_hours=24)
+    assert n == 3 and bus.r.xlen("vitals") == 2 and bus.r.xlen("prescriptions") == 1
+    assert bus.r.get("sim:clock") == start.replace(hour=20).isoformat()
+
+
 def test_missing_files(tmp_path):
     with pytest.raises(FileNotFoundError):
         load_mimic(1, tmp_path)
