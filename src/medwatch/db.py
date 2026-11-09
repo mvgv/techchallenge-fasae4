@@ -351,3 +351,20 @@ def alerts_to_escalate(minutes: int) -> list[dict]:
            ORDER BY created_at""",
         m=minutes,
     )
+
+
+def get_alert(alert_id) -> dict | None:
+    return _one("SELECT * FROM alerts WHERE alert_id = :aid", aid=str(alert_id))
+
+
+def ack_alert(alert_id, status: str, user: str, note: str | None) -> dict | None:
+    """Fecha um alerta aberto de forma atômica; None se não estava 'open'."""
+    params = dict(aid=str(alert_id), status=status, user=user, note=note)
+    with get_engine().begin() as conn:
+        res = conn.execute(
+            text("""UPDATE alerts SET status = :status, acked_by = :user,
+                      acked_at = now(), ack_note = :note, updated_at = now()
+                    WHERE alert_id = :aid AND status = 'open' RETURNING *"""),
+            params,
+        ).mappings().first()
+    return dict(res) if res else None

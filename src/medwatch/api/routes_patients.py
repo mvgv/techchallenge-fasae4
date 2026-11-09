@@ -1,4 +1,6 @@
 """Rotas de pacientes."""
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -32,3 +34,32 @@ def get_patient(patient_id: str) -> dict:
     vitals = db.query_vitals(patient_id)
     p["latest_vitals"] = vitals[-1] if vitals else None
     return p
+
+
+@router.get("/{patient_id}/vitals")
+def get_vitals(patient_id: str, since: datetime | None = None,
+               until: datetime | None = None) -> list[dict]:
+    _require_patient(patient_id)
+    if since is None:
+        latest = db.latest_event_ts(patient_id)
+        if latest is not None:
+            since = latest - timedelta(hours=6)
+    return db.query_vitals(patient_id, since, until)
+
+
+@router.get("/{patient_id}/evidence")
+def get_evidence(patient_id: str, since: datetime | None = None,
+                 limit: int = 200) -> list[dict]:
+    _require_patient(patient_id)
+    return db.list_evidence(patient_id, since, limit)
+
+
+@router.get("/{patient_id}/risk")
+def get_risk(patient_id: str, since: datetime | None = None) -> list[dict]:
+    _require_patient(patient_id)
+    return db.query_risk(patient_id, since)
+
+
+def _require_patient(patient_id: str) -> None:
+    if db.get_patient(patient_id) is None:
+        raise HTTPException(404, "Paciente não encontrado")

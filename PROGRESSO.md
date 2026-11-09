@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T27 concluída)
-- **Tarefa atual:** T28
-- **Estado geral:** T00–T27 concluídas; T28 não iniciada
+- **Última atualização:** 2026-11-08 (T28 concluída)
+- **Tarefa atual:** T29
+- **Estado geral:** T00–T28 concluídas; T29 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T28 — API de leitura e confirmação de alertas
+- **Tarefa:** T29 — Relatórios (HTML e PDF)
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T28 em `PLANO_IMPLEMENTACAO.md` (~linha 2066) e implementar as rotas em `api/routes_patients.py` e `api/routes_alerts.py`, mais `tests/test_api_read.py`.
+- **Próximo passo exato:** ler a T29 em `PLANO_IMPLEMENTACAO.md` (~linha 2077) e implementar os relatórios.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -48,7 +48,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T25 | Motor de fusão | concluída | ver `git log` | `pytest -q` e `ruff check .` passam |
 | T26 | Worker de fusão | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e db falso; aceite (simulador `demo` + `GET /alerts`) depende da T28 e do compose, não verificado |
 | T27 | Canais de alerta e escalonamento | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com httpx.MockTransport; Teams e Logic App reais sem teste [HUMANO] |
-| T28 | API de leitura e confirmação de alertas | pendente | | |
+| T28 | API de leitura e confirmação de alertas | concluída | ver `git log` | `pytest -q` (153 passed) e `ruff check .` passam com banco real; `db.get_alert`/`ack_alert` (ack atômico) adicionados |
 | T29 | Relatórios (HTML e PDF) | pendente | | |
 | T30 | Dashboard Streamlit | pendente | | |
 | T31 | Scripts de avaliação | pendente | | |
@@ -128,3 +128,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T25 | ver `git log` | config/fusion.yaml, fusion/engine.py (FusionEngine, RiskResult) e test_fusion.py; `pytest -q` e `ruff check .` OK. Próxima: T26 (recomenda-se Opus 5.5). |
 | 2026-11-08 | T26 | ver `git log` | fusion/worker.py (FusionWorker: evidência no banco, snapshot top 10, criação/escalonamento/cooldown de alertas, título e resumo pt-BR, reidratação) e test_fusion_worker.py; `pytest -q` (143 passed) e `ruff check .` OK. Próxima: T27. |
 | 2026-11-08 | T27 | ver `git log` | alerts/channels.py (Console, Teams, Email, dispatch), alerts/worker.py (AlertWorker, escalonamento a cada 30 s) e test_channels.py; `pytest -q` (147 passed) e `ruff check .` OK. Próxima: T28. |
+| 2026-11-08 | T28 | ver `git log` | routes_alerts (GET /alerts, ack com 404/409), routes_patients (vitals/evidence/risk), db.get_alert/ack_alert e test_api_read.py; `pytest -q` e `ruff check .` OK. Próxima: T29. |
