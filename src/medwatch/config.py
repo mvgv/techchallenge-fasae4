@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     api_base_url: str = "http://localhost:8000"
     config_dir: Path = Path("config")
     models_dir: Path = Path("models")
+    vitals_iforest_model: str = "vitals_iforest"   # vitals_iforest_mimic para dados reais
     log_level: str = "INFO"
     storage_backend: str = "local"
     local_storage_dir: Path = Path("data/storage")

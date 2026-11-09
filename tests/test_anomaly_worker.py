@@ -111,6 +111,7 @@ def test_zscore_persistence():
 def test_iforest_persistence():
     class Fake:
         enabled = True
+        carry_forward = False
 
         def __init__(self):
             self.n = 0

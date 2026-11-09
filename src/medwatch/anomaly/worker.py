@@ -123,7 +123,7 @@ class AnomalyWorker:
                     "ewma-z", {"vital": k, "value": v, "z": z}))
 
         if self.iforest is not None and self.iforest.enabled:
-            feats = build_features(list(st.history))
+            feats = build_features(list(st.history), self.iforest.carry_forward)
             if feats is not None:
                 icfg = self.vcfg["iforest"]
                 anomalous, score = self.iforest.score(

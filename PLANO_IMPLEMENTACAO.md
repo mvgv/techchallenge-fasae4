@@ -357,6 +357,7 @@ REDIS_URL=redis://localhost:6379/0
 API_BASE_URL=http://localhost:8000
 CONFIG_DIR=config
 MODELS_DIR=models
+VITALS_IFOREST_MODEL=vitals_iforest   # vitals_iforest_mimic ao reproduzir o MIMIC (T37)
 LOG_LEVEL=INFO
 
 # Docker (usados pelo docker-compose.yml)

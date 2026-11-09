@@ -59,3 +59,29 @@ def test_disabled_without_model(tmp_path):
     m = VitalsIForest(tmp_path)
     assert not m.load()
     assert m.score(np.zeros(10)) == (False, 0.0)
+
+
+def test_build_features_carry_forward():
+    hist = [_obs(i) for i in range(5)] + [_obs(5, temp=None, hr=95)]
+    assert build_features(hist) is None
+    f = build_features(hist, carry_forward=True)
+    assert f[5] == pytest.approx(36.7) and f[0] == 95
+
+
+def test_named_model_and_val_thresholds(tmp_path, model):
+    _, X = model
+    meta = train_and_save(X[:500], tmp_path, "vitals_iforest_mimic", X_val=X[500:900],
+                          extra_meta={"carry_forward": True})
+    assert "train_percentiles" in meta and meta["n_val_samples"] == 400
+    m = VitalsIForest(tmp_path, "vitals_iforest_mimic")
+    assert m.load() and m.carry_forward
+    assert not VitalsIForest(tmp_path, "vitals_iforest").load()
+
+
+def test_resolve_out(tmp_path):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from train_vitals_iforest import resolve_out
+    assert resolve_out(tmp_path / "vitals_iforest_mimic", "x") == (tmp_path, "vitals_iforest_mimic")
+    assert resolve_out(tmp_path, "vitals_iforest") == (tmp_path, "vitals_iforest")
