@@ -44,7 +44,7 @@ def _validate(kind: str, filename: str, mode: str | None, exercise: str | None,
     if mode == "physio":
         if not exercise:
             raise HTTPException(422, "exercise é obrigatório quando mode=physio")
-        if exercise not in load_yaml("exercises.yaml"):
+        if exercise not in load_yaml("exercises"):
             raise HTTPException(422, f"exercise desconhecido: {exercise}")
     return camera or ("default_surgery" if mode == "surgery" else "default_bed")
 

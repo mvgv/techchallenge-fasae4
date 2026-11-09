@@ -10,9 +10,9 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 
 - **Tarefa:** T30 — Dashboard Streamlit (recomenda-se Opus 5.5, ver seção 0.2)
 - **Passos (definidos na sessão):** 1) `api_client.py`; 2) `app.py` (4 telas); 3) `tests/test_dashboard.py` (MockTransport + AppTest); 4) commit final.
-- **Passos concluídos:** 1 (`src/medwatch/dashboard/api_client.py`, classe `ApiClient` com transport injetável)
-- **Próximo passo exato:** escrever `src/medwatch/dashboard/app.py` (caminho usado pelo compose) com as 4 telas da T30, usando `ApiClient`; funções puras (destaque de termos, chip de nível) testáveis e `main()` sob `if __name__ == "__main__"`.
-- **Arquivos tocados:** `src/medwatch/dashboard/api_client.py`
+- **Passos concluídos:** 1 (`src/medwatch/dashboard/api_client.py`, classe `ApiClient` com transport injetável); 2 (`src/medwatch/dashboard/app.py`, 4 telas; corrigido `load_yaml("exercises.yaml")` → `load_yaml("exercises")` em `routes_media.py`, bug da T06 que dava 500 no upload physio)
+- **Próximo passo exato:** criar `tests/test_dashboard.py`: `ApiClient` com `httpx.MockTransport` (erros chamam `on_error` com o `detail`), funções puras de `app.py` (`highlight_terms`, `transcript_rows`, `level_chip`, `sort_patients`) e smoke com `streamlit.testing.v1.AppTest` (API falsa via monkeypatch de `get_api`); teste de upload physio com exercício válido em `tests/test_api_media.py`.
+- **Arquivos tocados:** `src/medwatch/dashboard/api_client.py`, `src/medwatch/dashboard/app.py`, `src/medwatch/api/routes_media.py`
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** webhook do Teams e Logic App são [HUMANO] (já na tabela de bloqueios); concluir a T27 com MockTransport. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
