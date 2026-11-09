@@ -2,22 +2,20 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-09 (T35 concluída)
-- **Tarefa atual:** T36
-- **Estado geral:** T00–T33 e T35 concluídas; pendentes, nesta ordem: T36 (avaliação de vitais corrigida), T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
+- **Última atualização:** 2026-11-09 (T36 concluída)
+- **Tarefa atual:** T37
+- **Estado geral:** T00–T33, T35 e T36 concluídas; pendentes, nesta ordem: T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** T36 — Avaliação de vitais corrigida e ajuste de limiares
-- **Passos concluídos:** 1 (rótulos persistentes), 2 e 3 (métricas por episódio e por alerta em `evaluate_vitals.py`, com `--tune` e cache do IForest), 4 (persistência z-score/IForest e `threshold_key`/`p0_1`; modelo retreinado com `p0_1`)
-- **Próximo passo exato:** passo 5 (rodar `.venv/bin/python scripts/evaluate_vitals.py --tune`, escolher limiares, gravar em `thresholds.yaml` + `docs/DECISOES.md`), depois passo 6 (regerar resultados e relatório). A T35 mostrou os sintomas que a T36 deve resolver: pacientes normais (P-0003) e o do artefato (P-0005) recebem alerta de atenção por `vital_iforest` + `vital_zscore`; ver `docs/resultados/integracao.md`. Não precisa de Docker no stack: `evaluate_vitals.py` roda os detectores direto.
-- **Quem executa a T36:** o agente da **VPS** (Linux, Python 3.11 em `.venv`), por decisão do humano em 2026-11-09. Use `.venv/bin/python`, `.venv/bin/pytest -q` e `.venv/bin/ruff check .`. Antes do passo 1, confirme o ambiente: `.venv/bin/pip install "pyarrow<18"` e `.venv/bin/pip install -e ".[audio,video,reports,dashboard,dev]"` (o `pyarrow` 26 do `.venv` antigo quebra o openSMILE e o `st.dataframe`). Os testes de banco e de Redis reais só rodam com `docker compose up -d db redis`; sem eles, pulam. A T35 já validou o stack completo no desktop do humano (ver `docs/resultados/integracao.md`), então não repita essa integração.
-- **Dica de tempo:** `evaluate_vitals.py` leva cerca de 10 minutos por causa do Isolation Forest rodando minuto a minuto; a busca de limiares do passo 5 multiplica isso. Rode as configurações da grade em lote, guarde os resultados parciais em `docs/resultados/` e faça commit entre as rodadas.
-- **Mídias sintéticas** (T35) estão em `data/samples/sinteticos/` (`tom.wav`, `pessoas.jpg`, `pessoas.mp4`), fora do Git.
+- **Tarefa:** T37 — Datasets públicos do enunciado com partes reservadas
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passo 1 da T37 (ver `PLANO_IMPLEMENTACAO.md`). Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
+- **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
-- **Testes falhando conhecidos:** nenhum
-- **Observações:** relatório tem itens marcados [PENDENTE] (custos Azure, prints, avaliação de vídeo). Ambiente Python 3.11 em `.venv`. `dbg_tmp.py` na raiz é arquivo não versionado de sessão anterior (não commitado).
+- **Testes falhando conhecidos:** nenhum (190 passam)
+- **Observações:** relatório tem itens marcados [PENDENTE]. `dbg_tmp.py` na raiz é arquivo não versionado de sessão anterior. `models/vitals_iforest.json` foi regravado com o campo `p0_1` (fora do Git; rode `scripts/train_vitals_iforest.py` em outra máquina para o limiar `p0_1` existir, senão o IForest cai no `threshold` antigo).
 
 ## Status das tarefas
 
@@ -59,7 +57,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T33 | README, documentação e relatório técnico | concluída | ver `git log` | `pytest -q` (178 passed) e `ruff check .` passam; seções de custos Azure, prints e avaliação de vídeo marcadas [PENDENTE] (dependem de humano); aceite "colega roda do zero" não testado |
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
-| T36 | Avaliação de vitais corrigida e ajuste de limiares | pendente | | adicionada na revisão pós-T33 |
+| T36 | Avaliação de vitais corrigida e ajuste de limiares | concluída | ver `git log` | `pytest -q` (190) e `ruff check .` passam; por alerta: recall 0,93 (ajuste) / 1,00 (conferência) e 0,10 alertas/dia em normais; recall 100% no ajuste não alcançado (hipotensão lenta, ver `vitals_tuning.md`) |
 | T37 | Datasets públicos do enunciado com partes reservadas | pendente | | PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
 | T38 | Preparação da gravação do vídeo | pendente | | simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
@@ -144,3 +142,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T32 | ver `git log` | Sessão no Opus 5.5. scripts/run_demo.py (health, pacientes, simulador subprocesso ou externo, envio por `sim:clock`), data/samples/README.md e tests/test_run_demo.py; `pytest -q` (178 passed) e `ruff check .` OK. Próxima: T33. |
 | 2026-11-08 | T33 | ver `git log` | README reescrito (requisitos, passo a passo bash/PowerShell, problemas comuns, testes, estrutura), docs/arquitetura.md (Mermaid, serviços, streams, tabelas, catálogo) e docs/relatorio-tecnico.md (7 seções); `pytest -q` e `ruff check .` OK. Próxima: T34 opcional / passos humanos. |
 | 2026-11-09 | T35 | ver `git log` | Rodada no desktop do humano (Windows, RTX 5070, Docker Desktop). Stack completo com mídias sintéticas, laudo, alertas, confirmação, escalonamento, relatório e dashboard num navegador. Defeitos: redis-py 8 derrubava 4 workers (`bus.py`), testes sujavam o banco ao vivo (`tests/conftest.py`), coluna "Nível" do dashboard, `cu121` na documentação (RTX 50xx precisa de `cu128`). Pendências: falsos alarmes em pacientes normais (T36) e laudo sem tratamento de negação. |
+| 2026-11-09 | T36 | ver `git log` | VPS. Rótulos persistentes, persistência no z-score/IForest (`p0_1`), métricas por episódio e por alerta, grade de 24 combinações (ajuste e conferência), limiares escolhidos, relatório atualizado. Próxima: T37. |

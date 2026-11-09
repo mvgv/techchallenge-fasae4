@@ -94,23 +94,44 @@ O provisionamento é feito por `scripts/provision_azure.sh` (grupo `rg-medwatch`
 ### 5.1 Sinais vitais (dados sintéticos)
 
 Avaliação com `scripts/evaluate_vitals.py`: 30 pacientes sintéticos (seeds 100–129), 24 h cada, 15 episódios rotulados
-(deterioração respiratória, hipotensão, taquicardia). Um episódio conta como detectado (TP) se houver detecção entre
-`ts_start` e `ts_end + 30 min`; detecções fora dessas janelas são FP.
+(deterioração respiratória, hipotensão, taquicardia) e 10 pacientes normais. A T36 trocou o método da T31, que dava
+precisão de 1% a 3%, por dois motivos: (1) no gerador a piora continuava até o fim do dia, mas o rótulo terminava no fim
+da rampa, então cada repetição do NEWS2 com o paciente ainda grave contava como falso positivo (agora os rótulos de
+`respiratory_deterioration` e `hypotension` vão até o fim da série); (2) contar cada evidência como um erro não mede o
+que a equipe médica recebe. Passaram a existir três métricas: por evidência (a antiga), por episódio (detecções do mesmo
+tipo com menos de 30 min entre si formam um episódio) e **por alerta** (evidências passadas pelo motor de fusão; o
+alerta abre em nível `warning` ou mais e fecha com risco < 20 por 60 min). O número principal é o do alerta.
 
-| Configuração | TP | FP | FN | Precisão | Recall | F1 | Atraso mediano (min) | FP/paciente-dia |
-|---|---|---|---|---|---|---|---|---|
-| NEWS2 | 15 | 557 | 0 | 0,03 | 1,00 | 0,05 | 24,0 | 18,57 |
-| NEWS2 + z-score | 15 | 2011 | 0 | 0,01 | 1,00 | 0,01 | 0,0 | 67,03 |
-| NEWS2 + z-score + IForest | 15 | 2632 | 0 | 0,01 | 1,00 | 0,01 | 0,0 | 87,73 |
+Limiares escolhidos numa grade de 24 combinações (`docs/resultados/vitals_tuning.md`): z-score 3,0 com persistência 1;
+Isolation Forest no percentil 0,1 com persistência 3.
+
+**Por alerta (seeds 100–129)**
+
+| Configuração | TP | FP | FN | Precisão | Recall | Atraso mediano (min) | Alertas/dia em normais |
+|---|---|---|---|---|---|---|---|
+| NEWS2 | 6 | 1 | 9 | 0,86 | 0,40 | 40,0 | 0,00 |
+| NEWS2 + z-score | 13 | 3 | 2 | 0,81 | 0,87 | 37,0 | 0,10 |
+| NEWS2 + z-score + IForest | 14 | 3 | 1 | 0,82 | 0,93 | 30,5 | 0,10 |
+
+**Antes × depois (NEWS2 + z-score + IForest)**
+
+| Método | Precisão | Recall | FP por paciente-dia (normais) |
+|---|---|---|---|
+| T31: por evidência, rótulos curtos, limiares antigos | 0,01 | 1,00 | 87,7 (todos os pacientes) |
+| T36: por evidência, rótulos persistentes | 0,01 | 1,00 | 49,5 (todos os pacientes) |
+| T36: por episódio | 0,03 | 1,00 | 21,1 episódios/dia (normais) |
+| **T36: por alerta, limiares ajustados** | **0,82** | **0,93** | **0,10 alertas/dia (normais)** |
 
 Fonte: `docs/resultados/vitals_metrics.csv` / `.md`; exemplo gráfico em `docs/resultados/vitals_example.png`.
 
-**Leitura honesta.** O recall é 100%, mas a precisão é baixa. O gerador sintético mantém o estado alterado até o fim do
-dia e o worker repete os alertas NEWS2 médio/alto a cada `repeat_minutes`; essas repetições fora da janela do rótulo
-contam como FP. O z-score também dispara em pacientes normais porque o ruído sintético tem variância baixa. Os métodos
-adicionais (z-score, Isolation Forest) reduzem o atraso mediano a 0 min mas multiplicam os falsos positivos — na fusão
-eles têm peso baixo (0,40 e 0,50) e só a maior contribuição por tipo conta, o que limita o efeito no escore de risco.
-Ajustes possíveis: contar repetições como o mesmo episódio, aumentar cooldown e limiar do z-score.
+**Leitura honesta.** A meta de recall de 100% nos positivos não foi alcançada no conjunto de ajuste (14 de 15; no
+conjunto de conferência, seeds 200–229, nunca usado no ajuste, o recall foi 1,00 com 0,00 alerta por paciente-dia em
+normais). O rótulo perdido é uma hipotensão lenta cuja PAS (~82 mmHg) dá só 3 pontos de NEWS2 (faixa `low_medium`, peso
+0,45), risco ≈ 14, abaixo do nível de alerta; resolver exigiria mexer nos pesos da fusão, o que ficou fora do escopo. A
+meta de menos de 1 alerta por paciente-dia em normais foi atingida (0,10). Os dados são sintéticos e o gerador tem
+ruído simples; o ganho em precisão vem principalmente de medir alertas em vez de evidências e de a fusão limitar o
+efeito de detectores ruidosos (só a maior contribuição por tipo conta). Por evidência e por episódio o z-score continua
+gerando muitas detecções em normais (21 episódios por paciente-dia); elas não viram alerta porque o peso é 0,40.
 
 ### 5.2 Vídeo
 
@@ -150,7 +171,7 @@ Estes casos exigem as amostras de mídia, os pesos YOLO e (para 2 e 5) chaves Az
 
 1. Executar a demonstração completa com amostras reais, chaves Azure e Teams, e preencher as seções 4 e 5.3.
 2. Anotar vídeos e rodar `evaluate_video.py`.
-3. Reduzir falsos positivos dos vitais (agrupar repetições, cooldown, limiar do z-score) e treinar o Isolation Forest com MIMIC-IV.
+3. Treinar o Isolation Forest com MIMIC-IV e reduzir os falsos positivos do z-score por evidência (agora só mitigados pela fusão).
 4. Calibrar os pesos de fusão com desfechos rotulados.
 5. Substituir/complementar o YOLO COCO por detector de instrumentos cirúrgicos treinado; avaliar OpenPose.
 6. Integrar a um padrão de interoperabilidade (HL7 FHIR) e adicionar autenticação, auditoria e RBAC.
