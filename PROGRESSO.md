@@ -60,7 +60,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | pendente | | adicionada na revisão pós-T33 |
-| T37 | Datasets públicos do enunciado com partes reservadas | pendente | | PhysioNet e AudioSet ainda não usados como dados; adicionada na preparação do vídeo |
+| T37 | Datasets públicos do enunciado com partes reservadas | pendente | | PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
 | T38 | Preparação da gravação do vídeo | pendente | | simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
@@ -74,10 +74,11 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 | `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | resolvido em 2026-11-08 (`.venv` com Python 3.11 disponível) |
 | `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | resolvido em 2026-11-08 (push funciona; origin/main em dia) |
 | Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | resolvido em 2026-11-08 (VPS) |
-| Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
-| Gravar `consulta_p0001.wav` e leituras de voz saudável | T16, T18, T32 | — | aberto |
-| Vídeos de agachamento (correto e incorreto) | T20, T21, T32 | — | aberto |
-| Vídeo de queda (Le2i ou UR Fall) | T22, T32 | — | aberto |
+| Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05, verificações reais de T14, T15, T18 e a consulta sintética da T37 (passo 10) | — | aberto |
+| ~~Gravar `consulta_p0001.wav` e leituras de voz saudável~~ | T16, T18, T32 | — | substituído em 2026-11-09: a consulta e o `hello_ptbr.wav` passam a ser gerados pela Azure (T37, passo 10) e a voz saudável vem do Common Voice (linha abaixo) |
+| Common Voice (português): aceitar os termos no site oficial e disponibilizar os clipes em `data/datasets/commonvoice/` (ou o token no `.env`) | T37 passo 9 | 2026-11-09 | aberto |
+| Três vídeos de agachamento (correto para referência, correto de controle, incorreto), câmera lateral, ~30 s cada | T20, T21, T32, T38 | — | aberto |
+| ~~Vídeo de queda (Le2i ou UR Fall)~~ | T22, T32 | — | substituído em 2026-11-09: o agente baixa o UR Fall na T37 (passo 8); só volta a ser humano se o dataset estiver inacessível ou sem anotações |
 | Webhook do Teams e Logic App de e-mail | T27 | — | aberto |
 | Modelo OpenPose em `models/openpose/` (opcional) | T19b, T34d | — | aberto |
 | Gravar e publicar o vídeo de entrega | entrega | — | aberto |

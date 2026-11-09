@@ -2230,7 +2230,7 @@ A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com uni
 
 - **Objetivo:** usar de fato os datasets sugeridos no enunciado (PhysioNet e AudioSet), que até a T36 só existiam no código, e separar em cada um uma parte **reservada**, nunca usada para ajustar nada, que serve para a demonstração e para o número final do relatório. Como não há vídeos reais de pacientes, é essa parte reservada que mostra o sistema funcionando com dados reais.
 - **Depende de:** T36 (limiares ajustados e avaliação no nível de alerta).
-- **Arquivos:** `scripts/download_datasets.py` (novo), `scripts/prepare_mimic.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `scripts/train_vitals_iforest.py`, `scripts/evaluate_vitals.py` (ou `scripts/evaluate_mimic.py`, novo), `scripts/evaluate_audio_events.py` (novo), `config/splits.yaml` (novo), testes correspondentes, `docs/DATASETS.md` (novo), `docs/resultados/datasets.md` (novo), `docs/relatorio-tecnico.md`.
+- **Arquivos:** `scripts/download_datasets.py` (novo), `scripts/prepare_mimic.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `scripts/train_vitals_iforest.py`, `scripts/evaluate_vitals.py` (ou `scripts/evaluate_mimic.py`, novo), `scripts/evaluate_audio_events.py` (novo), `scripts/synthesize_consulta.py` (novo), `scripts/evaluate_video.py`, `scripts/build_voice_baseline.py`, `scripts/run_demo.py`, `config/zones.yaml`, `config/thresholds.yaml`, `config/splits.yaml` (novo), `data/samples/README.md`, testes correspondentes, `docs/DATASETS.md` (novo), `docs/resultados/datasets.md` (novo), `docs/relatorio-tecnico.md`.
 - **Regras desta tarefa:**
   - **Download só com `.venv/bin/python`** (`urllib` ou `httpx`) ou `curl`. Não dependa de `wget`, `unzip` nem de rodar scripts `.sh`: as permissões da VPS não liberam esses comandos. O pandas lê `.csv.gz` direto; para `.zip`, use o módulo `zipfile`.
   - Nada baixado vai para o Git (`data/` já é ignorado). Só vão para o Git os IDs das divisões, o código e os resultados agregados.
@@ -2247,14 +2247,32 @@ A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com uni
      - Positivos: tosse, respiração, ronco e espirro (no ESC-50: `coughing`, `breathing`, `snoring`, `sneezing`). Negativos: 4 a 6 classes não respiratórias (por exemplo `clock_tick`, `keyboard_typing`, `door_wood_knock`, `rain`, `dog`). Cerca de 40 clipes de cada grupo.
      - Divisão: no ESC-50, respeite os `fold` (1–3 para calibração, 4–5 reservados); no AudioSet, 50% / 50% por clipe.
      - Calibre `audio_events.min_score` e a regra especial de `Breathing` só na calibração. Em `scripts/evaluate_audio_events.py`, reporte precisão e recall por classe na parte reservada.
-  8. **Material para a demonstração.** Copie 2 ou 3 clipes reservados de tosse ou chiado para `data/samples/` (por exemplo `cough.wav`) e escolha 1 ou 2 pacientes reservados do MIMIC com eventos interessantes para o trecho "dados reais reservados" do vídeo. Registre a escolha e o motivo em `docs/DATASETS.md`.
-  9. **Documentação.**
-     - `docs/DATASETS.md`: fonte, versão, licença, data, tamanho, divisões e o uso de cada parte.
+  8. **Vídeo de queda (UR Fall Detection Dataset).** Encenar queda é arriscado, então a queda vem de dataset. O UR Fall (Universidade de Rzeszów, `http://fenix.ur.edu.pl/~mkepski/ds/uf.html`) tem 30 sequências de queda e 40 de atividades normais (ADL), gravadas com câmera e acelerômetro. Antes de baixar, confira no site os termos de uso (uso acadêmico, citando o artigo indicado) e registre-os em `docs/DATASETS.md`. Se o site estiver fora do ar, tente o Le2i Fall Detection e registre a troca em `docs/DECISOES.md`.
+     - **Formato:** use a câmera frontal (`cam0`). Se as sequências vierem como quadros PNG em `.zip`, extraia com `zipfile` e monte o MP4 com `ffmpeg` (H.264, `yuv420p`, na taxa de quadros indicada pelo dataset).
+     - **Divisão:** quedas 01–10 e ADL 01–10 para calibração; quedas 11–30 e ADL 11–40 reservadas.
+     - **Calibração:** ajuste `thresholds.video.fall` (`hip_drop_min`, `lying_aspect_min`, `lying_min_s`) só com a parte de calibração. Acrescente em `config/zones.yaml` uma câmera `ur_fall` sem polígono de leito, porque a cena não tem cama e a regra de queda não deve exigir "fora do leito".
+     - **Anotações:** se o dataset trouxer rótulos por quadro (caindo / deitado / normal), gere `data/samples/video_annotations.csv` a partir deles. Se não trouxer, registre a marcação manual dos intervalos como bloqueio humano.
+     - **Medição:** rode o `evaluate_video.py` na parte reservada, para precisão e recall de `fall_detected` em quedas contra ADL.
+     - **Demonstração:** copie uma queda reservada para `data/samples/bed_fall.mp4`, o nome que o `run_demo.py` espera, e faça o `run_demo.py` enviá-la com `camera=ur_fall`.
+  9. **Linha de base de voz (Mozilla Common Voice, português).** Substitui as 5–10 leituras do grupo por vozes saudáveis variadas. O acesso exige aceitar os termos do Common Voice, o que é **passo humano**; a forma de distribuição mudou nos últimos anos, então confirme no site oficial. Registre o bloqueio até o humano disponibilizar os arquivos em `data/datasets/commonvoice/` (ou o token de acesso no `.env`, se a distribuição for por Hugging Face).
+     - **Seleção:** cerca de 60 clipes do conjunto `validated`, de pelo menos 20 falantes diferentes (`client_id`).
+     - **Divisão por falante:** 2/3 dos falantes para montar a linha de base com `build_voice_baseline.py` (converta para WAV 16 kHz mono com a função já existente); 1/3 reservado.
+     - **Medição:** a parte reservada mede quantos falantes saudáveis disparam `voice_fatigue` ou `voice_dysarthria_indicator` por engano. É a taxa de falso alarme da análise de voz.
+  10. **Consulta sintética com a Azure.** Em vez de o grupo gravar, `scripts/synthesize_consulta.py` gera `data/samples/consulta_p0001.wav` e `data/samples/hello_ptbr.wav` com o *texto para fala* da Azure Speech, usando o mesmo recurso da transcrição.
+     - **Vozes:** duas vozes neurais pt-BR (por exemplo `pt-BR-AntonioNeural` para o médico e `pt-BR-FranciscaNeural` para o paciente) e SSML seguindo o roteiro da seção 7.2. A fala do paciente fica mais lenta (`<prosody rate="-20%">`) e com pausas (`<break>`).
+     - **Tosse:** onde o roteiro indica tosse, insira 2 ou 3 clipes de tosse da parte **reservada** do passo 7. Usar o reservado na demonstração é permitido; ajustar com ele, não.
+     - **Formato e ferramentas:** WAV 16 kHz mono, montado com `soundfile`/`numpy` ou `ffmpeg`.
+     - **Sem chaves:** isso depende das chaves reais da Azure (bloqueio da T05). Sem elas, escreva o script, teste-o com um sintetizador falso e registre a geração real como pendente.
+     - **Limitação a registrar em `docs/DATASETS.md` e no roteiro do vídeo:** numa voz sintética, a análise de fadiga e de alteração da fala não tem sentido clínico. Ela é demonstrada com as vozes reais do Common Voice (passo 9). A transcrição, os termos críticos, o sentimento e os sons respiratórios valem normalmente.
+  11. **Material para a demonstração.** Copie 2 ou 3 clipes reservados de tosse ou chiado para `data/samples/` (por exemplo `cough.wav`) e escolha 1 ou 2 pacientes reservados do MIMIC com eventos interessantes para o trecho "dados reais reservados" do vídeo. Junto com `bed_fall.mp4` (passo 8) e `consulta_p0001.wav` (passo 10), registre a escolha e o motivo em `docs/DATASETS.md`.
+  12. **Documentação.**
+     - `docs/DATASETS.md`: fonte, versão, licença, data, tamanho, divisões e o uso de cada parte, para todos os datasets (MIMIC-IV Demo, AudioSet ou ESC-50, UR Fall, Common Voice).
      - `docs/resultados/datasets.md`: os números da parte reservada.
+     - `data/samples/README.md`: a origem de cada amostra passa a ser o dataset ou o script que a gera, não mais "gravado pelo grupo", exceto os vídeos de agachamento.
      - `relatorio-tecnico.md`: reescreva a seção de dados (hoje cita o MIMIC sem tê-lo usado) e acrescente os resultados com dados reais, separando claramente sintético, semissintético e real.
 - **Aceite:**
-  - dados baixados e preparados;
-  - `config/splits.yaml` commitado;
+  - dados baixados e preparados, ou, no caso do Common Voice e da síntese pela Azure, bloqueio humano registrado com o código pronto e testado;
+  - `config/splits.yaml` commitado, com as divisões de MIMIC, áudio, UR Fall e Common Voice;
   - testes e lint passam sem depender dos downloads;
   - resultados da parte reservada documentados;
   - relatório sem afirmações sobre dados que não foram usados.
@@ -2299,9 +2317,8 @@ Cada item abaixo também aparece na tabela "Bloqueios que dependem de pessoas" d
 |---|---|
 | Antes de começar (opcional) | Escolher onde o agente roda e configurar conforme `docs/AMBIENTE_REMOTO.md` (sessões na nuvem ou VPS). Escolher o modelo conforme a seção 0.2. |
 | Antes da T05 | Criar/ativar assinatura Azure (Azure for Students, se disponível), `az login`, rodar `scripts/provision_azure.sh`, copiar a saída para `.env`. Criar alerta de orçamento. |
-| Antes da T18 | Gravar `consulta_p0001.wav` (2–3 min, dois falantes, roteiro na seção 7) e 5–10 leituras de voz saudável para `voice_healthy/`. |
-| Antes da T21 | Gravar ou obter um vídeo de agachamento correto e um incorreto (amplitude reduzida e joelho valgo). Rodar `build_exercise_reference.py` com o correto. |
-| Antes da T22 | Baixar um vídeo de queda (Le2i ou UR Fall), respeitando a licença. |
+| T37 | **Common Voice (português):** aceitar os termos no site oficial e disponibilizar os clipes em `data/datasets/commonvoice/` (ou o token de acesso no `.env`). Substitui as leituras de voz saudável do grupo. A consulta (`consulta_p0001.wav`) e o `hello_ptbr.wav` passam a ser gerados pela Azure (T37, passo 10), e a queda vem do UR Fall (T37, passo 8); gravar só se esses caminhos falharem. |
+| Antes da T38 | Gravar três vídeos de agachamento com o celular (câmera lateral, corpo inteiro, cerca de 30 s cada): um correto para a referência (`physio_squat_correct.mp4`), outro correto como controle, que não deve alertar, e um incorreto, com amplitude reduzida e joelho valgo (`physio_squat_wrong.mp4`). Rodar `build_exercise_reference.py` só com o primeiro. |
 | T27 | **Teams:** no canal desejado, abrir *Workflows* → modelo "Post to a channel when a webhook request is received" → copiar a URL para `TEAMS_WEBHOOK_URL`. **E-mail:** criar uma Logic App (Consumption) com gatilho "When a HTTP request is received" (schema `{to, subject, html}`) e ação "Send an email (V2)" do Outlook; copiar a URL do gatilho para `LOGIC_APP_EMAIL_URL`. |
 | T19b (opcional) | Baixar os arquivos do modelo OpenPose COCO para `models/openpose/`. |
 | Entrega | Gravar o vídeo (≤ 15 min), publicar como não listado no YouTube, colocar o link no README. Desligar/excluir recursos Azure após a avaliação. |
