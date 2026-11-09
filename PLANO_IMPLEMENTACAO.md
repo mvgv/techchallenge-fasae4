@@ -364,7 +364,7 @@ DB_PORT=5432                     # mude se a porta 5432 já estiver em uso na m�
 REDIS_PORT=6379
 API_PORT=8000
 DASHBOARD_PORT=8501
-TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu   # GPU: https://download.pytorch.org/whl/cu121
+TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu   # GPU: .../whl/cu128 (RTX 50xx exige CUDA 12.8+; cu121 serve só até a série 40)
 
 # Storage
 STORAGE_BACKEND=local            # local | azure
@@ -2349,7 +2349,7 @@ Volumes: `pgdata` (banco), `redisdata` (streams), `model-cache` (cache do Huggin
 # syntax=docker/dockerfile:1
 FROM python:3.11-slim-bookworm
 
-# CPU por padrão. Para GPU: docker compose build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+# CPU por padrão. Para GPU: docker compose build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
 ARG EXTRAS=audio,video,reports,dashboard,dev
 
@@ -2649,7 +2649,7 @@ services:
               capabilities: [gpu]
 ```
 
-Uso: definir `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121` no `.env`, rodar `docker compose build` e subir com `-f docker-compose.yml -f docker-compose.gpu.yml`. O Ultralytics usa a GPU automaticamente quando `torch.cuda.is_available()`. Conferir com `docker compose exec worker-video python -c "import torch; print(torch.cuda.is_available())"`.
+Uso: definir `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128` no `.env`, rodar `docker compose build` e subir com `-f docker-compose.yml -f docker-compose.gpu.yml`. O Ultralytics usa a GPU automaticamente quando `torch.cuda.is_available()`. Conferir com `docker compose exec worker-video python -c "import torch; print(torch.cuda.is_available())"`.
 
 ### 9.4 `scripts/download_models.py`
 

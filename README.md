@@ -148,6 +148,10 @@ Variáveis opcionais do script: `SUFFIX`, `RG` (padrão `rg-medwatch`), `LOC` (p
 | `could not translate host name "db"` fora do Docker | `.env` com host do Docker | Fora do Docker use `localhost`, como no `.env.example` |
 | `pyarrow`/openSMILE não importam | pyarrow 26 exige NumPy 2 | `pip install "pyarrow<18"` |
 | Build muito lento ou enorme | `.dockerignore` ausente | Restaurar o `.dockerignore` |
+| `pip`: `CERTIFICATE_VERIFY_FAILED ... self-signed certificate in certificate chain` (Windows) | Antivírus (ex.: Kaspersky) intercepta o HTTPS com um certificado próprio que o Python não conhece | Não use `--trusted-host`. Exporte a raiz do antivírus do repositório de certificados do Windows, junte-a ao pacote de certificados do `pip` e aponte `PIP_CERT` para o arquivo. Dentro do Docker o problema não ocorre |
+| `OSError: [WinError 4551] ... Controle de Aplicativo bloqueou este arquivo ... torch\lib\shm.dll` | Política do Windows (App Control / Smart App Control) bloqueia as DLLs do Torch | Rode os testes e o stack **dentro do Docker** (`docker compose run --rm api pytest -q`) |
+| Torch com GPU: `no kernel image is available for execution on the device` | Placa RTX 50xx (Blackwell) precisa de CUDA 12.8+; o índice `cu121` não serve | `TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128`, `docker compose build` e suba com `-f docker-compose.yml -f docker-compose.gpu.yml`. Com os modelos YOLO "nano" a GPU não é mais rápida que a CPU |
+| Workers reiniciando em loop com `redis.exceptions.TimeoutError: Timeout reading from socket` | redis-py 8 com `socket_timeout` menor ou igual ao `block_ms` do `XREADGROUP` | Corrigido em `medwatch.bus.SOCKET_TIMEOUT_S`; atualize o código e reinicie os workers |
 
 ## Estrutura de pastas
 

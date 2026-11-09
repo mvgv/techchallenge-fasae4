@@ -253,11 +253,11 @@ def overview_fragment() -> None:
     if not patients:
         st.info("Nenhum paciente cadastrado. Rode `scripts/seed.py` ou o simulador.")
     else:
-        cols = st.columns([2, 1, 3, 1.3, 1])
+        cols = st.columns([2, 1, 2.4, 1.9, 1])
         for c, h in zip(cols, ["Paciente", "Leito", "Risco", "Nível", "Alertas"], strict=True):
             c.markdown(f"**{h}**")
         for p in sort_patients(patients):
-            c = st.columns([2, 1, 3, 1.3, 1])
+            c = st.columns([2, 1, 2.4, 1.9, 1])
             c[0].markdown(f"[{p['display_name']}](?page=Paciente&patient={p['patient_id']})  \n"
                           f"`{p['patient_id']}`")
             c[1].write(p.get("bed") or "—")

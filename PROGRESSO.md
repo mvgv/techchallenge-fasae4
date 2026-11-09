@@ -2,17 +2,18 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (revisão pós-T33: tarefas T35 e T36 adicionadas ao plano)
-- **Tarefa atual:** T35
-- **Estado geral:** T00–T33 concluídas; T35 (integração ponta a ponta) e T36 (avaliação corrigida) pendentes; T34 opcional e fora da ordem
+- **Última atualização:** 2026-11-09 (T35 concluída)
+- **Tarefa atual:** T36
+- **Estado geral:** T00–T33 e T35 concluídas; T36 (avaliação de vitais corrigida e ajuste de limiares) pendente; T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** T35 — Integração ponta a ponta (modo falso)
-- **Passos concluídos:** 1 (testes e lint no container: 181 passed, ruff ok), 2 (imagem reconstruída, `models-init` ok), 3 parcial (stack sobe; **defeito 1 corrigido**: workers caíam com `TimeoutError` do redis-py 8 em `XREADGROUP BLOCK`, ver `bus.py` e `tests/test_bus_redis_real.py`).
-- **Onde estou rodando:** no desktop do humano (Windows, RTX 5070 12 GB, Docker Desktop), **não** na VPS. A VPS está em manutenção; mantenha o script da VPS parado (`touch ~/STOP_AGENT`) para não haver dois agentes na mesma tarefa.
+- **Tarefa:** T36 — Avaliação de vitais corrigida e ajuste de limiares
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passo 1 da T36 (rótulos dos cenários `respiratory_deterioration` e `hypotension` passam a ir até o fim da série, em `simulator/synthetic.py`, com os testes do simulador ajustados). A T35 mostrou os sintomas que a T36 deve resolver: pacientes normais (P-0003) e o do artefato (P-0005) recebem alerta de atenção por `vital_iforest` + `vital_zscore`; ver `docs/resultados/integracao.md`. Não precisa de Docker no stack: `evaluate_vitals.py` roda os detectores direto, mas rode os testes no container.
+- **Onde estou rodando:** no desktop do humano (Windows, RTX 5070 12 GB, Docker Desktop), **não** na VPS. A VPS estava em manutenção; antes de reiniciar o script da VPS, confirme em `PROGRESSO.md` quem está na tarefa para não haver dois agentes na mesma tarefa (o script da VPS segue o `PROGRESSO.md` e pegaria a T36).
 - **Como rodar aqui (Windows):** o Torch não carrega no Windows nativo (política de Controle de Aplicativo bloqueia `shm.dll`); rode tudo **dentro do Docker**. Para GPU (RTX 50xx precisa de CUDA 12.8): `$env:TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128"; docker compose build` e suba com `-f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml` (o dev monta `src/` e reinicia os workers). Imagem CPU guardada como `medwatch-app:cpu`. O antivírus Kaspersky intercepta HTTPS no Windows: o `pip` local precisa de `PIP_CERT` apontando para um pacote com a raiz do Kaspersky (dentro do Docker não há esse problema).
-- **Próximo passo exato:** terminar o passo 3 (logs sem traceback em todos os serviços; `curl localhost:8000/health` e `curl localhost:8501/_stcore/health`), depois passos 4 a 12 do plano. Mídias sintéticas já geradas em `data/samples/sinteticos/` (`tom.wav`, `pessoas.jpg`, `pessoas.mp4`).
+- **Mídias sintéticas** (T35) estão em `data/samples/sinteticos/` (`tom.wav`, `pessoas.jpg`, `pessoas.mp4`), fora do Git.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -57,7 +58,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T32 | Roteiro automatizado da demonstração | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e MockTransport; envio checado com TestClient e banco real; aceite (demo completa com amostras, workers e simulador) não verificado: amostras [HUMANO] |
 | T33 | README, documentação e relatório técnico | concluída | ver `git log` | `pytest -q` (178 passed) e `ruff check .` passam; seções de custos Azure, prints e avaliação de vídeo marcadas [PENDENTE] (dependem de humano); aceite "colega roda do zero" não testado |
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
-| T35 | Integração ponta a ponta (modo falso) | pendente | | adicionada na revisão pós-T33 |
+| T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | pendente | | adicionada na revisão pós-T33 |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
@@ -139,3 +140,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T31 | ver `git log` | scripts/evaluate_vitals.py (execução ~10 min por causa do IForest por minuto), evaluate_video.py, resultados em docs/resultados/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T32. |
 | 2026-11-08 | T32 | ver `git log` | Sessão no Opus 5.5. scripts/run_demo.py (health, pacientes, simulador subprocesso ou externo, envio por `sim:clock`), data/samples/README.md e tests/test_run_demo.py; `pytest -q` (178 passed) e `ruff check .` OK. Próxima: T33. |
 | 2026-11-08 | T33 | ver `git log` | README reescrito (requisitos, passo a passo bash/PowerShell, problemas comuns, testes, estrutura), docs/arquitetura.md (Mermaid, serviços, streams, tabelas, catálogo) e docs/relatorio-tecnico.md (7 seções); `pytest -q` e `ruff check .` OK. Próxima: T34 opcional / passos humanos. |
+| 2026-11-09 | T35 | ver `git log` | Rodada no desktop do humano (Windows, RTX 5070, Docker Desktop). Stack completo com mídias sintéticas, laudo, alertas, confirmação, escalonamento, relatório e dashboard num navegador. Defeitos: redis-py 8 derrubava 4 workers (`bus.py`), testes sujavam o banco ao vivo (`tests/conftest.py`), coluna "Nível" do dashboard, `cu121` na documentação (RTX 50xx precisa de `cu128`). Pendências: falsos alarmes em pacientes normais (T36) e laudo sem tratamento de negação. |

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.11-slim-bookworm
 
-# CPU por padrão. Para GPU: docker compose build --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+# CPU por padrão. Para GPU: TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128 (cu121 não suporta RTX 50xx)
 ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
 ARG EXTRAS=audio,video,reports,dashboard,dev
 
