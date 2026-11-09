@@ -13,8 +13,8 @@ vitals:
     persistence: 1             # leituras consecutivas acima do limiar antes de emitir
     cooldown_minutes: 10
   iforest:
-    threshold_key: threshold   # threshold (percentil 0,5) ou p0_1 (percentil 0,1)
-    persistence: 1
+    threshold_key: p0_1        # threshold (percentil 0,5) ou p0_1 (percentil 0,1)
+    persistence: 3
     cooldown_minutes: 10
   news2:
     repeat_minutes: 15         # reemite se o nível se mantém >= medium
