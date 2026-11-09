@@ -9,8 +9,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T33 — README, documentação e relatório técnico
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T33 em `PLANO_IMPLEMENTACAO.md` (e seções 9.1, 9.7, 9.9 e 4) e reescrever o `README.md` (visão geral, requisitos, passo a passo bash e PowerShell, problemas comuns, testes, estrutura, link do vídeo, aviso de uso).
+- **Passos concluídos:** README.md e docs/arquitetura.md
+- **Próximo passo exato:** escrever `docs/relatorio-tecnico.md` (7 seções da T33), depois rodar `pytest -q` e `ruff check .` e fazer o commit final.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
