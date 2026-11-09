@@ -6,6 +6,7 @@ Só usa a biblioteca padrão (urllib, zipfile) e o ffmpeg; sem wget nem unzip.
 import argparse
 import shutil
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -24,8 +25,15 @@ def fetch(url: str, dest: Path, force: bool = False) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
-        shutil.copyfileobj(resp, fh, length=1 << 20)
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
+                shutil.copyfileobj(resp, fh, length=1 << 20)
+            break
+        except OSError:
+            if attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
     tmp.replace(dest)
     return dest
 
@@ -57,9 +65,30 @@ def main(argv: list[str] | None = None) -> None:
         download_urfall(a.data_dir / "datasets" / "urfall")
 
 
-def download_esc50(out: Path) -> None:  # implementado no passo 7
-    """Placeholder até o passo 7 da T37."""
-    raise SystemExit("ESC-50 ainda não implementado")
+ESC50_BASE = "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/"
+ESC50_POSITIVE = ("coughing", "breathing", "snoring", "sneezing")
+ESC50_NEGATIVE = ("clock_tick", "keyboard_typing", "door_wood_knock", "rain", "dog", "laughing")
+
+
+def esc50_selection(meta_csv: Path) -> list[dict]:
+    """Linhas do `esc50.csv` das classes usadas (positivas e negativas), em ordem."""
+    import csv
+    with open(meta_csv, newline="", encoding="utf-8") as fh:
+        rows = [r for r in csv.DictReader(fh)
+                if r["category"] in ESC50_POSITIVE + ESC50_NEGATIVE]
+    return sorted(rows, key=lambda r: r["filename"])
+
+
+def download_esc50(out: Path) -> None:
+    """Baixa o `meta/esc50.csv` e só os WAV das classes escolhidas (40 por classe)."""
+    from concurrent.futures import ThreadPoolExecutor
+    meta = fetch(ESC50_BASE + "meta/esc50.csv", out / "meta" / "esc50.csv")
+    rows = esc50_selection(meta)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(lambda r: fetch(ESC50_BASE + "audio/" + r["filename"],
+                                      out / "audio" / r["filename"]), rows))
+    size = sum((out / "audio" / r["filename"]).stat().st_size for r in rows)
+    print(f"ok ESC-50: {len(rows)} clipes ({size / 1e6:.0f} MB) em {out}")
 
 
 def download_urfall(out: Path) -> None:  # implementado no passo 8

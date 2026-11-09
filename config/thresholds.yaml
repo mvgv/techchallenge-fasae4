@@ -37,6 +37,7 @@ audio_events:
   window_s: 10
   hop_s: 5
   min_score: 0.30
+  breathing_min_score: 0.60    # "Breathing" é comum em fala normal: exige score maior
   labels: ["Cough", "Wheeze", "Breathing", "Gasp", "Pant", "Snoring", "Throat clearing"]
 video:
   keypoint_min_conf: 0.5

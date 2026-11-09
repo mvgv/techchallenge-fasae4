@@ -39,6 +39,18 @@ def mimic_splits(vitals_parquet: Path) -> dict:
             **split_ids(list(ids), (0.6, 0.2, 0.2), ("calibracao", "validacao", "reservado"))}
 
 
+def esc50_splits(meta_csv: Path) -> dict:
+    """ESC-50: folds 1–3 para calibração e 4–5 reservados (os folds do próprio dataset)."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from download_datasets import ESC50_NEGATIVE, ESC50_POSITIVE, esc50_selection
+    rows = esc50_selection(meta_csv)
+    return {"dataset": "ESC-50", "unit": "clip (filename)", "rule": "fold 1-3 / fold 4-5",
+            "positive_classes": list(ESC50_POSITIVE), "negative_classes": list(ESC50_NEGATIVE),
+            "calibracao": [r["filename"] for r in rows if int(r["fold"]) <= 3],
+            "reservado": [r["filename"] for r in rows if int(r["fold"]) >= 4]}
+
+
 def load_splits(path: Path = SPLITS) -> dict:
     """Lê o splits.yaml (vazio se não existir)."""
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
@@ -56,12 +68,17 @@ def main(argv: list[str] | None = None) -> None:
     """Ponto de entrada da linha de comando."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mimic", action="store_true")
+    ap.add_argument("--esc50", action="store_true")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
     if a.mimic:
         sec = mimic_splits(a.data_dir / "mimic" / "vitals.parquet")
         save_section("mimic", sec)
         print({k: len(v) for k, v in sec.items() if isinstance(v, list)})
+    if a.esc50:
+        sec = esc50_splits(a.data_dir / "datasets" / "esc50" / "meta" / "esc50.csv")
+        save_section("audio", sec)
+        print({k: len(v) for k, v in sec.items() if k in ("calibracao", "reservado")})
 
 
 if __name__ == "__main__":

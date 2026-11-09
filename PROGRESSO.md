@@ -10,7 +10,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 
 - **Tarefa:** T37 — Datasets públicos do enunciado com partes reservadas
 - **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado), 2 (`config/splits.yaml` seção mimic via `scripts/make_splits.py --mimic`), 3 (`load_mimic` com `split`, `rebase_start`, `window_hours`; replay `--mimic-split`/`--mimic-hours`), 4 (`models/vitals_iforest_mimic` treinado na calibração com limiares da validação; `VITALS_IFOREST_MODEL`; `carry_forward`), 5 e 6 (`scripts/evaluate_mimic.py`: carga de alarmes, injeção semissintética, `--tune` na validação; override `per_model` no worker; resultados em `docs/resultados/mimic_tuning.md` e `mimic_results.md`)
-- **Próximo passo exato:** passo 7 da T37: áudio. Verificar um espelho público do AudioSet (conjunto de avaliação com áudio, ex. Hugging Face); se inviável, ESC-50 (`raw.githubusercontent.com/karolpiczak/ESC-50`, `meta/esc50.csv` + `audio/*.wav`). Implementar `download_esc50` em `scripts/download_datasets.py`, seção `audio` em `config/splits.yaml` (folds 1–3 calibração, 4–5 reservado), `scripts/evaluate_audio_events.py` (calibra `audio_events.min_score` só na calibração; P/R por classe no reservado). Linha em `docs/DECISOES.md`. Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
+- **Próximo passo exato:** passo 7 da T37 (em andamento): ESC-50 já baixado (`data/datasets/esc50`, 400 clipes) e seção `audio` em `config/splits.yaml`. Rodar `.venv/bin/python scripts/evaluate_audio_events.py` (baixa o AST ~350 MB no cache do Hugging Face e grava previsões em `data/datasets/esc50/ast_predictions.json`; retoma do cache se cair); gravar o escolhido em `thresholds.yaml` (`audio_events`), linha em `docs/DECISOES.md` (ESC-50 em vez do AudioSet e parâmetros), commitar `docs/resultados/audio_events.*`.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
 - **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`, `scripts/make_splits.py`, `config/splits.yaml`, `tests/test_splits.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `src/medwatch/anomaly/iforest.py`, `src/medwatch/anomaly/worker.py`, `src/medwatch/config.py`, `scripts/train_vitals_iforest.py`, `.env.example`, `scripts/evaluate_mimic.py`, `scripts/evaluate_vitals.py`, `tests/test_evaluate_mimic.py`, `config/thresholds.yaml`, `docs/resultados/mimic_*`
 - **Comandos longos em execução:** nenhum
@@ -94,6 +94,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | `data/references/*` | não | |
 | `data/samples/*` | não | |
 | `models/vitals_iforest_mimic.*` | sim | 2026-11-09, `scripts/train_vitals_iforest.py --mimic-split calibracao --out models/vitals_iforest_mimic` |
+| `data/datasets/esc50/` (ESC-50, 10 classes, 400 clipes) | sim | 2026-11-09, `scripts/download_datasets.py --esc50` |
 | `data/mimic/*` (MIMIC-IV Demo 2.2 + parquets) | sim | 2026-11-09, `scripts/download_datasets.py --mimic` |
 
 ## Histórico de sessões

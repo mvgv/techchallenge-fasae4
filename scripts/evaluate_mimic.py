@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from medwatch.anomaly.filters import clean_observation
-from medwatch.anomaly.iforest import VitalsIForest, build_features
+from medwatch.anomaly.iforest import VitalsIForest
 from medwatch.anomaly.news2 import news2
 from medwatch.anomaly.worker import AnomalyWorker
 from medwatch.config import load_yaml
