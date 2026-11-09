@@ -29,6 +29,17 @@ def test_respiratory_deterioration():
     assert labels[0]["type"] == "respiratory_deterioration"
 
 
+def test_persistent_labels_run_to_end_of_series():
+    end = (START.replace() + __import__("datetime").timedelta(minutes=24 * 60)).isoformat()
+    for sc in ("respiratory_deterioration", "hypotension"):
+        _, _, _, labels = generate_patient_timeline("P-1", START, 24 * 60, sc, 3)
+        assert labels[0]["ts_end"] == end, sc
+    _, _, _, labels = generate_patient_timeline("P-1", START, 24 * 60, "tachy_spike", 3)
+    a = datetime.fromisoformat(labels[0]["ts_start"])
+    b = datetime.fromisoformat(labels[0]["ts_end"])
+    assert (b - a).total_seconds() == 180
+
+
 def test_normal_spo2():
     for seed in range(5):
         v, _, _, labels = generate_patient_timeline("P-1", START, 24 * 60, "normal", seed)

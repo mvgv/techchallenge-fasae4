@@ -96,13 +96,13 @@ def build_timeline(patient_id: str, start: datetime, minutes: int, seed: int,
             _ramp(series["rr"], onset, d, 15, 28)
             _ramp(series["hr"], onset, d, 78, 118)
             on_oxygen[onset + int(d * 40 / 60):] = True
-            labels.append(_label(pid, sc, start, onset, onset + d))
+            labels.append(_label(pid, sc, start, onset, minutes))  # estado persiste até o fim
         elif sc == "hypotension":
             sbp0 = float(series["sbp"][onset])
             hr0 = float(series["hr"][onset])
             _ramp(series["sbp"], onset, 45, sbp0, 82)
             _ramp(series["hr"], onset, 45, hr0, hr0 + 25)
-            labels.append(_label(pid, sc, start, onset, onset + 45))
+            labels.append(_label(pid, sc, start, onset, minutes))  # estado persiste até o fim
         elif sc == "tachy_spike":
             series["hr"][onset:onset + 3] = 155
             labels.append(_label(pid, sc, start, onset, onset + 3))
