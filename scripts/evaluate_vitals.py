@@ -181,11 +181,13 @@ def score_episodes(per_patient: list[tuple[list, list]], types: set[str]) -> dic
     return _summary(tp, fp, fn, delays, fp_normal, n_normal)
 
 
-def alerts_from_evidence(evs: list, fusion_cfg: dict) -> list[datetime]:
-    """Instantes de abertura de alertas.
+def alert_details(evs: list, fusion_cfg: dict) -> list[dict]:
+    """Alertas abertos a partir das evidências de um paciente, com nível e risco de pico.
 
     Nível >= warning abre; o alerta fecha quando o risco fica abaixo de 20 por 60 minutos
-    seguidos. O risco é recalculado a cada minuto (decai sem novas evidências).
+    seguidos. O risco é recalculado a cada minuto (decai sem novas evidências). Cada item:
+    `opened`, `closed`, `level` (o maior durante o alerta), `peak_risk` e `types` (tipos de
+    evidência que mais contribuíram no pico).
     """
     if not evs:
         return []
@@ -195,22 +197,43 @@ def alerts_from_evidence(evs: list, fusion_cfg: dict) -> list[datetime]:
     for e in evs:
         by_min.setdefault(e.ts_start.replace(second=0, microsecond=0), []).append(e)
     t, last = min(by_min), max(by_min)
-    opens: list[datetime] = []
-    is_open, below = False, 0
+    alerts: list[dict] = []
+    cur: dict | None = None
+    below = 0
     while t <= last + timedelta(minutes=CLOSE_MINUTES + 1):
         for e in by_min.get(t, []):
             engine.add(e)
         res = engine.compute(pid, t)
-        if not is_open:
+        if cur is None:
             if res.level in OPEN_LEVELS:
-                opens.append(t)
-                is_open, below = True, 0
+                cur = {"opened": t, "closed": None, "level": res.level,
+                       "peak_risk": res.risk, "types": _top_types(res)}
+                alerts.append(cur)
+                below = 0
         else:
+            if res.level == "critical":
+                cur["level"] = "critical"
+            if res.risk > cur["peak_risk"]:
+                cur["peak_risk"], cur["types"] = res.risk, _top_types(res)
             below = below + 1 if res.risk < CLOSE_RISK else 0
             if below >= CLOSE_MINUTES:
-                is_open, below = False, 0
+                cur["closed"], cur, below = t, None, 0
         t += timedelta(minutes=1)
-    return opens
+    return alerts
+
+
+def _top_types(res) -> list[str]:
+    seen: list[str] = []
+    for c in res.contributions:
+        typ = c.get("type")
+        if typ and typ not in seen:
+            seen.append(typ)
+    return seen[:3]
+
+
+def alerts_from_evidence(evs: list, fusion_cfg: dict) -> list[datetime]:
+    """Instantes de abertura de alertas (ver `alert_details`)."""
+    return [a["opened"] for a in alert_details(evs, fusion_cfg)]
 
 
 def score_alerts(per_patient: list[tuple[list, list]], fusion_cfg: dict) -> dict:
