@@ -2,19 +2,19 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T32 concluída)
-- **Tarefa atual:** T33
-- **Estado geral:** T00–T32 concluídas; T33 não iniciada
+- **Última atualização:** 2026-11-08 (T33 concluída)
+- **Tarefa atual:** T34 (opcionais, não iniciada)
+- **Estado geral:** T00–T33 concluídas; só restam passos [HUMANO] e opcionais (T34)
 
 ## Tarefa em andamento
 
-- **Tarefa:** T33 — README, documentação e relatório técnico
-- **Passos concluídos:** README.md e docs/arquitetura.md
-- **Próximo passo exato:** escrever `docs/relatorio-tecnico.md` (7 seções da T33), depois rodar `pytest -q` e `ruff check .` e fazer o commit final.
+- **Tarefa:** nenhuma obrigatória; T01–T33 concluídas. T34 (opcionais) só se o humano pedir.
+- **Passos concluídos:** T33 (README, docs/arquitetura.md, docs/relatorio-tecnico.md)
+- **Próximo passo exato:** humano: resolver os bloqueios abaixo (amostras, chaves Azure, Teams), rodar `scripts/run_demo.py`, preencher prints/custos nas seções 4 e 5.3 do relatório e o link do vídeo no README.
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** `run_demo.py` verificado com o `TestClient` da API contra o banco real e amostras falsas (as 4 mídias aceitas com `recorded_at` = `sim:clock`; linhas de teste removidas da tabela `media`); demonstração completa com workers e amostras reais pendente [HUMANO]. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
+- **Observações:** relatório tem itens marcados [PENDENTE] (custos Azure, prints, avaliação de vídeo). Ambiente Python 3.11 em `.venv`. `dbg_tmp.py` na raiz é arquivo não versionado de sessão anterior (não commitado).
 
 ## Status das tarefas
 
@@ -53,7 +53,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T30 | Dashboard Streamlit | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com MockTransport e AppTest (smoke da tela Paciente pulado na `.venv`: `st.dataframe` precisa do pyarrow, quebrado como na T07; verificada à parte com `st.dataframe` neutralizado); aceite com compose + simulador `demo` (painel ao vivo, ack, upload real) não verificado |
 | T31 | Scripts de avaliação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `vitals_metrics.*` gerados (muitos FP, ver DECISOES); `evaluate_video.py` pronto, verificação real pendente: precisa de `video_annotations.csv` e vídeos [HUMANO] |
 | T32 | Roteiro automatizado da demonstração | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e MockTransport; envio checado com TestClient e banco real; aceite (demo completa com amostras, workers e simulador) não verificado: amostras [HUMANO] |
-| T33 | README, documentação e relatório técnico | pendente | | |
+| T33 | README, documentação e relatório técnico | concluída | ver `git log` | `pytest -q` (178 passed) e `ruff check .` passam; seções de custos Azure, prints e avaliação de vídeo marcadas [PENDENTE] (dependem de humano); aceite "colega roda do zero" não testado |
 | T34 | Opcionais | pendente | | só após T01–T33 |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
@@ -133,3 +133,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T30 | ver `git log` | Sessão no Opus 5.5. dashboard/api_client.py (ApiClient), dashboard/app.py (4 telas), test_dashboard.py; corrigido `load_yaml("exercises.yaml")` em routes_media (500 no upload physio) + teste; `pytest -q` (170 passed) e `ruff check .` OK. Próxima: T31. |
 | 2026-11-08 | T31 | ver `git log` | scripts/evaluate_vitals.py (execução ~10 min por causa do IForest por minuto), evaluate_video.py, resultados em docs/resultados/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T32. |
 | 2026-11-08 | T32 | ver `git log` | Sessão no Opus 5.5. scripts/run_demo.py (health, pacientes, simulador subprocesso ou externo, envio por `sim:clock`), data/samples/README.md e tests/test_run_demo.py; `pytest -q` (178 passed) e `ruff check .` OK. Próxima: T33. |
+| 2026-11-08 | T33 | ver `git log` | README reescrito (requisitos, passo a passo bash/PowerShell, problemas comuns, testes, estrutura), docs/arquitetura.md (Mermaid, serviços, streams, tabelas, catálogo) e docs/relatorio-tecnico.md (7 seções); `pytest -q` e `ruff check .` OK. Próxima: T34 opcional / passos humanos. |
