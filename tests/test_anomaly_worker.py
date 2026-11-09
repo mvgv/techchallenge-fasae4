@@ -71,3 +71,58 @@ def test_movement_and_rx_events_are_published():
 def test_consumer_group_constants():
     assert GROUP == "worker-anomaly"
     assert STREAMS == ["vitals", "prescriptions", "movement"]
+
+
+def _cfg(persistence, ipers=1):
+    from medwatch.config import load_yaml
+    cfg = load_yaml("thresholds")
+    cfg["vitals"]["zscore"]["persistence"] = persistence
+    cfg["vitals"]["zscore"]["cooldown_minutes"] = 0
+    cfg["vitals"]["iforest"]["persistence"] = ipers
+    cfg["vitals"]["iforest"]["cooldown_minutes"] = 0
+    return cfg
+
+
+def _hr_series(values):
+    from datetime import timedelta
+
+    from medwatch.contracts import VitalObservation
+    return [VitalObservation(patient_id="P-9", ts=T0 + timedelta(minutes=i), hr=v,
+                             spo2=97, rr=15, sbp=120, dbp=75, temp=36.7)
+            for i, v in enumerate(values)]
+
+
+def _z_events(cfg, values):
+    w = AnomalyWorker(None, db_module=FakeDb(), cfg=cfg)  # type: ignore[arg-type]
+    return [e for v in _hr_series(values) for e in w.process_vital(v)
+            if e.type == "vital_zscore" and e.payload["vital"] == "hr"]
+
+
+def test_zscore_persistence():
+    from datetime import timedelta
+    base = [75.0 + (i % 2) for i in range(40)]
+    spike = base + [150.0] + base[:5]
+    assert _z_events(_cfg(1), spike)
+    assert not _z_events(_cfg(3), spike)
+    evs = _z_events(_cfg(3), base + [90.0, 110.0, 140.0])
+    assert evs and evs[0].ts_start == T0 + timedelta(minutes=42)
+
+
+def test_iforest_persistence():
+    class Fake:
+        enabled = True
+
+        def __init__(self):
+            self.n = 0
+
+        def score(self, feats, key="threshold"):
+            self.n += 1
+            return (6 <= self.n <= 7) or (9 <= self.n <= 11), 0.9
+
+    def run(ipers):
+        w = AnomalyWorker(None, db_module=FakeDb(), iforest=Fake(),  # type: ignore[arg-type]
+                          cfg=_cfg(1, ipers))
+        return [e for v in _hr_series([75.0] * 30) for e in w.process_vital(v)
+                if e.type == "vital_iforest"]
+    assert len(run(1)) >= 1
+    assert len(run(3)) == 1

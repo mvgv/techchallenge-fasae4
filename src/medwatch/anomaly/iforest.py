@@ -71,16 +71,26 @@ class VitalsIForest:
         self.meta = json.loads(jp.read_text())
         return True
 
-    def score(self, features: np.ndarray) -> tuple[bool, float]:
-        """Retorna (é_anomalia, score normalizado 0–1)."""
+    def raw_score(self, features: np.ndarray) -> float:
+        """Score bruto do Isolation Forest (menor = mais anômalo)."""
+        x = np.asarray(features, dtype=float).reshape(1, -1)
+        return float(self.pipeline.score_samples(x)[0])
+
+    def score(self, features: np.ndarray, threshold_key: str = "threshold"
+              ) -> tuple[bool, float]:
+        """Retorna (é_anomalia, score normalizado 0–1).
+
+        `threshold_key` escolhe o limiar nos metadados (`threshold` = percentil 0,5;
+        `p0_1` = percentil 0,1); se a chave não existir, usa `threshold`.
+        """
         if self.pipeline is None:
             if not self._warned:
                 log.warning("IForest desativado (modelo não carregado)")
                 self._warned = True
             return False, 0.0
-        x = np.asarray(features, dtype=float).reshape(1, -1)
-        s = float(self.pipeline.score_samples(x)[0])
-        return s < self.meta["threshold"], normalize_score(s, self.meta["p50"], self.meta["p01"])
+        s = self.raw_score(features)
+        thr = self.meta.get(threshold_key, self.meta["threshold"])
+        return s < thr, normalize_score(s, self.meta["p50"], self.meta["p01"])
 
 
 def train_and_save(X: np.ndarray, models_dir: Path) -> dict:
@@ -97,7 +107,8 @@ def train_and_save(X: np.ndarray, models_dir: Path) -> dict:
                                                  random_state=42))])
     pipe.fit(X)
     s = pipe.score_samples(X)
-    meta = {"threshold": float(np.percentile(s, 0.5)), "p01": float(np.percentile(s, 1)),
+    meta = {"threshold": float(np.percentile(s, 0.5)),
+            "p0_1": float(np.percentile(s, 0.1)), "p01": float(np.percentile(s, 1)),
             "p50": float(np.percentile(s, 50)),
             "trained_at": datetime.now(UTC).isoformat(), "n_samples": int(len(X))}
     models_dir = Path(models_dir)

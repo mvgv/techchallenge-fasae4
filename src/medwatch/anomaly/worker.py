@@ -46,6 +46,8 @@ class _PatientState:
     def __init__(self, zcfg: dict) -> None:
         self.history: deque[VitalObservation] = deque(maxlen=60)
         self.ewma = {k: EwmaZ(zcfg.get("alpha", 0.1), zcfg.get("warmup", 20)) for k in SIGNALS}
+        self.z_run = {k: 0 for k in SIGNALS}   # leituras consecutivas acima do limiar
+        self.if_run = 0
         self.news_rank = 0
         self.news_ts: datetime | None = None
 
@@ -111,7 +113,8 @@ class AnomalyWorker:
             if v is None:
                 continue
             z = st.ewma[k].update(v)
-            if abs(z) >= zcfg["threshold"] and self.cooldown.ready(
+            st.z_run[k] = st.z_run[k] + 1 if abs(z) >= zcfg["threshold"] else 0
+            if st.z_run[k] >= zcfg.get("persistence", 1) and self.cooldown.ready(
                     (obs.patient_id, k), obs.ts, zcfg["cooldown_minutes"]):
                 out.append(self._ev(
                     obs, "vital_zscore", abs(z) / 6, Severity.warning,
@@ -122,8 +125,11 @@ class AnomalyWorker:
         if self.iforest is not None and self.iforest.enabled:
             feats = build_features(list(st.history))
             if feats is not None:
-                anomalous, score = self.iforest.score(feats)
-                if anomalous and self.cooldown.ready(
+                icfg = self.vcfg["iforest"]
+                anomalous, score = self.iforest.score(
+                    feats, icfg.get("threshold_key", "threshold"))
+                st.if_run = st.if_run + 1 if anomalous else 0
+                if st.if_run >= icfg.get("persistence", 1) and self.cooldown.ready(
                         (obs.patient_id, "iforest"), obs.ts,
                         self.vcfg["iforest"]["cooldown_minutes"]):
                     out.append(self._ev(

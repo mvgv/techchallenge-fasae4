@@ -10,8 +10,11 @@ vitals:
     alpha: 0.1
     warmup: 20
     threshold: 3.0
+    persistence: 1             # leituras consecutivas acima do limiar antes de emitir
     cooldown_minutes: 10
   iforest:
+    threshold_key: threshold   # threshold (percentil 0,5) ou p0_1 (percentil 0,1)
+    persistence: 1
     cooldown_minutes: 10
   news2:
     repeat_minutes: 15         # reemite se o nível se mantém >= medium
