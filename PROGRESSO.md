@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T30 concluída)
-- **Tarefa atual:** T31
-- **Estado geral:** T00–T30 concluídas; T31 não iniciada
+- **Última atualização:** 2026-11-08 (T31 concluída)
+- **Tarefa atual:** T32
+- **Estado geral:** T00–T31 concluídas; T32 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T31 — Scripts de avaliação
+- **Tarefa:** T32 — Roteiro automatizado da demonstração
 - **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T31 em `PLANO_IMPLEMENTACAO.md` (~linha 2117) e criar `scripts/evaluate_vitals.py` (30 pacientes, seeds 100–129, três configurações de detectores rodados diretamente, sem Redis), gerando `docs/resultados/vitals_metrics.csv`, `vitals_metrics.md` e um PNG de exemplo.
+- **Próximo passo exato:** ler a T32 em `PLANO_IMPLEMENTACAO.md` e criar `scripts/run_demo.py` e `data/samples/README.md` (tabela 7.1).
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -51,7 +51,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T28 | API de leitura e confirmação de alertas | concluída | ver `git log` | `pytest -q` (153 passed) e `ruff check .` passam com banco real; `db.get_alert`/`ack_alert` (ack atômico) adicionados |
 | T29 | Relatórios (HTML e PDF) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `POST /reports/patient/{id}`; `build_session_report` movido para `reports/render.py`; aceite visual com vídeo real não verificado |
 | T30 | Dashboard Streamlit | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com MockTransport e AppTest (smoke da tela Paciente pulado na `.venv`: `st.dataframe` precisa do pyarrow, quebrado como na T07; verificada à parte com `st.dataframe` neutralizado); aceite com compose + simulador `demo` (painel ao vivo, ack, upload real) não verificado |
-| T31 | Scripts de avaliação | pendente | | |
+| T31 | Scripts de avaliação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `vitals_metrics.*` gerados (muitos FP, ver DECISOES); `evaluate_video.py` pronto, verificação real pendente: precisa de `video_annotations.csv` e vídeos [HUMANO] |
 | T32 | Roteiro automatizado da demonstração | pendente | | |
 | T33 | README, documentação e relatório técnico | pendente | | |
 | T34 | Opcionais | pendente | | só após T01–T33 |
@@ -131,3 +131,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T28 | ver `git log` | routes_alerts (GET /alerts, ack com 404/409), routes_patients (vitals/evidence/risk), db.get_alert/ack_alert e test_api_read.py; `pytest -q` e `ruff check .` OK. Próxima: T29. |
 | 2026-11-08 | T29 | ver `git log` | reports/render.py, templates, routes_reports e test_reports.py; worker de vídeo gera report.html/pdf; `pytest -q` e `ruff check .` OK. Próxima: T30. |
 | 2026-11-08 | T30 | ver `git log` | Sessão no Opus 5.5. dashboard/api_client.py (ApiClient), dashboard/app.py (4 telas), test_dashboard.py; corrigido `load_yaml("exercises.yaml")` em routes_media (500 no upload physio) + teste; `pytest -q` (170 passed) e `ruff check .` OK. Próxima: T31. |
+| 2026-11-08 | T31 | ver `git log` | scripts/evaluate_vitals.py (execução ~10 min por causa do IForest por minuto), evaluate_video.py, resultados em docs/resultados/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T32. |

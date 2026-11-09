@@ -1,0 +1,4 @@
+config,tp,fp,fn,precision,recall,f1,median_delay_min,fp_per_patient_day
+NEWS2,15,557,0,0.026,1.0,0.051,24.0,18.567
+NEWS2 + z-score,15,2011,0,0.007,1.0,0.015,0.0,67.033
+NEWS2 + z-score + IForest,15,2632,0,0.006,1.0,0.011,0.0,87.733
