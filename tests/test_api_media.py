@@ -69,3 +69,16 @@ def test_document_and_files(env):
     assert client.get(f"/files/{key}").content == b"dor no peito"
     assert client.get("/files/x/../../etc/passwd").status_code in (400, 404)
     assert client.get("/files/%2e%2e/secret").status_code in (400, 404)
+
+
+def test_physio_with_valid_exercise_queues_video_job(env):
+    client, bus, pid = env
+    r = client.post("/media", data={"patient_id": pid, "kind": "video", "mode": "physio",
+                                    "exercise": "squat"},
+                    files={"file": ("v.mp4", b"x")})
+    assert r.status_code == 202
+    assert len(bus.r.xrange("jobs.video")) == 1
+    r = client.post("/media", data={"patient_id": pid, "kind": "video", "mode": "physio",
+                                    "exercise": "nao_existe"},
+                    files={"file": ("v.mp4", b"x")})
+    assert r.status_code == 422

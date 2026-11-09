@@ -294,7 +294,7 @@ def render_alert(alert: dict, patient_name: str, api: ApiClient) -> None:
         if decision:
             if api.ack_alert(aid, decision, user=ACK_USER, note=note) is not None:
                 st.toast("Alerta confirmado." if decision == "confirmed" else "Alerta descartado.")
-                st.rerun(scope="fragment")
+                st.rerun()
 
 
 def select_patient(patients: list[dict], key: str) -> str | None:

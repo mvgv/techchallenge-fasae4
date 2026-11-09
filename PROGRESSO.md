@@ -2,20 +2,19 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T30 em andamento)
-- **Tarefa atual:** T30
-- **Estado geral:** T00–T29 concluídas; T30 em andamento
+- **Última atualização:** 2026-11-08 (T30 concluída)
+- **Tarefa atual:** T31
+- **Estado geral:** T00–T30 concluídas; T31 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T30 — Dashboard Streamlit (recomenda-se Opus 5.5, ver seção 0.2)
-- **Passos (definidos na sessão):** 1) `api_client.py`; 2) `app.py` (4 telas); 3) `tests/test_dashboard.py` (MockTransport + AppTest); 4) commit final.
-- **Passos concluídos:** 1 (`src/medwatch/dashboard/api_client.py`, classe `ApiClient` com transport injetável); 2 (`src/medwatch/dashboard/app.py`, 4 telas; corrigido `load_yaml("exercises.yaml")` → `load_yaml("exercises")` em `routes_media.py`, bug da T06 que dava 500 no upload physio)
-- **Próximo passo exato:** criar `tests/test_dashboard.py`: `ApiClient` com `httpx.MockTransport` (erros chamam `on_error` com o `detail`), funções puras de `app.py` (`highlight_terms`, `transcript_rows`, `level_chip`, `sort_patients`) e smoke com `streamlit.testing.v1.AppTest` (API falsa via monkeypatch de `get_api`); teste de upload physio com exercício válido em `tests/test_api_media.py`.
-- **Arquivos tocados:** `src/medwatch/dashboard/api_client.py`, `src/medwatch/dashboard/app.py`, `src/medwatch/api/routes_media.py`
+- **Tarefa:** T31 — Scripts de avaliação
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** ler a T31 em `PLANO_IMPLEMENTACAO.md` (~linha 2117) e criar `scripts/evaluate_vitals.py` (30 pacientes, seeds 100–129, três configurações de detectores rodados diretamente, sem Redis), gerando `docs/resultados/vitals_metrics.csv`, `vitals_metrics.md` e um PNG de exemplo.
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** webhook do Teams e Logic App são [HUMANO] (já na tabela de bloqueios); concluir a T27 com MockTransport. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
+- **Observações:** `evaluate_video.py` depende de `data/samples/video_annotations.csv` e vídeos [HUMANO]: deixar o script pronto e registrar a verificação real pendente. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
 
 ## Status das tarefas
 
@@ -51,7 +50,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T27 | Canais de alerta e escalonamento | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com httpx.MockTransport; Teams e Logic App reais sem teste [HUMANO] |
 | T28 | API de leitura e confirmação de alertas | concluída | ver `git log` | `pytest -q` (153 passed) e `ruff check .` passam com banco real; `db.get_alert`/`ack_alert` (ack atômico) adicionados |
 | T29 | Relatórios (HTML e PDF) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `POST /reports/patient/{id}`; `build_session_report` movido para `reports/render.py`; aceite visual com vídeo real não verificado |
-| T30 | Dashboard Streamlit | em andamento | | |
+| T30 | Dashboard Streamlit | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com MockTransport e AppTest (smoke da tela Paciente pulado na `.venv`: `st.dataframe` precisa do pyarrow, quebrado como na T07; verificada à parte com `st.dataframe` neutralizado); aceite com compose + simulador `demo` (painel ao vivo, ack, upload real) não verificado |
 | T31 | Scripts de avaliação | pendente | | |
 | T32 | Roteiro automatizado da demonstração | pendente | | |
 | T33 | README, documentação e relatório técnico | pendente | | |
@@ -131,4 +130,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T27 | ver `git log` | alerts/channels.py (Console, Teams, Email, dispatch), alerts/worker.py (AlertWorker, escalonamento a cada 30 s) e test_channels.py; `pytest -q` (147 passed) e `ruff check .` OK. Próxima: T28. |
 | 2026-11-08 | T28 | ver `git log` | routes_alerts (GET /alerts, ack com 404/409), routes_patients (vitals/evidence/risk), db.get_alert/ack_alert e test_api_read.py; `pytest -q` e `ruff check .` OK. Próxima: T29. |
 | 2026-11-08 | T29 | ver `git log` | reports/render.py, templates, routes_reports e test_reports.py; worker de vídeo gera report.html/pdf; `pytest -q` e `ruff check .` OK. Próxima: T30. |
-| 2026-11-08 | T30 (início) | ver `git log` | Sessão no Opus 5.5 (recomendado para a T30). |
+| 2026-11-08 | T30 | ver `git log` | Sessão no Opus 5.5. dashboard/api_client.py (ApiClient), dashboard/app.py (4 telas), test_dashboard.py; corrigido `load_yaml("exercises.yaml")` em routes_media (500 no upload physio) + teste; `pytest -q` (170 passed) e `ruff check .` OK. Próxima: T31. |
