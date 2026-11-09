@@ -2,17 +2,17 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-09 (T36 concluída)
+- **Última atualização:** 2026-11-09 (T37 em andamento)
 - **Tarefa atual:** T37
 - **Estado geral:** T00–T33, T35 e T36 concluídas; pendentes, nesta ordem: T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
 - **Tarefa:** T37 — Datasets públicos do enunciado com partes reservadas
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** passo 1 da T37 (ver `PLANO_IMPLEMENTACAO.md`). Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
+- **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado)
+- **Próximo passo exato:** passo 2 da T37: gerar `config/splits.yaml` (MIMIC 60/20/20 por paciente, semente 42) com um script reprodutível. Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
-- **Arquivos tocados:** nenhum
+- **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum (190 passam)
 - **Observações:** relatório tem itens marcados [PENDENTE]. `dbg_tmp.py` na raiz é arquivo não versionado de sessão anterior. `models/vitals_iforest.json` foi regravado com o campo `p0_1` (fora do Git; rode `scripts/train_vitals_iforest.py` em outra máquina para o limiar `p0_1` existir, senão o IForest cai no `threshold` antigo).
@@ -58,7 +58,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | concluída | ver `git log` | `pytest -q` (190) e `ruff check .` passam; por alerta: recall 0,93 (ajuste) / 1,00 (conferência) e 0,10 alertas/dia em normais; recall 100% no ajuste não alcançado (hipotensão lenta, ver `vitals_tuning.md`) |
-| T37 | Datasets públicos do enunciado com partes reservadas | pendente | | PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
+| T37 | Datasets públicos do enunciado com partes reservadas | em andamento | | PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
 | T38 | Preparação da gravação do vídeo | pendente | | simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
@@ -93,6 +93,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | `models/vitals_iforest.*` | sim | 2026-11-08, sintético (sem --mimic) |
 | `data/references/*` | não | |
 | `data/samples/*` | não | |
+| `data/mimic/*` (MIMIC-IV Demo 2.2 + parquets) | sim | 2026-11-09, `scripts/download_datasets.py --mimic` |
 
 ## Histórico de sessões
 
@@ -143,3 +144,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T33 | ver `git log` | README reescrito (requisitos, passo a passo bash/PowerShell, problemas comuns, testes, estrutura), docs/arquitetura.md (Mermaid, serviços, streams, tabelas, catálogo) e docs/relatorio-tecnico.md (7 seções); `pytest -q` e `ruff check .` OK. Próxima: T34 opcional / passos humanos. |
 | 2026-11-09 | T35 | ver `git log` | Rodada no desktop do humano (Windows, RTX 5070, Docker Desktop). Stack completo com mídias sintéticas, laudo, alertas, confirmação, escalonamento, relatório e dashboard num navegador. Defeitos: redis-py 8 derrubava 4 workers (`bus.py`), testes sujavam o banco ao vivo (`tests/conftest.py`), coluna "Nível" do dashboard, `cu121` na documentação (RTX 50xx precisa de `cu128`). Pendências: falsos alarmes em pacientes normais (T36) e laudo sem tratamento de negação. |
 | 2026-11-09 | T36 | ver `git log` | VPS. Rótulos persistentes, persistência no z-score/IForest (`p0_1`), métricas por episódio e por alerta, grade de 24 combinações (ajuste e conferência), limiares escolhidos, relatório atualizado. Próxima: T37. |
+| 2026-11-09 | T37 | ver `git log` | VPS, Opus 5.5. Em andamento. |
