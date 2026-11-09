@@ -2,16 +2,17 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T29 concluída)
+- **Última atualização:** 2026-11-08 (T30 em andamento)
 - **Tarefa atual:** T30
-- **Estado geral:** T00–T29 concluídas; T30 não iniciada
+- **Estado geral:** T00–T29 concluídas; T30 em andamento
 
 ## Tarefa em andamento
 
 - **Tarefa:** T30 — Dashboard Streamlit (recomenda-se Opus 5.5, ver seção 0.2)
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** ler a T30 em `PLANO_IMPLEMENTACAO.md` (~linha 2105) e criar `dashboard/api_client.py` e `dashboard/app.py`.
-- **Arquivos tocados:** nenhum
+- **Passos (definidos na sessão):** 1) `api_client.py`; 2) `app.py` (4 telas); 3) `tests/test_dashboard.py` (MockTransport + AppTest); 4) commit final.
+- **Passos concluídos:** 1 (`src/medwatch/dashboard/api_client.py`, classe `ApiClient` com transport injetável)
+- **Próximo passo exato:** escrever `src/medwatch/dashboard/app.py` (caminho usado pelo compose) com as 4 telas da T30, usando `ApiClient`; funções puras (destaque de termos, chip de nível) testáveis e `main()` sob `if __name__ == "__main__"`.
+- **Arquivos tocados:** `src/medwatch/dashboard/api_client.py`
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
 - **Observações:** webhook do Teams e Logic App são [HUMANO] (já na tabela de bloqueios); concluir a T27 com MockTransport. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
@@ -50,7 +51,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T27 | Canais de alerta e escalonamento | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com httpx.MockTransport; Teams e Logic App reais sem teste [HUMANO] |
 | T28 | API de leitura e confirmação de alertas | concluída | ver `git log` | `pytest -q` (153 passed) e `ruff check .` passam com banco real; `db.get_alert`/`ack_alert` (ack atômico) adicionados |
 | T29 | Relatórios (HTML e PDF) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `POST /reports/patient/{id}`; `build_session_report` movido para `reports/render.py`; aceite visual com vídeo real não verificado |
-| T30 | Dashboard Streamlit | pendente | | |
+| T30 | Dashboard Streamlit | em andamento | | |
 | T31 | Scripts de avaliação | pendente | | |
 | T32 | Roteiro automatizado da demonstração | pendente | | |
 | T33 | README, documentação e relatório técnico | pendente | | |
@@ -130,3 +131,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T27 | ver `git log` | alerts/channels.py (Console, Teams, Email, dispatch), alerts/worker.py (AlertWorker, escalonamento a cada 30 s) e test_channels.py; `pytest -q` (147 passed) e `ruff check .` OK. Próxima: T28. |
 | 2026-11-08 | T28 | ver `git log` | routes_alerts (GET /alerts, ack com 404/409), routes_patients (vitals/evidence/risk), db.get_alert/ack_alert e test_api_read.py; `pytest -q` e `ruff check .` OK. Próxima: T29. |
 | 2026-11-08 | T29 | ver `git log` | reports/render.py, templates, routes_reports e test_reports.py; worker de vídeo gera report.html/pdf; `pytest -q` e `ruff check .` OK. Próxima: T30. |
+| 2026-11-08 | T30 (início) | ver `git log` | Sessão no Opus 5.5 (recomendado para a T30). |
