@@ -9,10 +9,10 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T37 — Datasets públicos do enunciado com partes reservadas
-- **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado)
-- **Próximo passo exato:** passo 2 da T37: gerar `config/splits.yaml` (MIMIC 60/20/20 por paciente, semente 42) com um script reprodutível. Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
+- **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado), 2 (`config/splits.yaml` seção mimic via `scripts/make_splits.py --mimic`)
+- **Próximo passo exato:** passo 3 da T37: em `src/medwatch/simulator/mimic.py`, `load_mimic(..., split=, rebase_start=)` lendo `config/splits.yaml`; no `replay.py`, `--mimic-split <nome>` usando `--start` como `rebase_start`; teste com parquet mínimo. Passos [HUMANO] da T37 (Common Voice, Azure para a consulta sintética) vão para a tabela de bloqueios.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
-- **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`
+- **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`, `scripts/make_splits.py`, `config/splits.yaml`, `tests/test_splits.py`
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum (190 passam)
 - **Observações:** relatório tem itens marcados [PENDENTE]. `dbg_tmp.py` na raiz é arquivo não versionado de sessão anterior. `models/vitals_iforest.json` foi regravado com o campo `p0_1` (fora do Git; rode `scripts/train_vitals_iforest.py` em outra máquina para o limiar `p0_1` existir, senão o IForest cai no `threshold` antigo).
