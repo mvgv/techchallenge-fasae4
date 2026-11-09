@@ -2,19 +2,19 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T31 concluída)
-- **Tarefa atual:** T32
-- **Estado geral:** T00–T31 concluídas; T32 em andamento
+- **Última atualização:** 2026-11-08 (T32 concluída)
+- **Tarefa atual:** T33
+- **Estado geral:** T00–T32 concluídas; T33 não iniciada
 
 ## Tarefa em andamento
 
-- **Tarefa:** T32 — Roteiro automatizado da demonstração
-- **Passos concluídos:** 1) `scripts/run_demo.py` (health, pacientes via POST /patients, simulador subprocesso ou `--external-simulator`, envio por `sim:clock`) e `data/samples/README.md`
-- **Próximo passo exato:** criar `tests/test_run_demo.py` (fakeredis + httpx.MockTransport, sleep falso que avança `sim:clock`), rodar `pytest -q`/`ruff check .`, registrar decisões e fazer o commit final.
-- **Arquivos tocados:** `scripts/run_demo.py`, `data/samples/README.md`
+- **Tarefa:** T33 — README, documentação e relatório técnico
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** ler a T33 em `PLANO_IMPLEMENTACAO.md` (e seções 9.1, 9.7, 9.9 e 4) e reescrever o `README.md` (visão geral, requisitos, passo a passo bash e PowerShell, problemas comuns, testes, estrutura, link do vídeo, aviso de uso).
+- **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
-- **Observações:** `evaluate_video.py` depende de `data/samples/video_annotations.csv` e vídeos [HUMANO]: deixar o script pronto e registrar a verificação real pendente. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
+- **Observações:** `run_demo.py` verificado com o `TestClient` da API contra o banco real e amostras falsas (as 4 mídias aceitas com `recorded_at` = `sim:clock`; linhas de teste removidas da tabela `media`); demonstração completa com workers e amostras reais pendente [HUMANO]. Ambiente Python 3.11 em `.venv` (usar `.venv/bin/pytest` e `.venv/bin/ruff`). `docker run`/`docker compose` podem exigir aprovação nesta VPS.
 
 ## Status das tarefas
 
@@ -52,7 +52,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T29 | Relatórios (HTML e PDF) | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `POST /reports/patient/{id}`; `build_session_report` movido para `reports/render.py`; aceite visual com vídeo real não verificado |
 | T30 | Dashboard Streamlit | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com MockTransport e AppTest (smoke da tela Paciente pulado na `.venv`: `st.dataframe` precisa do pyarrow, quebrado como na T07; verificada à parte com `st.dataframe` neutralizado); aceite com compose + simulador `demo` (painel ao vivo, ack, upload real) não verificado |
 | T31 | Scripts de avaliação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `vitals_metrics.*` gerados (muitos FP, ver DECISOES); `evaluate_video.py` pronto, verificação real pendente: precisa de `video_annotations.csv` e vídeos [HUMANO] |
-| T32 | Roteiro automatizado da demonstração | em andamento | | |
+| T32 | Roteiro automatizado da demonstração | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e MockTransport; envio checado com TestClient e banco real; aceite (demo completa com amostras, workers e simulador) não verificado: amostras [HUMANO] |
 | T33 | README, documentação e relatório técnico | pendente | | |
 | T34 | Opcionais | pendente | | só após T01–T33 |
 
@@ -131,5 +131,5 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | T28 | ver `git log` | routes_alerts (GET /alerts, ack com 404/409), routes_patients (vitals/evidence/risk), db.get_alert/ack_alert e test_api_read.py; `pytest -q` e `ruff check .` OK. Próxima: T29. |
 | 2026-11-08 | T29 | ver `git log` | reports/render.py, templates, routes_reports e test_reports.py; worker de vídeo gera report.html/pdf; `pytest -q` e `ruff check .` OK. Próxima: T30. |
 | 2026-11-08 | T30 | ver `git log` | Sessão no Opus 5.5. dashboard/api_client.py (ApiClient), dashboard/app.py (4 telas), test_dashboard.py; corrigido `load_yaml("exercises.yaml")` em routes_media (500 no upload physio) + teste; `pytest -q` (170 passed) e `ruff check .` OK. Próxima: T31. |
-| 2026-11-08 | T32 | ver `git log` | Sessão no Opus 5.5; em andamento. |
 | 2026-11-08 | T31 | ver `git log` | scripts/evaluate_vitals.py (execução ~10 min por causa do IForest por minuto), evaluate_video.py, resultados em docs/resultados/ e testes; `pytest -q` e `ruff check .` OK. Próxima: T32. |
+| 2026-11-08 | T32 | ver `git log` | Sessão no Opus 5.5. scripts/run_demo.py (health, pacientes, simulador subprocesso ou externo, envio por `sim:clock`), data/samples/README.md e tests/test_run_demo.py; `pytest -q` (178 passed) e `ruff check .` OK. Próxima: T33. |
