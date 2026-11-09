@@ -9,8 +9,10 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 ## Tarefa em andamento
 
 - **Tarefa:** T35 — Integração ponta a ponta (modo falso)
-- **Passos concluídos:** nenhum
-- **Próximo passo exato:** passo 1 da T35: `.venv/bin/pip install "pyarrow<18"`, confirmar `.venv/bin/python -c "import opensmile, pyarrow; print(pyarrow.__version__)"` e rodar `.venv/bin/pytest -q` e `.venv/bin/ruff check .` (os testes antes pulados por causa do pyarrow devem rodar). Depois, passo 2 (rebuild da imagem, que é da T03 e não tem o `pyarrow<18`).
+- **Passos concluídos:** 1 (testes e lint no container: 181 passed, ruff ok), 2 (imagem reconstruída, `models-init` ok), 3 parcial (stack sobe; **defeito 1 corrigido**: workers caíam com `TimeoutError` do redis-py 8 em `XREADGROUP BLOCK`, ver `bus.py` e `tests/test_bus_redis_real.py`).
+- **Onde estou rodando:** no desktop do humano (Windows, RTX 5070 12 GB, Docker Desktop), **não** na VPS. A VPS está em manutenção; mantenha o script da VPS parado (`touch ~/STOP_AGENT`) para não haver dois agentes na mesma tarefa.
+- **Como rodar aqui (Windows):** o Torch não carrega no Windows nativo (política de Controle de Aplicativo bloqueia `shm.dll`); rode tudo **dentro do Docker**. Para GPU (RTX 50xx precisa de CUDA 12.8): `$env:TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128"; docker compose build` e suba com `-f docker-compose.yml -f docker-compose.gpu.yml -f docker-compose.dev.yml` (o dev monta `src/` e reinicia os workers). Imagem CPU guardada como `medwatch-app:cpu`. O antivírus Kaspersky intercepta HTTPS no Windows: o `pip` local precisa de `PIP_CERT` apontando para um pacote com a raiz do Kaspersky (dentro do Docker não há esse problema).
+- **Próximo passo exato:** terminar o passo 3 (logs sem traceback em todos os serviços; `curl localhost:8000/health` e `curl localhost:8501/_stcore/health`), depois passos 4 a 12 do plano. Mídias sintéticas já geradas em `data/samples/sinteticos/` (`tom.wav`, `pessoas.jpg`, `pessoas.mp4`).
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
