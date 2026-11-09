@@ -127,3 +127,33 @@ def test_iforest_persistence():
                 if e.type == "vital_iforest"]
     assert len(run(1)) >= 1
     assert len(run(3)) == 1
+
+
+def test_iforest_per_model_override():
+    class Fake:
+        enabled = True
+        carry_forward = False
+        name = "vitals_iforest_mimic"
+
+        def __init__(self):
+            self.keys = []
+            self.n = 0
+
+        def score(self, feats, key="threshold"):
+            self.keys.append(key)
+            self.n += 1
+            return 6 <= self.n <= 7, 0.9
+
+    cfg = _cfg(1, 3)
+    cfg["vitals"]["iforest"]["per_model"] = {
+        "vitals_iforest_mimic": {"threshold_key": "p01", "persistence": 1}}
+    fake = Fake()
+    w = AnomalyWorker(None, db_module=FakeDb(), iforest=fake, cfg=cfg)  # type: ignore[arg-type]
+    evs = [e for v in _hr_series([75.0] * 30) for e in w.process_vital(v)
+           if e.type == "vital_iforest"]
+    assert len(evs) == 2 and set(fake.keys) == {"p01"}
+    fake2 = Fake()
+    fake2.name = "vitals_iforest"
+    w2 = AnomalyWorker(None, db_module=FakeDb(), iforest=fake2, cfg=cfg)  # type: ignore[arg-type]
+    assert not [e for v in _hr_series([75.0] * 30) for e in w2.process_vital(v)
+                if e.type == "vital_iforest"]

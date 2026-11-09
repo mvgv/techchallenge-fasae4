@@ -125,18 +125,24 @@ class AnomalyWorker:
         if self.iforest is not None and self.iforest.enabled:
             feats = build_features(list(st.history), self.iforest.carry_forward)
             if feats is not None:
-                icfg = self.vcfg["iforest"]
+                icfg = self._iforest_cfg()
                 anomalous, score = self.iforest.score(
                     feats, icfg.get("threshold_key", "threshold"))
                 st.if_run = st.if_run + 1 if anomalous else 0
                 if st.if_run >= icfg.get("persistence", 1) and self.cooldown.ready(
                         (obs.patient_id, "iforest"), obs.ts,
-                        self.vcfg["iforest"]["cooldown_minutes"]):
+                        icfg["cooldown_minutes"]):
                     out.append(self._ev(
                         obs, "vital_iforest", score, Severity.warning,
                         "Combinação de sinais vitais atípica para o padrão do paciente",
                         "iforest", {"features": [float(x) for x in feats]}))
         return out
+
+    def _iforest_cfg(self) -> dict:
+        """Config do IForest com o override de `per_model[<nome do modelo>]`, se houver."""
+        base = self.vcfg["iforest"]
+        over = base.get("per_model", {}).get(getattr(self.iforest, "name", None), {})
+        return {**base, **over} if over else base
 
     def process_rx(self, ev: PrescriptionEvent) -> list[Evidence]:
         self.db.insert_prescription(ev, normalize_drug(ev.drug))

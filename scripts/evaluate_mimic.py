@@ -1,24 +1,34 @@
 """Avaliação dos detectores de vitais com dados reais do MIMIC-IV Demo (T37).
 
-Carga de alarmes (sem rótulos): roda o AnomalyWorker e o FusionEngine offline em cada
-internação dos pacientes de uma divisão de `config/splits.yaml` e mede o que a equipe médica
-receberia: alertas por paciente-dia, distribuição por nível e frequência de NEWS2 alto.
+1. Carga de alarmes (sem rótulos): roda o AnomalyWorker e o FusionEngine offline em cada
+   internação dos pacientes de uma divisão de `config/splits.yaml` e mede o que a equipe médica
+   receberia: alertas por paciente-dia, distribuição por nível e frequência de NEWS2 alto.
+2. Recall semissintético: injeta os cenários conhecidos (`respiratory_deterioration`,
+   `hypotension`, `tachy_spike`) por cima das séries reais, com as mesmas magnitudes do gerador
+   sintético, e mede precisão, recall e atraso no nível de alerta.
 
-Uso: python scripts/evaluate_mimic.py [--splits validacao reservado] [--out docs/resultados]
+Uso:
+  python scripts/evaluate_mimic.py --tune            # grade do IForest na validação
+  python scripts/evaluate_mimic.py                   # validação e reservado, limiares do YAML
 O Isolation Forest usado é `models/vitals_iforest_mimic` (scripts/train_vitals_iforest.py).
 """
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib.util
+import itertools
 import json
+import random
 import statistics
 from collections import Counter
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
+import numpy as np
+
 from medwatch.anomaly.filters import clean_observation
-from medwatch.anomaly.iforest import VitalsIForest
+from medwatch.anomaly.iforest import VitalsIForest, build_features
 from medwatch.anomaly.news2 import news2
 from medwatch.anomaly.worker import AnomalyWorker
 from medwatch.config import load_yaml
@@ -222,25 +232,282 @@ def load_markdown(res: list[dict]) -> list[str]:
     return md + [""]
 
 
+# --------------------------------------------------------------------------------------
+# Parte semissintética: cenários conhecidos injetados por cima das séries reais
+# --------------------------------------------------------------------------------------
+
+INJECTED = ("respiratory_deterioration", "hypotension", "tachy_spike")
+# Mesmas magnitudes do gerador sintético (synthetic.py), aplicadas como deslocamento sobre o
+# valor real; não foram ajustadas (nem na validação nem no reservado).
+RESP_RAMP_MIN, RESP_DELTA = 60, {"spo2": -10.0, "rr": 13.0, "hr": 40.0}
+HYPO_RAMP_MIN, HYPO_SBP_TARGET, HYPO_HR_DELTA = 45, 82.0, 25.0
+TACHY_HR, TACHY_MIN = 155.0, 3
+MIN_STAY_H, MARGIN_H = 12, 6      # internação mínima e margem do sorteio do início
+SEED = 42
+FULL_TYPES = ev.CONFIGS[ev.FULL]
+
+
+class CachedIForest(VitalsIForest):
+    """IForest do MIMIC com cache do score bruto (a grade reaproveita os scores)."""
+
+    def __init__(self) -> None:
+        super().__init__(model_name=MODEL)
+        self._cache: dict[bytes, float] = {}
+
+    def raw_score(self, features) -> float:
+        key = np.asarray(features, dtype=float).tobytes()
+        if key not in self._cache:
+            self._cache[key] = super().raw_score(features)
+        return self._cache[key]
+
+
+def _ramp_frac(t: datetime, onset: datetime, minutes: int) -> float:
+    return min(max((t - onset).total_seconds() / 60 / minutes, 0.0), 1.0)
+
+
+def inject(vitals: list, scenario: str, onset: datetime) -> tuple[list, dict]:
+    """Copia a série com o cenário aplicado a partir de `onset`; devolve (série, rótulo)."""
+    out = []
+    end = vitals[-1].ts
+    if scenario == "respiratory_deterioration":
+        for v in vitals:
+            if v.ts < onset:
+                out.append(v)
+                continue
+            f = _ramp_frac(v.ts, onset, RESP_RAMP_MIN)
+            upd = {k: (None if getattr(v, k) is None else getattr(v, k) + d * f)
+                   for k, d in RESP_DELTA.items()}
+            if upd["spo2"] is not None:
+                upd["spo2"] = min(upd["spo2"], 100.0)
+            upd["on_oxygen"] = (v.ts - onset) >= timedelta(minutes=RESP_RAMP_MIN * 40 / 60)
+            out.append(v.model_copy(update=upd))
+        label_end = end
+    elif scenario == "hypotension":
+        before = [v.sbp for v in vitals if v.ts <= onset and v.sbp is not None]
+        sbp0 = before[-1] if before else next((v.sbp for v in vitals if v.sbp is not None), 120)
+        d_sbp = min(0.0, HYPO_SBP_TARGET - sbp0)
+        for v in vitals:
+            if v.ts < onset:
+                out.append(v)
+                continue
+            f = _ramp_frac(v.ts, onset, HYPO_RAMP_MIN)
+            out.append(v.model_copy(update={
+                "sbp": None if v.sbp is None else v.sbp + d_sbp * f,
+                "hr": None if v.hr is None else v.hr + HYPO_HR_DELTA * f}))
+        label_end = end
+    elif scenario == "tachy_spike":
+        spike_end = onset + timedelta(minutes=TACHY_MIN)
+        hit = False
+        for v in vitals:
+            if onset <= v.ts < spike_end:
+                v, hit = v.model_copy(update={"hr": TACHY_HR}), True
+            out.append(v)
+        if not hit:
+            # leituras horárias quase nunca caem nos 3 min: acrescenta uma leitura do monitor
+            prev = [v for v in vitals if v.ts <= onset][-1]
+            out.append(prev.model_copy(update={"ts": onset, "hr": TACHY_HR}))
+            out.sort(key=lambda o: o.ts)
+        label_end = spike_end
+    else:
+        raise ValueError(scenario)
+    return out, {"type": scenario, "ts_start": onset.isoformat(), "ts_end": label_end.isoformat()}
+
+
+def pick_onset(vitals: list, base_alerts: list[dict], key: str) -> datetime | None:
+    """Sorteia (semente fixa por internação e cenário) o início, fora de alertas já abertos.
+
+    Internações com menos de 12 h ficam de fora; o início cai entre 6 h após a primeira e
+    6 h antes da última leitura, em um instante sem alerta aberto na série original.
+    """
+    a, b = vitals[0].ts + timedelta(hours=MARGIN_H), vitals[-1].ts - timedelta(hours=MARGIN_H)
+    if (vitals[-1].ts - vitals[0].ts) < timedelta(hours=MIN_STAY_H) or b <= a:
+        return None
+    rng = random.Random(f"{SEED}-{key}")
+    span = (b - a).total_seconds()
+    for _ in range(50):
+        t = (a + timedelta(seconds=rng.uniform(0, span))).replace(second=0, microsecond=0)
+        busy = any(al["opened"] - timedelta(minutes=30) <= t
+                   <= (al["closed"] or vitals[-1].ts) for al in base_alerts)
+        if not busy:
+            return t
+    return None
+
+
+def build_injections(split: str, cfg: dict, fusion_cfg: dict) -> list[dict]:
+    """Casos semissintéticos de uma divisão: internação × cenário, com início sorteado.
+
+    O sorteio evita alertas já abertos pela configuração só NEWS2 (independe da grade).
+    """
+    cases = []
+    for pid, vitals, rx in load_split(split):
+        for k, (sv, _srx) in enumerate(segments(vitals, rx)):
+            if (sv[-1].ts - sv[0].ts) < timedelta(hours=MIN_STAY_H):
+                continue
+            base = ev.alert_details(_filter(run_stay(sv, [], None, cfg), ev.CONFIGS["NEWS2"]),
+                                    fusion_cfg)
+            for sc in INJECTED:
+                onset = pick_onset(sv, base, f"{pid}-{k}-{sc}")
+                if onset is None:
+                    continue
+                series, label = inject(sv, sc, onset)
+                cases.append({"patient_id": pid, "stay": k, "scenario": sc, "onset": onset,
+                              "vitals": series, "label": label})
+    return cases
+
+
+def score_injections(cases: list[dict], iforest, cfg: dict, fusion_cfg: dict) -> dict:
+    """Precisão, recall e atraso no nível de alerta (configuração completa de vitais)."""
+    per_sc: dict[str, dict] = {sc: {"tp": 0, "fn": 0, "delays": []} for sc in INJECTED}
+    fp = 0
+    for c in cases:
+        evs = _filter(run_stay(c["vitals"], [], iforest, cfg), FULL_TYPES)
+        opens = [a["opened"] for a in ev.alert_details(evs, fusion_cfg)]
+        a = datetime.fromisoformat(c["label"]["ts_start"])
+        b = datetime.fromisoformat(c["label"]["ts_end"]) + ev.TOLERANCE
+        hit = [t for t in opens if a <= t <= b]
+        r = per_sc[c["scenario"]]
+        if hit:
+            r["tp"] += 1
+            r["delays"].append((hit[0] - a).total_seconds() / 60)
+        else:
+            r["fn"] += 1
+        fp += sum(1 for t in opens if not a <= t <= b)
+    tp = sum(r["tp"] for r in per_sc.values())
+    fn = sum(r["fn"] for r in per_sc.values())
+    delays = [d for r in per_sc.values() for d in r["delays"]]
+    med = statistics.median
+    return {"cases": len(cases), "tp": tp, "fn": fn, "fp_outside_label": fp,
+            "recall": tp / max(tp + fn, 1), "precision": tp / max(tp + fp, 1),
+            "median_delay_min": med(delays) if delays else float("nan"),
+            "by_scenario": {sc: {"tp": r["tp"], "fn": r["fn"],
+                                 "recall": r["tp"] / max(r["tp"] + r["fn"], 1),
+                                 "median_delay_min": med(r["delays"]) if r["delays"]
+                                 else float("nan")} for sc, r in per_sc.items()}}
+
+
+def vitals_load(split: str, iforest, cfg: dict, fusion_cfg: dict) -> dict:
+    """Alertas/paciente-dia nas séries originais, só com os detectores de vitais."""
+    n, days = 0, 0.0
+    for _pid, vitals, rx in load_split(split):
+        for sv, _ in segments(vitals, rx):
+            evs = _filter(run_stay(sv, [], iforest, cfg), FULL_TYPES)
+            n += len(ev.alert_details(evs, fusion_cfg))
+            days += stay_days(sv)
+    return {"alerts": n, "patient_days": days, "alerts_per_patient_day": n / max(days, 1e-9)}
+
+
+def with_iforest(cfg: dict, key: str, pers: int) -> dict:
+    """Cópia da config com o override do IForest do MIMIC."""
+    out = copy.deepcopy(cfg)
+    out["vitals"]["iforest"].setdefault("per_model", {})[MODEL] = {
+        "threshold_key": key, "persistence": pers}
+    return out
+
+
+def tune(iforest, cfg: dict, fusion_cfg: dict, split: str = "validacao") -> list[dict]:
+    """Grade do IForest do MIMIC (limiar × persistência), só na validação."""
+    cases = build_injections(split, cfg, fusion_cfg)
+    grid = []
+    for key, pers in itertools.product(("threshold", "p0_1", "p01"), (1, 2, 3)):
+        c = with_iforest(cfg, key, pers)
+        inj = score_injections(cases, iforest, c, fusion_cfg)
+        load = vitals_load(split, iforest, c, fusion_cfg)
+        grid.append({"key": key, "persistence": pers, "inj": inj, "load": load})
+        print(f"{key}/{pers}: recall={inj['recall']:.2f} "
+              f"alertas/dia={load['alerts_per_patient_day']:.2f}", flush=True)
+    return grid
+
+
+def choose(grid: list[dict]) -> dict:
+    """Maior recall; empate → menos alertas/paciente-dia; empate → menor atraso."""
+    return min(grid, key=lambda g: (-g["inj"]["recall"], g["load"]["alerts_per_patient_day"],
+                                    g["inj"]["median_delay_min"]))
+
+
+_KEY_TEXT = {"threshold": "percentil 0,5", "p0_1": "percentil 0,1", "p01": "percentil 1"}
+
+
+def tuning_markdown(grid: list[dict], best: dict) -> list[str]:
+    """Tabela da grade do IForest do MIMIC."""
+    md = ["# Ajuste do Isolation Forest para dados reais (T37, parte `validacao` do MIMIC)", "",
+          f"Modelo `{MODEL}` (treinado na `calibracao`; percentis dos scores na `validacao`). "
+          "Z-score e NEWS2 com os valores de `config/thresholds.yaml` (T36). Recall: casos "
+          "semissintéticos da validação; carga: alertas por paciente-dia nas séries originais, "
+          "só detectores de vitais. Critério: maior recall, depois menor carga.", "",
+          "| IForest limiar | Persistência | Casos | TP | FN | Recall | Atraso mediano (min) "
+          "| Alertas/paciente-dia (originais) |", "|---|---|---|---|---|---|---|---|"]
+    for g in grid:
+        i, lo = g["inj"], g["load"]
+        mark = " **(escolhida)**" if g is best else ""
+        md.append(f"| {_KEY_TEXT[g['key']]}{mark} | {g['persistence']} | {i['cases']} | {i['tp']} "
+                  f"| {i['fn']} | {_f(i['recall'])} | {_f(i['median_delay_min'], 0)} "
+                  f"| {_f(lo['alerts_per_patient_day'])} |")
+    return md + [""]
+
+
+def injection_markdown(res: list[dict]) -> list[str]:
+    """Seção de recall semissintético."""
+    md = ["## Recall com dados semissintéticos (cenários injetados sobre o MIMIC)", "",
+          "Em cada internação com 12 h ou mais, cada cenário é injetado uma vez (série "
+          "separada), num instante sorteado com semente fixa entre 6 h após o início e 6 h "
+          "antes do fim, fora de alertas já abertos na série original (só NEWS2). Magnitudes "
+          f"iguais às do gerador sintético, somadas ao valor real: insuficiência respiratória "
+          f"em {RESP_RAMP_MIN} min (SpO₂ −10, FR +13, FC +40, O₂ suplementar após 40 min); "
+          f"hipotensão em {HYPO_RAMP_MIN} min (PAS até 82, FC +25); taquicardia de "
+          f"{TACHY_MIN} min a {TACHY_HR:.0f} bpm (como as leituras são horárias, uma leitura "
+          "extra do monitor é acrescentada no início). TP: alerta aberto em "
+          "`[início, fim + 30 min]`; os demais alertas da série contam como FP, inclusive os "
+          "causados por eventos reais do paciente (por isso a precisão é um limite inferior).", "",
+          "| Divisão | Casos | TP | FN | Recall | Precisão (limite inferior) "
+          "| Atraso mediano (min) |", "|---|---|---|---|---|---|---|"]
+    for r in res:
+        i = r["injection"]
+        md.append(f"| {r['split']} | {i['cases']} | {i['tp']} | {i['fn']} | {_f(i['recall'])} "
+                  f"| {_f(i['precision'])} | {_f(i['median_delay_min'], 0)} |")
+    md += ["", "| Divisão | Cenário | TP | FN | Recall | Atraso mediano (min) |",
+           "|---|---|---|---|---|---|"]
+    for r in res:
+        for sc, x in r["injection"]["by_scenario"].items():
+            md.append(f"| {r['split']} | `{sc}` | {x['tp']} | {x['fn']} | {_f(x['recall'])} "
+                      f"| {_f(x['median_delay_min'], 0)} |")
+    return md + [""]
+
+
 def main(argv: list[str] | None = None) -> None:
     """Ponto de entrada da linha de comando."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--splits", nargs="+", default=["validacao", "reservado"])
     ap.add_argument("--out", type=Path, default=ROOT / "docs" / "resultados")
+    ap.add_argument("--tune", action="store_true",
+                    help="grade do IForest do MIMIC na validação (não toca o reservado)")
     a = ap.parse_args(argv)
-    iforest = VitalsIForest(model_name=MODEL)
+    iforest = CachedIForest()
     if not iforest.load():
         print(f"AVISO: {MODEL} ausente; rode train_vitals_iforest.py --mimic-split calibracao")
+    ifo = iforest if iforest.enabled else None
     cfg, fusion_cfg = load_yaml("thresholds"), load_yaml("fusion")
-    res = [alarm_load(s, iforest if iforest.enabled else None, cfg, fusion_cfg)
-           for s in a.splits]
     a.out.mkdir(parents=True, exist_ok=True)
-    (a.out / "mimic_alarm_load.json").write_text(
+    if a.tune:
+        grid = tune(ifo, cfg, fusion_cfg)
+        best = choose(grid)
+        md = tuning_markdown(grid, best)
+        (a.out / "mimic_tuning.md").write_text("\n".join(md), encoding="utf-8")
+        print("\n".join(md))
+        return
+    res = []
+    for s in a.splits:
+        r = alarm_load(s, ifo, cfg, fusion_cfg)
+        r["injection"] = score_injections(build_injections(s, cfg, fusion_cfg), ifo, cfg,
+                                          fusion_cfg)
+        res.append(r)
+    (a.out / "mimic_results.json").write_text(
         json.dumps(res, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
-    md = load_markdown(res)
-    (a.out / "mimic_alarm_load.md").write_text("\n".join(md), encoding="utf-8")
+    md = ["# Vitais com dados reais do MIMIC-IV Demo (T37)", "",
+          "Gerado por `scripts/evaluate_mimic.py`. A parte `validacao` foi usada para escolher o "
+          "limiar do Isolation Forest (`mimic_tuning.md`); a parte `reservado` não ajustou nada.",
+          ""] + load_markdown(res) + injection_markdown(res)
+    (a.out / "mimic_results.md").write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
-    _ = statistics  # usado na parte semissintética
 
 
 if __name__ == "__main__":

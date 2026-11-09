@@ -16,6 +16,10 @@ vitals:
     threshold_key: p0_1        # threshold (percentil 0,5) ou p0_1 (percentil 0,1)
     persistence: 3
     cooldown_minutes: 10
+    per_model:                 # sobrescreve os valores acima para um modelo específico
+      vitals_iforest_mimic:    # dados reais (leituras ~horárias); escolhido na validação do MIMIC (T37)
+        threshold_key: p01     # percentil 1 dos scores da validação
+        persistence: 1
   news2:
     repeat_minutes: 15         # reemite se o nível se mantém >= medium
 movement:

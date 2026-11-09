@@ -1,0 +1,301 @@
+[
+  {
+    "split": "validacao",
+    "patients": 20,
+    "stays": 26,
+    "patient_days": 66.33680555555556,
+    "observations": 1894,
+    "news2_high_frac": 0.03907074973600845,
+    "news2_medium_or_more_frac": 0.18109820485744457,
+    "evidence_by_type": {
+      "news2_medium": 268,
+      "rx_high_alert_start": 293,
+      "rx_change_burst": 115,
+      "news2_high": 73,
+      "news2_low_medium": 99,
+      "vital_zscore": 117,
+      "rx_dose_change": 247,
+      "rx_interaction": 92,
+      "vital_iforest": 14,
+      "rx_duplicate_class": 82
+    },
+    "configs": {
+      "NEWS2": {
+        "alerts": 37,
+        "alerts_per_patient_day": 0.55775974875687,
+        "by_level": {
+          "critical": 36,
+          "warning": 1
+        },
+        "stays_with_alert": 13
+      },
+      "NEWS2 + z-score": {
+        "alerts": 58,
+        "alerts_per_patient_day": 0.8743260926459042,
+        "by_level": {
+          "critical": 35,
+          "warning": 23
+        },
+        "stays_with_alert": 16
+      },
+      "NEWS2 + z-score + IForest": {
+        "alerts": 58,
+        "alerts_per_patient_day": 0.8743260926459042,
+        "by_level": {
+          "critical": 35,
+          "warning": 23
+        },
+        "stays_with_alert": 16
+      },
+      "Todos (vitais + prescrições)": {
+        "alerts": 153,
+        "alerts_per_patient_day": 2.306411934048678,
+        "by_level": {
+          "warning": 110,
+          "critical": 43
+        },
+        "stays_with_alert": 24
+      }
+    },
+    "examples": [
+      {
+        "patient_id": "M-10037861",
+        "stay": 0,
+        "hours_into_stay": 237.0,
+        "duration_h": 6.2,
+        "level": "critical",
+        "peak_risk": 99.4,
+        "types": [
+          "news2_high",
+          "vital_iforest",
+          "rx_interaction"
+        ],
+        "vitals_at_open": {
+          "hr": 158.0,
+          "sbp": 81.0,
+          "spo2": 79.0,
+          "rr": 30.0,
+          "temp": null
+        }
+      },
+      {
+        "patient_id": "M-10022041",
+        "stay": 0,
+        "hours_into_stay": 2.5,
+        "duration_h": 1.4,
+        "level": "warning",
+        "peak_risk": 69.5,
+        "types": [
+          "rx_interaction",
+          "rx_dose_change",
+          "rx_high_alert_start"
+        ],
+        "vitals_at_open": {
+          "hr": 65.0,
+          "sbp": 127.0,
+          "spo2": 100.0,
+          "rr": 16.0,
+          "temp": 37.166666666666664
+        }
+      },
+      {
+        "patient_id": "M-10008454",
+        "stay": 0,
+        "hours_into_stay": 71.7,
+        "duration_h": 5.1,
+        "level": "critical",
+        "peak_risk": 77.3,
+        "types": [
+          "rx_dose_change",
+          "news2_medium",
+          "vital_zscore"
+        ],
+        "vitals_at_open": {
+          "hr": 89.0,
+          "sbp": 137.0,
+          "spo2": 94.0,
+          "rr": 20.0,
+          "temp": null
+        }
+      }
+    ],
+    "injection": {
+      "cases": 72,
+      "tp": 58,
+      "fn": 14,
+      "fp_outside_label": 90,
+      "recall": 0.8055555555555556,
+      "precision": 0.3918918918918919,
+      "median_delay_min": 54.5,
+      "by_scenario": {
+        "respiratory_deterioration": {
+          "tp": 24,
+          "fn": 0,
+          "recall": 1.0,
+          "median_delay_min": 50.0
+        },
+        "hypotension": {
+          "tp": 22,
+          "fn": 2,
+          "recall": 0.9166666666666666,
+          "median_delay_min": 93.0
+        },
+        "tachy_spike": {
+          "tp": 12,
+          "fn": 12,
+          "recall": 0.5,
+          "median_delay_min": 0.0
+        }
+      }
+    }
+  },
+  {
+    "split": "reservado",
+    "patients": 20,
+    "stays": 27,
+    "patient_days": 107.73611111111109,
+    "observations": 3433,
+    "news2_high_frac": 0.028546460821438975,
+    "news2_medium_or_more_frac": 0.154675211185552,
+    "evidence_by_type": {
+      "news2_high": 92,
+      "news2_medium": 404,
+      "rx_change_burst": 165,
+      "vital_iforest": 29,
+      "rx_high_alert_start": 311,
+      "rx_dose_change": 351,
+      "news2_low_medium": 216,
+      "vital_zscore": 280,
+      "rx_duplicate_class": 87,
+      "rx_interaction": 53
+    },
+    "configs": {
+      "NEWS2": {
+        "alerts": 52,
+        "alerts_per_patient_day": 0.48266082248291875,
+        "by_level": {
+          "critical": 52
+        },
+        "stays_with_alert": 16
+      },
+      "NEWS2 + z-score": {
+        "alerts": 107,
+        "alerts_per_patient_day": 0.9931674616475444,
+        "by_level": {
+          "critical": 52,
+          "warning": 55
+        },
+        "stays_with_alert": 20
+      },
+      "NEWS2 + z-score + IForest": {
+        "alerts": 117,
+        "alerts_per_patient_day": 1.0859868505865673,
+        "by_level": {
+          "critical": 57,
+          "warning": 60
+        },
+        "stays_with_alert": 21
+      },
+      "Todos (vitais + prescrições)": {
+        "alerts": 202,
+        "alerts_per_patient_day": 1.8749516565682613,
+        "by_level": {
+          "critical": 65,
+          "warning": 137
+        },
+        "stays_with_alert": 25
+      }
+    },
+    "examples": [
+      {
+        "patient_id": "M-10002495",
+        "stay": 0,
+        "hours_into_stay": 20.7,
+        "duration_h": 5.3,
+        "level": "critical",
+        "peak_risk": 97.9,
+        "types": [
+          "news2_high",
+          "vital_iforest",
+          "vital_zscore"
+        ],
+        "vitals_at_open": {
+          "hr": 106.0,
+          "sbp": 88.0,
+          "spo2": 93.0,
+          "rr": 27.0,
+          "temp": null
+        }
+      },
+      {
+        "patient_id": "M-10039831",
+        "stay": 0,
+        "hours_into_stay": 15.7,
+        "duration_h": 1.4,
+        "level": "warning",
+        "peak_risk": 69.5,
+        "types": [
+          "vital_iforest",
+          "news2_medium",
+          "rx_change_burst"
+        ],
+        "vitals_at_open": {
+          "hr": 119.0,
+          "sbp": 142.0,
+          "spo2": 92.0,
+          "rr": 24.0,
+          "temp": null
+        }
+      },
+      {
+        "patient_id": "M-10006053",
+        "stay": 0,
+        "hours_into_stay": 41.0,
+        "duration_h": 0.0,
+        "level": "critical",
+        "peak_risk": 84.2,
+        "types": [
+          "rx_interaction",
+          "rx_dose_change",
+          "vital_zscore"
+        ],
+        "vitals_at_open": {
+          "hr": 36.0,
+          "sbp": null,
+          "spo2": null,
+          "rr": 0.0,
+          "temp": null
+        }
+      }
+    ],
+    "injection": {
+      "cases": 78,
+      "tp": 68,
+      "fn": 10,
+      "fp_outside_label": 217,
+      "recall": 0.8717948717948718,
+      "precision": 0.23859649122807017,
+      "median_delay_min": 51.5,
+      "by_scenario": {
+        "respiratory_deterioration": {
+          "tp": 26,
+          "fn": 0,
+          "recall": 1.0,
+          "median_delay_min": 51.0
+        },
+        "hypotension": {
+          "tp": 24,
+          "fn": 2,
+          "recall": 0.9230769230769231,
+          "median_delay_min": 83.5
+        },
+        "tachy_spike": {
+          "tp": 18,
+          "fn": 8,
+          "recall": 0.6923076923076923,
+          "median_delay_min": 0.0
+        }
+      }
+    }
+  }
+]
