@@ -24,7 +24,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
    - Fase 5 — Fusão e alertas: T25–T27
    - Fase 6 — Saídas: T28–T30
    - Fase 7 — Avaliação e entrega: T31–T34
-   - Fase 8 — Integração e avaliação: T35–T36
+   - Fase 8 — Integração, dados reais e gravação: T35–T38
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
@@ -142,7 +142,7 @@ O humano escolhe o modelo da sessão (o agente não consegue trocar o próprio m
 | Situação | Modelo |
 |---|---|
 | Padrão para todas as tarefas | **Claude Sonnet 5.5** |
-| T24 (worker de vídeo), T26 (worker de fusão), T30 (dashboard), T32 (demo automatizada), T35 (integração ponta a ponta) | **Claude Opus 5.5** |
+| T24 (worker de vídeo), T26 (worker de fusão), T30 (dashboard), T32 (demo automatizada), T35 (integração ponta a ponta), T37 (datasets reais com partes reservadas) | **Claude Opus 5.5** |
 | Mesmo erro persistindo depois de 2 tentativas de correção, em qualquer tarefa | **Claude Opus 5.5** até destravar; depois volte ao Sonnet |
 | Revisão ao fim de cada fase (opcional) | **Claude Opus 5.5** |
 
@@ -2165,9 +2165,9 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 - **T34c — Deploy em Azure Container Apps** (imagem no Azure Container Registry, PostgreSQL Flexible Server, Azure Cache for Redis), com script em `infra/`.
 - **T34d — Comparação OpenPose × YOLOv8-pose** (requer T19b): tempo por frame e concordância dos ângulos em 3 vídeos, tabela no relatório.
 
-### Fase 8 — Integração e avaliação
+### Fase 8 — Integração, dados reais e gravação
 
-Estas tarefas vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T34 continua opcional e **não** precisa ser feita antes delas.
+A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. Ordem: T35 → T36 → T37 → T38. A T34 continua opcional e **não** precisa ser feita antes delas.
 
 #### T35 — Integração ponta a ponta (modo falso)
 
@@ -2225,6 +2225,69 @@ Estas tarefas vêm da revisão feita depois da T33: tudo foi testado só com uni
   5. **Busca de limiares.** Compare, no nível de alerta: z-score com limiar 3,0 / 3,5 / 4,0 × persistência 1 / 3; Isolation Forest com o limiar atual e com percentil 0,1 × persistência 1 / 3. Escolha a combinação com recall de 100% nos rótulos positivos e o menor número de alertas em pacientes normais. Grave a grade completa em `vitals_tuning.md` e os valores escolhidos em `thresholds.yaml`, com uma linha em `docs/DECISOES.md`.
   6. **Resultados.** Regere `vitals_metrics.md`, `vitals_metrics.csv` e `vitals_example.png`, com três blocos: por evidência (como antes, para comparação), por episódio e por alerta. Atualize a seção de resultados do `relatorio-tecnico.md`, explicando a mudança de método e mostrando antes × depois.
 - **Aceite:** testes e lint passam; o relatório mostra a avaliação por alerta com recall de 100% nos positivos e menos de 1 alerta por paciente-dia nos pacientes normais. Se essa meta não for alcançável com os limiares da grade, registre o melhor resultado e o motivo no relatório, em vez de forçar o número.
+
+#### T37 — Datasets públicos do enunciado com partes reservadas
+
+- **Objetivo:** usar de fato os datasets sugeridos no enunciado (PhysioNet e AudioSet), que até a T36 só existiam no código, e separar em cada um uma parte **reservada**, nunca usada para ajustar nada, que serve para a demonstração e para o número final do relatório. Como não há vídeos reais de pacientes, é essa parte reservada que mostra o sistema funcionando com dados reais.
+- **Depende de:** T36 (limiares ajustados e avaliação no nível de alerta).
+- **Arquivos:** `scripts/download_datasets.py` (novo), `scripts/prepare_mimic.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `scripts/train_vitals_iforest.py`, `scripts/evaluate_vitals.py` (ou `scripts/evaluate_mimic.py`, novo), `scripts/evaluate_audio_events.py` (novo), `config/splits.yaml` (novo), testes correspondentes, `docs/DATASETS.md` (novo), `docs/resultados/datasets.md` (novo), `docs/relatorio-tecnico.md`.
+- **Regras desta tarefa:**
+  - **Download só com `.venv/bin/python`** (`urllib` ou `httpx`) ou `curl`. Não dependa de `wget`, `unzip` nem de rodar scripts `.sh`: as permissões da VPS não liberam esses comandos. O pandas lê `.csv.gz` direto; para `.zip`, use o módulo `zipfile`.
+  - Nada baixado vai para o Git (`data/` já é ignorado). Só vão para o Git os IDs das divisões, o código e os resultados agregados.
+  - **O conjunto reservado não ajusta nada.** Limiares, modelos e parâmetros são escolhidos só com as partes de calibração e validação. Se depois de olhar o reservado for preciso mudar algo, registre em `docs/DECISOES.md` que o número ficou "contaminado" e não o apresente como resultado final.
+  - Os testes unitários não podem depender dos downloads: use arquivos mínimos criados no próprio teste.
+- **Passos:**
+  1. **MIMIC-IV Demo (PhysioNet).** Acesso aberto, sem credenciamento, licença ODbL. `scripts/download_datasets.py --mimic` baixa de `https://physionet.org/files/mimic-iv-demo/2.2/` os arquivos `icu/chartevents.csv.gz` e `hosp/prescriptions.csv.gz` para `data/mimic/`, e então roda `prepare_mimic.py`. Registre em `docs/DATASETS.md`: versão, data do download, número de pacientes, linhas de vitais e o **intervalo mediano entre observações** por paciente. Os sinais vitais do MIMIC costumam ser horários, bem mais espaçados que o simulador de 1 minuto; isso precisa ficar escrito.
+  2. **Divisão por paciente.** Ordene os `patient_id` do MIMIC, embaralhe com semente 42 e divida 60% / 20% / 20% em `calibracao`, `validacao` e `reservado`. Grave em `config/splits.yaml`. Divida **por paciente**, nunca por tempo dentro do mesmo paciente, para a linha de base de um paciente não vazar entre as partes.
+  3. **Carregamento com divisão e datas realistas.** Em `load_mimic`, acrescente `split` (lê `config/splits.yaml`) e `rebase_start` (desloca as datas de cada paciente para que a primeira observação caia em `rebase_start`, mantendo os intervalos). O MIMIC tem as datas deslocadas para o futuro (anos como 2150), o que confunde o dashboard e o vídeo. No replay, aceite `--mimic-split <nome>`, usando o `--start` como `rebase_start`. Teste com um parquet mínimo.
+  4. **Isolation Forest para dados reais.** O modelo atual foi treinado com dados sintéticos de 1 minuto, e as features (diferença para as 5 observações anteriores) mudam de sentido com observações horárias. Treine um modelo separado com a parte `calibracao`: `train_vitals_iforest.py --mimic-split calibracao --out models/vitals_iforest_mimic`, mantendo o modelo sintético. Escolha o limiar com a parte `validacao`. Documente como o worker escolhe o modelo (variável de ambiente nova em `.env.example` e na seção 3.1).
+  5. **Carga de alarmes em dados reais.** Sem rótulos de anomalia no MIMIC, meça o que a equipe médica receberia: rode os detectores e a fusão offline, reaproveitando a avaliação por alerta da T36, nas partes `validacao` e `reservado`. Reporte alertas por paciente-dia, distribuição por nível e a frequência de NEWS2 alto, com 2 ou 3 exemplos explicados.
+  6. **Recall com dados semissintéticos.** Na parte `reservado`, injete os cenários conhecidos (`respiratory_deterioration`, `hypotension`, `tachy_spike`) sobre a série real de cada paciente, em instantes sorteados com semente fixa, aplicando as rampas por cima dos valores reais. Isso gera rótulos de verdade sobre dados reais. Calcule precisão, recall e atraso mediano no nível de alerta. Qualquer parâmetro dessa injeção é escolhido na parte `validacao`.
+  7. **Áudio (AudioSet ou alternativa).** O Google distribui o AudioSet só como IDs do YouTube; não baixe áudio do YouTube. Prefira clipes do **conjunto de avaliação** do AudioSet num espelho público que traga o áudio (por exemplo, no Hugging Face), conferindo licença e disponibilidade. Se não houver acesso viável, use o **ESC-50** (`https://github.com/karolpiczak/ESC-50`, licença CC BY-NC; `meta/esc50.csv` e `audio/*.wav` via `raw.githubusercontent.com`), que vem do Freesound e, portanto, é independente do treino do AST. Registre a escolha em `docs/DECISOES.md`.
+     - Positivos: tosse, respiração, ronco e espirro (no ESC-50: `coughing`, `breathing`, `snoring`, `sneezing`). Negativos: 4 a 6 classes não respiratórias (por exemplo `clock_tick`, `keyboard_typing`, `door_wood_knock`, `rain`, `dog`). Cerca de 40 clipes de cada grupo.
+     - Divisão: no ESC-50, respeite os `fold` (1–3 para calibração, 4–5 reservados); no AudioSet, 50% / 50% por clipe.
+     - Calibre `audio_events.min_score` e a regra especial de `Breathing` só na calibração. Em `scripts/evaluate_audio_events.py`, reporte precisão e recall por classe na parte reservada.
+  8. **Material para a demonstração.** Copie 2 ou 3 clipes reservados de tosse ou chiado para `data/samples/` (por exemplo `cough.wav`) e escolha 1 ou 2 pacientes reservados do MIMIC com eventos interessantes para o trecho "dados reais reservados" do vídeo. Registre a escolha e o motivo em `docs/DATASETS.md`.
+  9. **Documentação.**
+     - `docs/DATASETS.md`: fonte, versão, licença, data, tamanho, divisões e o uso de cada parte.
+     - `docs/resultados/datasets.md`: os números da parte reservada.
+     - `relatorio-tecnico.md`: reescreva a seção de dados (hoje cita o MIMIC sem tê-lo usado) e acrescente os resultados com dados reais, separando claramente sintético, semissintético e real.
+- **Aceite:**
+  - dados baixados e preparados;
+  - `config/splits.yaml` commitado;
+  - testes e lint passam sem depender dos downloads;
+  - resultados da parte reservada documentados;
+  - relatório sem afirmações sobre dados que não foram usados.
+
+#### T38 — Preparação da gravação do vídeo
+
+- **Objetivo:** deixar a demonstração gravável em até 15 minutos, reproduzível e com uma checagem prévia que diga o que está faltando. Hoje o cenário `demo` leva cerca de 26 minutos reais, e nada confere se as chaves, as amostras e os canais de alerta estão prontos antes de começar.
+- **Depende de:** T35. Use os resultados da T36 e da T37 no roteiro, se já estiverem prontos.
+- **Arquivos:** `src/medwatch/simulator/replay.py`, `scripts/run_demo.py`, `scripts/preflight_demo.py` (novo), `src/medwatch/dashboard/app.py`, testes correspondentes, `docs/ROTEIRO_VIDEO.md` (novo), README.
+- **Passos:**
+  1. **Velocidade do simulador.** Acrescente ao replay `--fast-until <minuto>` (publica sem espera até esse minuto simulado e depois segue as fases) e `--tail-speedup <fator>` (substitui a velocidade da fase final do `demo`). O `run_demo.py` repassa as duas opções. Meta: o trecho filmado, do minuto 360 ao 480, cabe em cerca de 10 minutos (por exemplo, `--fast-until 355 --tail-speedup 12` resulta em 125 minutos simulados ÷ 12 ≈ 10 minutos). Teste a função de velocidade e as opções.
+  2. **Checagem prévia.** `scripts/preflight_demo.py` imprime uma lista com ✓ ou ✗ e termina com código 1 se faltar algo crítico. Ele confere:
+     - a API (`/health`);
+     - os workers consumindo: cada consumer group do Redis tem consumidor com `idle` baixo (`XINFO CONSUMERS`);
+     - `USE_FAKE_AZURE=false`, chaves preenchidas e uma chamada real à Azure (reaproveite o `check_azure.py`);
+     - `TEAMS_WEBHOOK_URL` e `LOGIC_APP_EMAIL_URL` preenchidos; com `--send-test`, envia uma mensagem de teste;
+     - as amostras de `data/samples/README.md` presentes;
+     - os modelos em `models/`;
+     - o banco limpo: nenhuma evidência nem alerta e nenhuma linha `T-`, o que indica que o `docker compose down -v` foi feito antes.
+     Teste com clientes falsos. Em modo falso, o script deve listar exatamente o que depende do humano.
+  3. **Dashboard para a apresentação.** No cartão de alerta, mostre lado a lado o **risco de pico** do alerta e o **risco atual** do paciente, com esses nomes. Hoje aparece um número só ("risco 99"), enquanto a tabela de pacientes mostra o risco atual (por exemplo, 29), o que confunde no vídeo (ver `docs/resultados/integracao.md`). Ajuste o teste da tela.
+  4. **Roteiro.** `docs/ROTEIRO_VIDEO.md` traz:
+     - **Preparação:** `docker compose down -v`, subir o stack, `seed.py`, treino do modelo e `preflight_demo.py`, sem mostrar chaves na tela.
+     - **Roteiro de cerca de 14 minutos**, minuto a minuto, cobrindo os 4 itens que o enunciado exige no vídeo: exemplo prático de áudio e vídeo, detecção e resposta a anomalias, integração dos serviços Azure e fluxo final do alerta à equipe médica. Para cada trecho: o comando a rodar, o que mostrar na tela e as frases-chave.
+     - **Plano B por trecho:** se a Azure ou o Teams falharem, use um trecho gravado antes e mostre os logs.
+     - **Cuidados de gravação:** 1080p a 30 fps, notificações do sistema desligadas e chaves fora da tela.
+     - **Checklist final:** vídeo no YouTube ou Vimeo como não listado e link no README.
+     O roteiro aponta para os pacientes e clipes reservados escolhidos na T37, se já existirem.
+- **Aceite:**
+  - testes e lint passam;
+  - em modo falso, o `preflight_demo.py` lista o que falta e termina com código 1;
+  - o replay com `--fast-until 355 --tail-speedup 12` cobre o trecho final em cerca de 10 minutos;
+  - `docs/ROTEIRO_VIDEO.md` commitado.
 
 ---
 
@@ -2303,7 +2366,9 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] Nenhum segredo ou dado real de paciente no repositório.
 - [ ] `docs/resultados/integracao.md` mostra o stack completo funcionando de ponta a ponta (T35).
 - [ ] Avaliação de vitais por alerta no relatório, com o método corrigido (T36).
-- [ ] `PROGRESSO.md` com T00–T33 e T35–T36 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
+- [ ] PhysioNet (MIMIC-IV Demo) e AudioSet (ou ESC-50, com a escolha registrada) usados de fato, com divisão calibração / validação / reservado e resultados da parte reservada no relatório (T37).
+- [ ] `docs/ROTEIRO_VIDEO.md` pronto e `preflight_demo.py` todo em ✓ antes da gravação (T38).
+- [ ] `PROGRESSO.md` com T00–T33 e T35–T38 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 

@@ -20,7 +20,7 @@ Projeto do Tech Challenge IADT Fase 4: monitoramento multimodal de pacientes (Py
 - Passos **[HUMANO]** pendentes vão para a tabela de bloqueios do `PROGRESSO.md`; conclua o que der com `USE_FAKE_AZURE=true` e siga.
 - Nunca commite `.env`, `data/` ou `models/`. Nunca invente identidade do Git nem credenciais: peça ao humano.
 - Decisões não previstas no plano: uma linha em `docs/DECISOES.md`.
-- Modelo: Sonnet 5.5 por padrão. Em T24, T26, T30, T32, T35 ou após 2 tentativas falhas no mesmo erro, registre `recomendação: trocar para Opus 5.5` no `PROGRESSO.md` e avise o humano (seção 0.2).
+- Modelo: Sonnet 5.5 por padrão. Em T24, T26, T30, T32, T35, T37 ou após 2 tentativas falhas no mesmo erro, registre `recomendação: trocar para Opus 5.5` no `PROGRESSO.md` e avise o humano (seção 0.2).
 - Rodando numa sessão na nuvem ou numa VPS: veja `docs/AMBIENTE_REMOTO.md`.
 
 ## Ambiente

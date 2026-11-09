@@ -4,7 +4,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 
 - **Última atualização:** 2026-11-09 (T35 concluída)
 - **Tarefa atual:** T36
-- **Estado geral:** T00–T33 e T35 concluídas; T36 (avaliação de vitais corrigida e ajuste de limiares) pendente; T34 opcional e fora da ordem
+- **Estado geral:** T00–T33 e T35 concluídas; pendentes, nesta ordem: T36 (avaliação de vitais corrigida), T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
@@ -60,6 +60,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | pendente | | adicionada na revisão pós-T33 |
+| T37 | Datasets públicos do enunciado com partes reservadas | pendente | | PhysioNet e AudioSet ainda não usados como dados; adicionada na preparação do vídeo |
+| T38 | Preparação da gravação do vídeo | pendente | | simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
 
