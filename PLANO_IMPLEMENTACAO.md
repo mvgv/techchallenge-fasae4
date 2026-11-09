@@ -24,6 +24,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
    - Fase 5 — Fusão e alertas: T25–T27
    - Fase 6 — Saídas: T28–T30
    - Fase 7 — Avaliação e entrega: T31–T34
+   - Fase 8 — Integração e avaliação: T35–T36
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
@@ -141,7 +142,7 @@ O humano escolhe o modelo da sessão (o agente não consegue trocar o próprio m
 | Situação | Modelo |
 |---|---|
 | Padrão para todas as tarefas | **Claude Sonnet 5.5** |
-| T24 (worker de vídeo), T26 (worker de fusão), T30 (dashboard), T32 (demo automatizada) | **Claude Opus 5.5** |
+| T24 (worker de vídeo), T26 (worker de fusão), T30 (dashboard), T32 (demo automatizada), T35 (integração ponta a ponta) | **Claude Opus 5.5** |
 | Mesmo erro persistindo depois de 2 tentativas de correção, em qualquer tarefa | **Claude Opus 5.5** até destravar; depois volte ao Sonnet |
 | Revisão ao fim de cada fase (opcional) | **Claude Opus 5.5** |
 
@@ -2164,6 +2165,67 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 - **T34c — Deploy em Azure Container Apps** (imagem no Azure Container Registry, PostgreSQL Flexible Server, Azure Cache for Redis), com script em `infra/`.
 - **T34d — Comparação OpenPose × YOLOv8-pose** (requer T19b): tempo por frame e concordância dos ângulos em 3 vídeos, tabela no relatório.
 
+### Fase 8 — Integração e avaliação
+
+Estas tarefas vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T34 continua opcional e **não** precisa ser feita antes delas.
+
+#### T35 — Integração ponta a ponta (modo falso)
+
+- **Objetivo:** provar que o sistema inteiro funciona junto, com `USE_FAKE_AZURE=true` e dados sintéticos, e corrigir o que quebrar. É a primeira vez que o Compose completo, os workers, o simulador, a API e o dashboard rodam juntos, e a primeira vez que YOLO, AST e openSMILE processam arquivos de verdade.
+- **Depende de:** T01–T33.
+- **Arquivos:** `docs/resultados/integracao.md` (novo) e qualquer arquivo de código que precisar de correção.
+- **Regras desta tarefa:**
+  - Rode tudo em primeiro plano. Se um comando estourar o tempo limite (o `docker compose build` pode passar de 10 minutos), rode-o de novo: o cache de camadas faz cada tentativa avançar.
+  - Cada problema encontrado vira um passo: corrija, acrescente um teste que reproduza o erro quando for possível, faça o commit `T35 [wip]: corrige <o quê>` e registre no `integracao.md`.
+  - Não altere o algoritmo do motor de fusão nem os limiares: isso é a T36.
+- **Passos:**
+  1. **Ambiente Python.** `.venv/bin/pip install "pyarrow<18"`; confirme `.venv/bin/python -c "import opensmile, pyarrow; print(pyarrow.__version__)"`; rode `.venv/bin/pytest -q` e `.venv/bin/ruff check .`. O teste da tela Paciente e o `test_mimic` que eram pulados por causa do pyarrow devem passar a rodar.
+  2. **Imagem e modelos.** Confirme `USE_FAKE_AZURE=true` no `.env`. Rode `docker compose build` e depois `docker compose up models-init`, que precisa terminar com código 0 e deixar `models/yolov8n.pt` e `models/yolov8n-pose.pt`.
+  3. **Stack completo.** `docker compose up -d`. Em `docker compose ps`, todos os serviços precisam estar `running`/`healthy` (e `models-init` com `exited (0)`). Para cada serviço, `docker compose logs --tail=50 <serviço>` não pode ter traceback. `curl -fsS localhost:8000/health` precisa responder `"status":"ok"`, e `curl -fsS localhost:8501/_stcore/health` precisa responder `ok`.
+  4. **Pacientes e modelo de vitais.** `docker compose run --rm api python scripts/seed.py`, depois `docker compose run --rm api python scripts/train_vitals_iforest.py` e `docker compose restart worker-anomaly`.
+  5. **Simulação de vitais, prescrições e movimento.** `docker compose --profile demo run --rm simulator python -m medwatch.simulator.replay --fast`. Depois confira:
+     - `docker compose exec redis redis-cli XLEN vitals` e `XLEN evidence` maiores que zero, e `XPENDING evidence worker-fusion` sem acúmulo;
+     - `curl -fsS "localhost:8000/alerts"` com alertas conforme a tabela abaixo.
+
+     | Paciente | Esperado |
+     |---|---|
+     | P-0001 | alerta `critical` (piora respiratória; sem o áudio, pelo piso do `news2_high`) |
+     | P-0002 | alerta `warning` ou maior (interação e mudança de dose) |
+     | P-0003 | nenhum alerta (só cenário normal) |
+     | P-0004 | alerta `warning` ou maior (agitação noturna e saída do leito) |
+     | P-0005 | nenhum alerta (artefato de sensor filtrado) |
+
+     Se o resultado divergir, descubra se é defeito (corrija) ou limitação do cenário (registre no `integracao.md`).
+  6. **Mídias sintéticas.** Sem as amostras humanas, gere arquivos de teste:
+     ```bash
+     mkdir -p data/samples/sinteticos
+     ffmpeg -y -f lavfi -i "sine=frequency=180:duration=20" -ac 1 -ar 16000 data/samples/sinteticos/tom.wav
+     curl -fsSL https://ultralytics.com/images/bus.jpg -o data/samples/sinteticos/pessoas.jpg
+     ffmpeg -y -loop 1 -i data/samples/sinteticos/pessoas.jpg -t 8 -r 10 -vf "scale=640:-2" -pix_fmt yuv420p data/samples/sinteticos/pessoas.mp4
+     ```
+     Envie pela API (com `curl -F`): o áudio como `kind=audio` para P-0001; o vídeo como `kind=video` três vezes, nos modos `physio` (exercício `squat`), `bed` e `surgery`, para P-0003. Em `GET /media/{id}`, cada um precisa terminar em `done` com os artefatos esperados; o `annotated.mp4` precisa ser H.264 (`ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0`). O vídeo tem pessoas paradas: o objetivo é exercitar o pipeline (YOLO, pose, anotação, relatório), não gerar achados clínicos. O áudio exercita o caminho com o transcritor falso, o openSMILE e o modelo AST reais.
+  7. **Laudo.** `POST /documents` para P-0002 com um texto que contenha "falta de ar" e "dor no peito". Confira as evidências `text_critical_term` em `GET /patients/P-0002/evidence`.
+  8. **Alertas.** Em `docker compose logs worker-alerts`, cada alerta criado aparece no canal de console. Confirme um alerta com `POST /alerts/{id}/ack` (`{"user": "teste", "decision": "confirmed"}`) e verifique `status=acknowledged`; um segundo ack precisa devolver 409. Para testar o escalonamento, suba com `ALERT_ESCALATION_MINUTES=1` (por exemplo, `docker compose run` ou ajuste temporário no `.env`, revertido no fim) e confira a mensagem `SEM RESPOSTA:` no log.
+  9. **Relatórios e dashboard.** `POST /reports/patient/P-0001` precisa devolver as chaves de HTML e PDF, e `GET /files/<chave>` do PDF precisa começar com `%PDF`. Com o `ApiClient` do dashboard apontando para `http://localhost:8000`, chame as funções que as telas usam (pacientes, alertas, vitais, evidências, mídia) e confirme que nenhuma falha.
+  10. **Roteiro da demo.** `python scripts/run_demo.py --external-simulator` (com `.venv/bin/python`) precisa rodar até o fim pulando as amostras ausentes, com aviso, sem traceback.
+  11. **Registro.** Em `docs/resultados/integracao.md`: data, versão (hash do commit), uma tabela com cada verificação dos passos 1–10 (passou / falhou / corrigido / depende de humano), os alertas obtidos por paciente e a lista de defeitos corrigidos com o commit de cada um.
+  12. **Limpeza.** Reverta qualquer ajuste temporário do `.env` e rode `docker compose down` (sem `-v`).
+- **Aceite:** todas as verificações dos passos 1–10 passaram ou estão registradas como dependentes de passo humano; `pytest -q` e `ruff check .` passam; `integracao.md` commitado.
+
+#### T36 — Avaliação de vitais corrigida e ajuste de limiares
+
+- **Objetivo:** produzir números de avaliação confiáveis para o relatório. A T31 obteve precisão de 1% a 3% por dois motivos: (1) no gerador, a piora continua até o fim do dia, mas o rótulo termina no fim da rampa, então cada repetição do NEWS2 com o paciente ainda grave conta como falso positivo; (2) o z-score dispara em pacientes normais.
+- **Depende de:** T35.
+- **Arquivos:** `src/medwatch/simulator/synthetic.py`, `src/medwatch/anomaly/streaming_stats.py`, `src/medwatch/anomaly/worker.py`, `config/thresholds.yaml`, `scripts/evaluate_vitals.py`, os testes correspondentes, `docs/resultados/vitals_metrics.*`, `docs/resultados/vitals_tuning.md` (novo), `docs/relatorio-tecnico.md`.
+- **Passos:**
+  1. **Rótulos.** Nos cenários em que o estado alterado persiste (`respiratory_deterioration`, `hypotension`), o `ts_end` do rótulo passa a ser o fim da série. O `tachy_spike` continua com 3 minutos. Ajuste os testes do simulador.
+  2. **Métrica por episódio.** No `evaluate_vitals.py`: um rótulo é TP se houver ao menos uma detecção em `[ts_start, ts_end + 30 min]`. Fora das janelas de rótulo, detecções do mesmo tipo com menos de 30 minutos entre si formam **um** episódio, e cada episódio conta como um falso positivo. Reporte também os falsos alarmes só dos pacientes `normal` (episódios por paciente-dia).
+  3. **Avaliação no nível de alerta.** Passe as evidências de cada paciente, em ordem de tempo, por um `FusionEngine` com o `config/fusion.yaml`. Um alerta abre quando o nível chega a `warning` ou mais e fecha quando o risco fica abaixo de 20 por 60 minutos seguidos; cada abertura é um alerta. Calcule precisão, recall e atraso mediano dos alertas contra os rótulos, e alertas por paciente-dia nos pacientes `normal`. Esse é o número principal do relatório: é o que a equipe médica veria.
+  4. **Persistência no z-score e no Isolation Forest.** Acrescente `persistence` (número de leituras consecutivas acima do limiar antes de emitir) em `thresholds.yaml` para `zscore` e `iforest`, com suporte no worker e teste. O valor padrão `1` reproduz o comportamento atual.
+  5. **Busca de limiares.** Compare, no nível de alerta: z-score com limiar 3,0 / 3,5 / 4,0 × persistência 1 / 3; Isolation Forest com o limiar atual e com percentil 0,1 × persistência 1 / 3. Escolha a combinação com recall de 100% nos rótulos positivos e o menor número de alertas em pacientes normais. Grave a grade completa em `vitals_tuning.md` e os valores escolhidos em `thresholds.yaml`, com uma linha em `docs/DECISOES.md`.
+  6. **Resultados.** Regere `vitals_metrics.md`, `vitals_metrics.csv` e `vitals_example.png`, com três blocos: por evidência (como antes, para comparação), por episódio e por alerta. Atualize a seção de resultados do `relatorio-tecnico.md`, explicando a mudança de método e mostrando antes × depois.
+- **Aceite:** testes e lint passam; o relatório mostra a avaliação por alerta com recall de 100% nos positivos e menos de 1 alerta por paciente-dia nos pacientes normais. Se essa meta não for alcançável com os limiares da grade, registre o melhor resultado e o motivo no relatório, em vez de forçar o número.
+
 ---
 
 ## 6. Passos manuais (somente humanos)
@@ -2239,7 +2301,9 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] `docs/relatorio-tecnico.md` cobre fluxo multimodal, modelos por tipo de dado, resultados e exemplos de anomalias.
 - [ ] README permite rodar do zero; link do vídeo incluído.
 - [ ] Nenhum segredo ou dado real de paciente no repositório.
-- [ ] `PROGRESSO.md` com T00–T33 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
+- [ ] `docs/resultados/integracao.md` mostra o stack completo funcionando de ponta a ponta (T35).
+- [ ] Avaliação de vitais por alerta no relatório, com o método corrigido (T36).
+- [ ] `PROGRESSO.md` com T00–T33 e T35–T36 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 

@@ -2,15 +2,15 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-08 (T33 concluída)
-- **Tarefa atual:** T34 (opcionais, não iniciada)
-- **Estado geral:** T00–T33 concluídas; só restam passos [HUMANO] e opcionais (T34)
+- **Última atualização:** 2026-11-08 (revisão pós-T33: tarefas T35 e T36 adicionadas ao plano)
+- **Tarefa atual:** T35
+- **Estado geral:** T00–T33 concluídas; T35 (integração ponta a ponta) e T36 (avaliação corrigida) pendentes; T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** nenhuma obrigatória; T01–T33 concluídas. T34 (opcionais) só se o humano pedir.
-- **Passos concluídos:** T33 (README, docs/arquitetura.md, docs/relatorio-tecnico.md)
-- **Próximo passo exato:** humano: resolver os bloqueios abaixo (amostras, chaves Azure, Teams), rodar `scripts/run_demo.py`, preencher prints/custos nas seções 4 e 5.3 do relatório e o link do vídeo no README.
+- **Tarefa:** T35 — Integração ponta a ponta (modo falso)
+- **Passos concluídos:** nenhum
+- **Próximo passo exato:** passo 1 da T35: `.venv/bin/pip install "pyarrow<18"`, confirmar `.venv/bin/python -c "import opensmile, pyarrow; print(pyarrow.__version__)"` e rodar `.venv/bin/pytest -q` e `.venv/bin/ruff check .` (os testes antes pulados por causa do pyarrow devem rodar). Depois, passo 2 (rebuild da imagem, que é da T03 e não tem o `pyarrow<18`).
 - **Arquivos tocados:** nenhum
 - **Comandos longos em execução:** nenhum
 - **Testes falhando conhecidos:** nenhum
@@ -54,7 +54,9 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T31 | Scripts de avaliação | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; `vitals_metrics.*` gerados (muitos FP, ver DECISOES); `evaluate_video.py` pronto, verificação real pendente: precisa de `video_annotations.csv` e vídeos [HUMANO] |
 | T32 | Roteiro automatizado da demonstração | concluída | ver `git log` | `pytest -q` e `ruff check .` passam; testes com fakeredis e MockTransport; envio checado com TestClient e banco real; aceite (demo completa com amostras, workers e simulador) não verificado: amostras [HUMANO] |
 | T33 | README, documentação e relatório técnico | concluída | ver `git log` | `pytest -q` (178 passed) e `ruff check .` passam; seções de custos Azure, prints e avaliação de vídeo marcadas [PENDENTE] (dependem de humano); aceite "colega roda do zero" não testado |
-| T34 | Opcionais | pendente | | só após T01–T33 |
+| T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
+| T35 | Integração ponta a ponta (modo falso) | pendente | | adicionada na revisão pós-T33 |
+| T36 | Avaliação de vitais corrigida e ajuste de limiares | pendente | | adicionada na revisão pós-T33 |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
 
@@ -66,7 +68,7 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 | Identidade do Git ausente de novo nesta VPS (`Author identity unknown`); passo 1 da T01 está feito mas sem commit | T01 em diante (todos os commits) | 2026-11-08 | resolvido em 2026-11-08 (identidade `mvgv` presente; commit wip criado) |
 | `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | resolvido em 2026-11-08 (`.venv` com Python 3.11 disponível) |
 | `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | resolvido em 2026-11-08 (push funciona; origin/main em dia) |
-| Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | aberto |
+| Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | resolvido em 2026-11-08 (VPS) |
 | Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05 e verificações reais de T14, T15, T18 | — | aberto |
 | Gravar `consulta_p0001.wav` e leituras de voz saudável | T16, T18, T32 | — | aberto |
 | Vídeos de agachamento (correto e incorreto) | T20, T21, T32 | — | aberto |
@@ -95,6 +97,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-08 | planejamento, T00 | 37cf1da | Plano, ambiente Docker e arquivos de continuidade criados; identidade do Git configurada pelo humano; T00 concluída. |
 | 2026-11-08 | T01 (parcial) | — | Escritos pyproject, .gitignore, .dockerignore, README, `__version__` e smoke test; sem commit (identidade do Git ausente) e sem verificação (sem Python 3.11). |
 | 2026-11-08 | planejamento | — | Modelo recomendado (seção 0.2), guia de ambiente remoto, `scripts/setup_vps.sh`, `.gitattributes` e portas do Compose presas a `127.0.0.1`. |
+| 2026-11-08 | revisão pós-T33 | — | Revisão do trabalho: só testes unitários com falsos, avaliação de vitais com erro de método, `.venv` com pyarrow incompatível e imagem Docker antiga. Adicionadas T35 (integração ponta a ponta) e T36 (avaliação corrigida). |
 | 2026-11-08 | T01 (tentativa) | — | Identidade do Git ainda ausente (sem commit) e docker bloqueado por aprovação; nada novo além do registro dos bloqueios. Todas as tarefas seguintes exigem commit, então não há tarefa avançável. |
 | 2026-11-08 | T01 (nova tentativa) | — | `git config user.name/email` continua vazio e o `docker run` foi bloqueado pelo verificador de permissões. Nada commitado; bloqueios acima seguem abertos. |
 | 2026-11-08 | T01 (parcial) | ver `git log` | Identidade do Git OK; commit wip criado; push falhou (sem credenciais); docker run bloqueado pelo verificador, pytest/ruff ainda não verificados. |
