@@ -1,0 +1,24 @@
+{% extends "_base.html.j2" %}
+{% block title %}Relatório de vídeo — {{ media.patient_id }}{% endblock %}
+{% block body %}
+<h1>Relatório de sessão de vídeo</h1>
+<table>
+<tr><th>Paciente</th><td>{{ media.get("patient_name") or media.patient_id }}</td>
+<th>Data</th><td>{{ recorded_at }}</td></tr>
+<tr><th>Modo</th><td>{{ media.mode }}</td><th>Exercício</th><td>{{ media.exercise or "—" }}</td></tr>
+<tr><th>Duração</th><td>{% if duration %}{{ "%.1f"|format(duration) }} s{% else %}—{% endif %}</td>
+<th>Mídia</th><td>{{ media.media_id }}</td></tr>
+</table>
+<h2>Resumo</h2>
+<p>Repetições: {{ n_reps }}. Achados: {{ findings.findings|length }}.</p>
+{% if by_type %}<ul>{% for t, n in by_type.items() %}<li>{{ t }}: {{ n }}</li>{% endfor %}</ul>{% endif %}
+<h2>Achados</h2>
+{% if findings.findings %}
+<table><tr><th>Tempo (s)</th><th>Tipo</th><th>Explicação</th></tr>
+{% for f in findings.findings %}<tr><td>{{ "%.1f"|format(f.t_start) }}</td><td>{{ f.type }}</td>
+<td>{{ f.explanation }}</td></tr>{% endfor %}</table>
+{% else %}<p>Nenhum achado.</p>{% endif %}
+{% if frames %}<h2>Frames-chave</h2>
+{% for fr in frames %}<figure><img src="{{ fr.src }}" alt=""><figcaption>{{ fr.caption }}</figcaption></figure>{% endfor %}{% endif %}
+{% if chart %}<h2>Ângulos</h2><img src="{{ chart }}" alt="Ângulos ao longo do tempo">{% endif %}
+{% endblock %}

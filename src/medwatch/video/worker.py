@@ -16,6 +16,7 @@ from medwatch.bus import Bus
 from medwatch.config import get_settings, load_yaml
 from medwatch.contracts import Evidence, MediaJob, Modality, MovementSample, Severity
 from medwatch.logging_setup import setup_logging
+from medwatch.reports.render import build_session_report
 from medwatch.storage import Storage, get_storage
 from medwatch.video.annotate import AnnotatedWriter, active_findings, base_image, draw_overlay
 from medwatch.video.bed import analyze_bed
@@ -43,11 +44,6 @@ SEVERITY = {
     "surgery_instrument_out_of_zone": Severity.warning,
     "surgery_instrument_count_mismatch": Severity.critical,
 }
-
-
-def build_session_report(media: dict, findings: dict) -> dict:
-    """Relatório da sessão (implementado na T29); por enquanto não gera artefatos."""
-    return {}
 
 
 def load_reference(exercise: str | None, ref_dir: Path = REFERENCES_DIR) -> dict | None:
@@ -128,6 +124,14 @@ class VideoWorker:
     def handle(self, stream: str, payload: dict) -> None:
         """Handler do consumidor do barramento."""
         self.process(MediaJob(**payload))
+
+    def _report(self, media: dict, doc: dict) -> dict:
+        """Gera o relatório da sessão; falha no relatório não derruba o processamento."""
+        try:
+            return build_session_report(media, doc, self.storage)
+        except Exception:
+            log.exception("Falha ao gerar relatório da sessão")
+            return {}
 
     def _zones(self, job: MediaJob, mode: str) -> dict:
         key = job.camera or f"default_{mode}"
@@ -241,7 +245,7 @@ class VideoWorker:
                  "exercise": job.exercise, "recorded_at": job.recorded_at}
         self.db.update_media(job.media_id, status="done", artifacts={
             "annotated": annotated_key, "findings": findings_key,
-            **build_session_report(media, doc)})
+            **self._report(media, doc)})
         return evs
 
     def _analyze(self, mode, people_all, dets_all, times, fps, w, h, zones, exercise_cfg,

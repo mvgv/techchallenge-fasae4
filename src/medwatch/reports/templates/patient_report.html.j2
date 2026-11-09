@@ -1,0 +1,20 @@
+{% extends "_base.html.j2" %}
+{% block title %}Relatório do paciente {{ patient.display_name }}{% endblock %}
+{% block body %}
+<h1>Relatório do paciente: {{ patient.display_name }}</h1>
+<p>ID {{ patient.patient_id }} · Leito {{ patient.bed or "—" }} · Gerado em {{ generated_at }}</p>
+<h2>Risco atual</h2>
+{% if risk %}<p><b>{{ "%.0f"|format(risk.risk_score) }}</b> / 100 — nível {{ risk.level }}</p>
+{% else %}<p>Sem cálculo de risco.</p>{% endif %}
+<h2>Alertas nas últimas 24 h</h2>
+{% if alerts %}<table><tr><th>Criado em</th><th>Nível</th><th>Status</th><th>Título</th></tr>
+{% for a in alerts %}<tr><td>{{ fmt(a.created_at) }}</td><td>{{ a.level }}</td><td>{{ a.status }}</td>
+<td>{{ a.title }}</td></tr>{% endfor %}</table>{% else %}<p>Nenhum alerta.</p>{% endif %}
+<h2>Evidências por modalidade</h2>
+{% for mod, items in by_modality.items() %}<h3>{{ mod }}</h3>
+<table><tr><th>Hora</th><th>Tipo</th><th>Score</th><th>Explicação</th></tr>
+{% for e in items %}<tr><td>{{ fmt(e.ts_start) }}</td><td>{{ e.type }}</td>
+<td>{{ "%.2f"|format(e.score) }}</td><td>{{ e.explanation }}</td></tr>{% endfor %}</table>
+{% else %}<p>Nenhuma evidência.</p>{% endfor %}
+{% if chart %}<h2>Sinais vitais</h2><img src="{{ chart }}" alt="Sinais vitais">{% endif %}
+{% endblock %}

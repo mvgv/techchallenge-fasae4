@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from medwatch import db
-from medwatch.api import routes_alerts, routes_media, routes_patients
+from medwatch.api import routes_alerts, routes_media, routes_patients, routes_reports
 from medwatch.api.deps import get_bus
 from medwatch.logging_setup import setup_logging
 
@@ -15,6 +15,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
 app.include_router(routes_patients.router)
 app.include_router(routes_media.router)
 app.include_router(routes_alerts.router)
+app.include_router(routes_reports.router)
 
 
 @app.get("/health")
