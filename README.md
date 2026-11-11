@@ -87,6 +87,11 @@ python scripts/run_demo.py                       # inicia o simulador como subpr
 python scripts/run_demo.py --external-simulator  # e, em outro terminal: docker compose --profile demo up simulator
 ```
 
+Para gravar só o trecho útil (minutos 360–480 em ~10 min reais), acrescente `--fast-until 355 --tail-speedup 12`.
+Antes de gravar, rode `python scripts/preflight_demo.py [--send-test]`: ele lista com ✓/✗ o que falta
+(API, workers, Azure, Teams/e-mail, amostras, modelos e banco limpo). O roteiro completo está em
+[`docs/ROTEIRO_VIDEO.md`](docs/ROTEIRO_VIDEO.md).
+
 ## Instalação local (sem Docker)
 
 ```bash

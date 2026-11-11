@@ -2,19 +2,18 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-09 (T37 em andamento)
-- **Tarefa atual:** T38 (T37 só com os passos 9 e 10 pendentes de humano)
-- **Estado geral:** T00–T33, T35 e T36 concluídas; pendentes, nesta ordem: T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
+- **Última atualização:** 2026-11-10 (T38 concluída; T37 aguarda humano)
+- **Tarefa atual:** nenhuma avançável sem humano (T37 passos 9 e 10)
+- **Estado geral:** T00–T33, T35, T36 e T38 concluídas; T37 feita até onde dá sem humano (passos 9 e 10 pendentes); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** T38 — Preparação da gravação do vídeo (T37: passos 9 e 10 aguardam humano)
-- **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado), 2 (`config/splits.yaml` seção mimic via `scripts/make_splits.py --mimic`), 3 (`load_mimic` com `split`, `rebase_start`, `window_hours`; replay `--mimic-split`/`--mimic-hours`), 4 (`models/vitals_iforest_mimic` treinado na calibração com limiares da validação; `VITALS_IFOREST_MODEL`; `carry_forward`), 7 (áudio: `scripts/evaluate_audio_events.py` no ESC-50; `audio_events` calibrado em `thresholds.yaml`, precisão/recall 0,97 no reservado), 8 (UR Fall: `download_urfall`, `make_splits --urfall`, `scripts/evaluate_urfall.py`, tolerância a lacunas de pose em `bed.py`, `video.fall` calibrado; reservado: precisão 0,67, recall 0,10, ver `docs/resultados/urfall_fall.md`), 5 e 6 (`scripts/evaluate_mimic.py`: carga de alarmes, injeção semissintética, `--tune` na validação; override `per_model` no worker; resultados em `docs/resultados/mimic_tuning.md` e `mimic_results.md`)
-- **Próximo passo exato:** T38 passo 3 (cartão de alerta com risco de pico e risco atual no `dashboard/app.py`, ajustar o teste da tela) e passo 4 (`docs/ROTEIRO_VIDEO.md`, usando os clipes/pacientes de `docs/DATASETS.md`; citar README). Passos 1 (replay) e 2 (`scripts/preflight_demo.py` + `tests/test_preflight_demo.py`) concluídos.
+- **Tarefa:** nenhuma em andamento. T37 (passos 9 e 10) espera o humano: Common Voice (termos no site) e chaves Azure (consulta sintética `consulta_p0001.wav` e `hello_ptbr.wav`).
+- **Próximo passo exato:** quando o humano resolver os bloqueios: T37 passo 9 (Common Voice → `data/datasets/commonvoice/`, `make_splits --commonvoice`, linha de base de voz), passo 10 (consulta pela Azure), fechar a T37 com commit `T37: ...`. Depois, ensaio completo com `preflight_demo.py` e gravação (`docs/ROTEIRO_VIDEO.md`). T34 só se o humano pedir.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
 - **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`, `scripts/make_splits.py`, `config/splits.yaml`, `tests/test_splits.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `src/medwatch/anomaly/iforest.py`, `src/medwatch/anomaly/worker.py`, `src/medwatch/config.py`, `scripts/train_vitals_iforest.py`, `.env.example`, `scripts/evaluate_mimic.py`, `scripts/evaluate_vitals.py`, `tests/test_evaluate_mimic.py`, `config/thresholds.yaml`, `docs/resultados/mimic_*`
 - **Comandos longos em execução:** nenhum
-- **Testes falhando conhecidos:** nenhum (205 passam)
+- **Testes falhando conhecidos:** nenhum (221 passam)
 - **Observações:** `docs/resultados/mimic_alarm_load.{md,json}` são sobras não versionadas de uma rodada intermediária (substituídas por `mimic_results.*`); podem ser apagadas. Resultados MIMIC: recall semissintético 0,87 no reservado (`tachy_spike` 0,69: o z-score precisa de 20 leituras ≈ 20 h), 1,09 alerta/paciente-dia só com vitais e 1,87 com prescrições. Relatório tem itens marcados [PENDENTE]. `dbg_tmp.py` e `dbg_diag.py` (vazio) na raiz são arquivos não versionados que o agente não pôde apagar (rm exige aprovação): apague à mão. `models/vitals_iforest.json` foi regravado com o campo `p0_1` (fora do Git; rode `scripts/train_vitals_iforest.py` em outra máquina para o limiar `p0_1` existir, senão o IForest cai no `threshold` antigo).
 
 ## Status das tarefas
@@ -59,7 +58,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | concluída | ver `git log` | `pytest -q` (190) e `ruff check .` passam; por alerta: recall 0,93 (ajuste) / 1,00 (conferência) e 0,10 alertas/dia em normais; recall 100% no ajuste não alcançado (hipotensão lenta, ver `vitals_tuning.md`) |
 | T37 | Datasets públicos do enunciado com partes reservadas | bloqueada (parcial) | | passos 1–8 e 11 feitos (`docs/resultados/datasets.md`); passos 9 (Common Voice) e 10 (consulta pela Azure) esperam o humano;  PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
-| T38 | Preparação da gravação do vídeo | em andamento | | passos 1 e 2 feitos; simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
+| T38 | Preparação da gravação do vídeo | concluída | ver `git log` | `pytest -q` (221) e `ruff check .` passam; `--fast-until`/`--tail-speedup`, `preflight_demo.py` (testes com clientes falsos), cartão com risco de pico e atual, `docs/ROTEIRO_VIDEO.md`; ensaio real e checagem com Azure/Teams [HUMANO]; simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
 
@@ -148,3 +147,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-09 | T35 | ver `git log` | Rodada no desktop do humano (Windows, RTX 5070, Docker Desktop). Stack completo com mídias sintéticas, laudo, alertas, confirmação, escalonamento, relatório e dashboard num navegador. Defeitos: redis-py 8 derrubava 4 workers (`bus.py`), testes sujavam o banco ao vivo (`tests/conftest.py`), coluna "Nível" do dashboard, `cu121` na documentação (RTX 50xx precisa de `cu128`). Pendências: falsos alarmes em pacientes normais (T36) e laudo sem tratamento de negação. |
 | 2026-11-09 | T36 | ver `git log` | VPS. Rótulos persistentes, persistência no z-score/IForest (`p0_1`), métricas por episódio e por alerta, grade de 24 combinações (ajuste e conferência), limiares escolhidos, relatório atualizado. Próxima: T37. |
 | 2026-11-09 | T37 | ver `git log` | VPS, Opus 5.5. Em andamento. |
+| 2026-11-10 | T37 (passos 7, 8, 11), T38 | ver `git log` | VPS. ESC-50 avaliado e `audio_events` calibrado; UR Fall baixado, dividido e avaliado (queda: reservado precisão 0,67, recall 0,10; `bed.py` tolera lacunas de pose); material da demonstração e `docs/resultados/datasets.md`; T38 completa. T37 passos 9 e 10 aguardam humano. |
