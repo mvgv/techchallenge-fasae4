@@ -221,11 +221,23 @@ def tune(rows: list[dict], camera: int, cfg: dict, reference: dict) -> list[dict
     return out
 
 
+def pooled(g: dict) -> dict:
+    """Métricas de calibração e validação somadas (só 6 voluntários: separadas, são ruidosas)."""
+    a, b = g["calibracao"], g["validacao"]
+    tp, fp = a["tp"] + b["tp"], a["fp"] + b["fp"]
+    n_inc, n_cor = a["n_incorrect"] + b["n_incorrect"], a["n_correct"] + b["n_correct"]
+    prec = tp / (tp + fp) if tp + fp else 0.0
+    rec = tp / n_inc
+    f1 = 2 * prec * rec / (prec + rec) if prec + rec else 0.0
+    return {"tp": tp, "fp": fp, "n_incorrect": n_inc, "n_correct": n_cor, "precision": prec,
+            "recall": rec, "f1": f1, "false_alarm_rate": fp / n_cor}
+
+
 def pick_best(grid: list[dict]) -> dict:
-    """Melhor F1 na validação, desempate pela menor taxa de falso alarme; calibração desempata."""
-    return max(grid, key=lambda g: (round(g["validacao"]["f1"], 4),
-                                    -g["validacao"]["false_alarm_rate"],
-                                    g["calibracao"]["f1"]))
+    """Melhor F1 com calibração e validação somadas; desempate pelo menor falso alarme."""
+    for g in grid:
+        g["pooled"] = pooled(g)
+    return max(grid, key=lambda g: (round(g["pooled"]["f1"], 4), -g["pooled"]["false_alarm_rate"]))
 
 
 def pct(x: float) -> str:
@@ -262,7 +274,19 @@ def main(argv: list[str] | None = None) -> None:
                 json.dumps(ref, indent=2), encoding="utf-8")
             grid = tune(rows, cam, cfg, ref)
             state["grid"] = grid
-            state["best"] = pick_best(grid)
+            best = pick_best(grid)
+            p = best["pooled"]
+            base_rate = p["n_incorrect"] / (p["n_incorrect"] + p["n_correct"])
+            lower = wilson(p["tp"], p["tp"] + p["fp"])[0]
+            state["separates"] = bool(lower > base_rate)
+            state["base_rate_incorrect"] = base_rate
+            if not state["separates"]:
+                # nada separa as classes: mantém os valores atuais de exercises.yaml
+                keys = list(GRID)
+                cur = {k: cfg[k] for k in keys}
+                best = next((g for g in grid if g["params"] == cur), best)
+                best = {**best, "params": cur}
+            state["best"] = best
             state["reference"] = {"n_reps": ref["n_reps"], "rom": ref["rom"]}
             print(json.dumps(state["best"], indent=1, default=str))
         else:

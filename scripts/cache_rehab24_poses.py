@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     ap.add_argument("--splits", nargs="+", default=["calibracao", "validacao", "reservado"])
+    ap.add_argument("--cameras", nargs="+", type=int, default=[17, 18])
     ap.add_argument("--fps", type=int, default=10)
     ap.add_argument("--weights", default=str(ROOT / "models" / "yolov8n-pose.pt"))
     ap.add_argument("--budget-s", type=float, default=520, help="para depois deste tempo")
@@ -51,7 +52,8 @@ def main(argv: list[str] | None = None) -> None:
     base = a.data_dir / "datasets" / "rehab24"
     with open(base / "reps.csv", newline="", encoding="utf-8") as fh:
         videos = list(dict.fromkeys(
-            r["video"] for r in csv.DictReader(fh) if r["split"] in a.splits))
+            r["video"] for r in csv.DictReader(fh)
+            if r["split"] in a.splits and int(r["camera"]) in a.cameras))
     (base / "poses").mkdir(exist_ok=True)
     t0 = time.time()
     for v in videos:
