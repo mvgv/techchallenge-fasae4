@@ -24,7 +24,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
    - Fase 5 — Fusão e alertas: T25–T27
    - Fase 6 — Saídas: T28–T30
    - Fase 7 — Avaliação e entrega: T31–T34
-   - Fase 8 — Integração, dados reais e gravação: T35–T38
+   - Fase 8 — Integração, dados reais e gravação: T35–T39
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
@@ -2168,7 +2168,7 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 
 ### Fase 8 — Integração, dados reais e gravação
 
-A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. Ordem: T35 → T36 → T37 → T38. A T34 continua opcional e **não** precisa ser feita antes delas.
+A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. A T39 vem da busca por datasets de vídeo: o REHAB24-6 traz agachamento real com rótulos do fisioterapeuta e substitui os vídeos que o grupo ia gravar. Ordem: T35 → T36 → T37 → T38 → T39 (a T39 pode ser feita antes da gravação do vídeo; o `ROTEIRO_VIDEO.md` já aponta para os nomes de amostra que ela produz). A T34 continua opcional e **não** precisa ser feita antes delas.
 
 #### T35 — Integração ponta a ponta (modo falso)
 
@@ -2308,6 +2308,41 @@ A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com uni
   - o replay com `--fast-until 355 --tail-speedup 12` cobre o trecho final em cerca de 10 minutos;
   - `docs/ROTEIRO_VIDEO.md` commitado.
 
+#### T39 — Vídeo real de fisioterapia (REHAB24-6) com parte reservada
+
+- **Objetivo:** medir, com vídeo real e rótulos de um fisioterapeuta, a análise de fisioterapia (T20 e T21), que até aqui só foi testada com keypoints sintéticos. Os vídeos de agachamento que o grupo ia gravar (passo humano da seção 6) são substituídos pelo **REHAB24-6**: 10 voluntários, 2 câmeras RGB a 30 fps, 6 exercícios (o Ex6 é **agachamento**), com repetições segmentadas e marcadas como corretas ou incorretas. Os voluntários reservados fornecem também os clipes da demonstração.
+- **Depende de:** T37 (`config/splits.yaml`, padrão de partes reservadas) e T21. Não depende da Azure, então roda na VPS.
+- **Arquivos:** `scripts/download_datasets.py` (opção `--rehab24`), `scripts/prepare_rehab24.py` (novo), `scripts/make_splits.py`, `config/splits.yaml` (seção `rehab24`), `scripts/build_exercise_reference.py` (aceitar vários vídeos e intervalos de repetição), `scripts/evaluate_physio.py` (novo), `config/exercises.yaml`, `scripts/pick_demo_clips.py`, `data/samples/README.md`, `scripts/preflight_demo.py` (se mudar o nome das amostras), testes correspondentes, `docs/DATASETS.md`, `docs/resultados/datasets.md`, `docs/resultados/physio_rehab24.md` (novo), `docs/relatorio-tecnico.md`, `docs/DEFESA.md`.
+- **Fonte e termos:** Zenodo, <https://zenodo.org/records/13305826>, DOI `10.5281/zenodo.13305826`, versão v1, acesso aberto sem cadastro. Licença **CC BY-NC 4.0**: só pesquisa acadêmica, não comercial; registre isso em `docs/DATASETS.md` e cite no relatório: Černek, A., Sedmidubsky, J., Budikova, P.: "REHAB24-6: Physical Therapy Dataset for Analyzing Pose Estimation Methods", SISAP 2024.
+- **Regras desta tarefa:**
+  - Download só com `.venv/bin/python` (`urllib`) ou `curl`, como na T37. Baixe só `videos.zip` (2,7 GB), `Segmentation.csv`, `Segmentation.txt` e `joints_names.txt`; **não** baixe os `.zip` de juntas e marcadores 2D/3D (3 GB) a não ser que o passo 8 (opcional) seja feito. Confira os md5 contra os da página do Zenodo. Antes, confira o espaço livre em disco (`df -h .`): precisa de cerca de 6 GB para o zip e a extração; se não houver, extraia só os vídeos do agachamento com `zipfile`.
+  - Nada baixado vai para o Git. Vão para o Git só o código, os IDs da divisão e os resultados agregados.
+  - **O conjunto reservado não ajusta nada** (regra da T37): limiares de `exercises.yaml`, a referência do exercício e a escolha da câmera saem só da calibração e da validação. Se for preciso mudar algo depois de ver o reservado, registre em `docs/DECISOES.md` que o número ficou "contaminado".
+  - Testes unitários não podem depender do download: crie CSV e vídeos mínimos no próprio teste.
+- **Passos:**
+  1. **Inspeção.** Baixe os arquivos pequenos e `videos.zip`. Leia `Segmentation.txt` e o cabeçalho de `Segmentation.csv` e **registre em `docs/DATASETS.md`**: colunas, como o voluntário, o exercício, a câmera e o rótulo certo/incorreto aparecem, a resolução e o fps reais dos vídeos (a página do Zenodo não diz), e o número de repetições do agachamento por voluntário e por rótulo. Os índices da segmentação são em quadros a 30 fps. Se o rótulo ou o voluntário não puderem ser ligados ao vídeo, registre o bloqueio e pare.
+  2. **Divisão por voluntário.** Ordene os voluntários, embaralhe com semente 42 e divida em **5 calibração / 2 validação / 3 reservado** (são só 10; com 60/20/20 o reservado teria 2 voluntários). Grave em `config/splits.yaml`, seção `rehab24`, e acrescente o teste em `tests/test_splits.py`. Nunca divida por repetição dentro do mesmo voluntário.
+  3. **Preparação.** `scripts/prepare_rehab24.py` filtra o agachamento (Ex6), liga cada repetição ao vídeo, ao quadro inicial e final e ao rótulo, e grava `data/datasets/rehab24/reps.csv` (`video, camera, subject, split, rep_start_s, rep_end_s, label`). Se o recorte for demorado, gere clipes MP4 só do agachamento em `data/datasets/rehab24/squat/`.
+  4. **Escolha da câmera.** Nas duas câmeras (a página as chama de horizontal e vertical; veja nos vídeos qual mostra o agachamento de lado), rode o pipeline de pose e a segmentação de repetições **só na calibração** e escolha a câmera cuja contagem de repetições mais se aproxima da anotada. Se a vista for frontal, o ângulo do joelho em 2D perde amplitude: registre isso em `docs/DATASETS.md` e não force o resultado.
+  5. **Referência do exercício.** Estenda `build_exercise_reference.py` para montar `data/references/squat.json` a partir das repetições **corretas** da calibração (vários vídeos e intervalos), com a mesma estrutura de hoje. Teste com séries sintéticas.
+  6. **Ajuste dos limiares.** Só com calibração e validação, ajuste em `config/exercises.yaml` (seção `squat`) os valores `rom_min_ratio`, `asymmetry_max_deg`, `dtw_max` e `trunk_max_deg`, buscando o melhor equilíbrio entre pegar repetições incorretas e não alarmar as corretas. Grave a grade em `docs/resultados/physio_rehab24.md` e os valores escolhidos com uma linha em `docs/DECISOES.md`. Se nenhuma combinação separar as classes na validação, registre isso e deixe os valores atuais.
+  7. **Avaliação no reservado.** `scripts/evaluate_physio.py` roda `analyze_physio` em cada vídeo reservado e compara com a anotação. Reporte:
+     - **contagem de repetições**: anotadas × detectadas, erro absoluto médio por vídeo;
+     - **repetição incorreta**: uma repetição é "sinalizada" se algum achado `physio_*` a cobre; precisão e recall contra o rótulo do fisioterapeuta, com intervalo de Wilson de 95%;
+     - **repetições corretas sinalizadas** (falsos alarmes) por voluntário;
+     - quais achados disparam mais e se coincidem com o erro encenado.
+     Grave `docs/resultados/physio_rehab24.md` e uma linha em `docs/resultados/datasets.md`. Reporte o número como ele sair, inclusive se for ruim.
+  8. **Opcional: qualidade da pose.** Com `2d_joints.zip` (693 MB) e `joints_names.txt`, compare as juntas do YOLOv8n-pose com as de referência da captura de movimento no agachamento reservado (erro médio por junta em pixels, normalizado pela altura da pessoa; mapeie os 26 pontos do dataset para os 17 do COCO e registre o mapa). Isso mede, com dado real, o erro da pose que o relatório hoje só afirma sem medida. Atenção: os voluntários provavelmente usam marcadores de captura, o que pode atrapalhar o YOLO; registre isso.
+  9. **Demonstração.** Em `pick_demo_clips.py`, escolha dos voluntários **reservados** um agachamento incorreto e um correto (o correto serve de controle) e grave `data/samples/physio_squat_wrong.mp4` e `physio_squat_correct.mp4` (cerca de 30 s cada, a câmera escolhida no passo 4). A referência do exercício vem da calibração, não desses clipes. Atualize `data/samples/README.md` (origem passa a ser o REHAB24-6, com a licença) e `docs/ROTEIRO_VIDEO.md` (trecho de fisioterapia: dizer que o clipe é de um voluntário reservado). Confira com `run_demo.py` e `preflight_demo.py` que os nomes continuam batendo.
+  10. **Documentação.** `docs/DATASETS.md` (seção REHAB24-6: fonte, licença, data, tamanho, divisão, uso de cada parte, limitações), `docs/relatorio-tecnico.md` (resultados de fisioterapia em dados reais; troque a afirmação de que o YOLOv8-pose é "menos preciso que o OpenPose em oclusão" pelo que foi medido, ou marque como não medido) e `docs/DEFESA.md` (só se o arquivo existir nesta máquina: ele pode estar só no desktop do humano, e então registre as frases no `PROGRESSO.md`; a fraqueza "nenhum vídeo real de agachamento testado" passa a ter número; acrescente a frase de que o enunciado e o PhysioNet não trazem vídeo RGB, por isso os vídeos vêm do UR Fall e do REHAB24-6).
+- **Aceite:**
+  - dados baixados e preparados, ou bloqueio registrado com o motivo;
+  - `config/splits.yaml` com a seção `rehab24` commitada;
+  - testes e lint passam sem depender do download;
+  - `docs/resultados/physio_rehab24.md` com os números do reservado (contagem de repetições, precisão e recall de repetição incorreta com IC, falsos alarmes);
+  - `physio_squat_wrong.mp4` e `physio_squat_correct.mp4` vêm de voluntários reservados e o `preflight_demo.py` os reconhece;
+  - o relatório não afirma nada sobre vídeo de fisioterapia que não tenha sido medido.
+
 ---
 
 ## 6. Passos manuais (somente humanos)
@@ -2319,7 +2354,7 @@ Cada item abaixo também aparece na tabela "Bloqueios que dependem de pessoas" d
 | Antes de começar (opcional) | Escolher onde o agente roda e configurar conforme `docs/AMBIENTE_REMOTO.md` (sessões na nuvem ou VPS). Escolher o modelo conforme a seção 0.2. |
 | Antes da T05 | Criar/ativar assinatura Azure (Azure for Students, se disponível), `az login`, rodar `scripts/provision_azure.sh`, copiar a saída para `.env`. Criar alerta de orçamento. |
 | T37 | **Common Voice (português):** aceitar os termos no site oficial e disponibilizar os clipes em `data/datasets/commonvoice/` (ou o token de acesso no `.env`). Substitui as leituras de voz saudável do grupo. A consulta (`consulta_p0001.wav`) e o `hello_ptbr.wav` passam a ser gerados pela Azure (T37, passo 10), e a queda vem do UR Fall (T37, passo 8); gravar só se esses caminhos falharem. |
-| Antes da T38 | Gravar três vídeos de agachamento com o celular (câmera lateral, corpo inteiro, cerca de 30 s cada): um correto para a referência (`physio_squat_correct.mp4`), outro correto como controle, que não deve alertar, e um incorreto, com amplitude reduzida e joelho valgo (`physio_squat_wrong.mp4`). Rodar `build_exercise_reference.py` só com o primeiro. |
+| T39 | **Nenhum passo humano obrigatório:** o agachamento vem do REHAB24-6 (Zenodo, acesso aberto), que substitui os três vídeos gravados pelo grupo. Gravar o próprio vídeo só se o download falhar ou a câmera do dataset não servir (câmera lateral, corpo inteiro, cerca de 30 s: um agachamento correto, um correto de controle e um incorreto com amplitude reduzida e joelho valgo). |
 | T27 | **Teams:** no canal desejado, abrir *Workflows* → modelo "Post to a channel when a webhook request is received" → copiar a URL para `TEAMS_WEBHOOK_URL`. **E-mail:** criar uma Logic App (Consumption) com gatilho "When a HTTP request is received" (schema `{to, subject, html}`) e ação "Send an email (V2)" do Outlook; copiar a URL do gatilho para `LOGIC_APP_EMAIL_URL`. |
 | T19b (opcional) | Baixar os arquivos do modelo OpenPose COCO para `models/openpose/`. |
 | Entrega | Gravar o vídeo (≤ 15 min), publicar como não listado no YouTube, colocar o link no README. Desligar/excluir recursos Azure após a avaliação. |
@@ -2386,7 +2421,7 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] Avaliação de vitais por alerta no relatório, com o método corrigido (T36).
 - [ ] PhysioNet (MIMIC-IV Demo) e AudioSet (ou ESC-50, com a escolha registrada) usados de fato, com divisão calibração / validação / reservado e resultados da parte reservada no relatório (T37).
 - [ ] `docs/ROTEIRO_VIDEO.md` pronto e `preflight_demo.py` todo em ✓ antes da gravação (T38).
-- [ ] `PROGRESSO.md` com T00–T33 e T35–T38 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
+- [ ] `PROGRESSO.md` com T00–T33 e T35–T39 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 
