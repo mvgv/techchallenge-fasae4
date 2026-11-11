@@ -227,3 +227,23 @@ Depois acesse `http://localhost:8501` (dashboard) e `http://localhost:8000/docs`
 - Se o app foi instalado pela Microsoft Store, ele usa um cliente SSH próprio, que funciona com chave simples como a deste guia.
 - A VPS é cobrada enquanto existir. Se ficar dias sem uso, desligue ou faça um snapshot e exclua.
 - Espaço em disco: rode `docker system prune` de vez em quando.
+
+## Executar o plano sozinho na VPS (`scripts/run_agent.sh`)
+
+O script repete ciclos: cada ciclo abre uma sessão nova do Claude, que retoma pelo `PROGRESSO.md`. Antes de iniciar, atualize o código (`git pull --ff-only`) e confira o fuso: `TZ=America/Sao_Paulo date +%Z` deve mostrar `-03`. Se mostrar `UTC` ou `GMT`, instale o `tzdata` (`sudo apt-get install -y tzdata`), senão a espera pelo limite de uso será calculada errada.
+
+```bash
+tmux new -s agente
+bash scripts/run_agent.sh        # dentro do tmux; Ctrl+B e D para sair sem parar
+```
+
+| Objetivo | Comando |
+|---|---|
+| Parar | `touch ~/STOP_AGENT` (termina o ciclo atual e para) |
+| Reiniciar | `rm -f ~/STOP_AGENT` e `bash scripts/run_agent.sh` |
+| Ver o log | `tail -n 30 ~/agent.log` |
+| Ver se há ciclo em andamento | `pgrep -af "claude -p"` |
+
+- **Limite de uso do plano:** quando o Claude avisa `You've hit your 5-hour limit · resets 2:20pm`, o script lê a hora, espera até lá (mais 3 minutos de folga, no máximo 6 horas) e retoma. Isso não conta como falha. Sem hora reconhecível no aviso, espera 30 minutos.
+- **Quando o script para sozinho:** não há tarefa atual no `PROGRESSO.md`; a mesma tarefa terminou bem 8 vezes seguidas (`MAX_REPEAT`); ou 6 falhas seguidas que não são limite de uso.
+- **Modelo:** Opus 5.5 nas tarefas T24, T26, T30, T32 e T35; Sonnet 5.5 nas demais. O Opus gasta o limite mais rápido; a T37, por exemplo, estourou o limite de 5 horas no Opus.
