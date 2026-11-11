@@ -91,9 +91,46 @@ def download_esc50(out: Path) -> None:
     print(f"ok ESC-50: {len(rows)} clipes ({size / 1e6:.0f} MB) em {out}")
 
 
-def download_urfall(out: Path) -> None:  # implementado no passo 8
-    """Placeholder até o passo 8 da T37."""
-    raise SystemExit("UR Fall ainda não implementado")
+URFALL_BASE = "https://fenix.ur.edu.pl/~mkepski/ds/data/"
+URFALL_FALLS = tuple(f"fall-{i:02d}" for i in range(1, 31))
+URFALL_ADLS = tuple(f"adl-{i:02d}" for i in range(1, 41))
+URFALL_FPS = 30
+
+
+def urfall_rgb_mp4(src: Path, dest: Path) -> Path:
+    """Recorta a metade RGB (direita) do MP4 do site e grava H.264 640×480 30 fps."""
+    import subprocess
+    if dest.exists() and dest.stat().st_size > 0:
+        return dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.stem + ".part.mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src),
+                    "-vf", "crop=iw/2:ih:iw/2:0,scale=640:480", "-r", str(URFALL_FPS),
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", str(tmp)], check=True)
+    tmp.replace(dest)
+    return dest
+
+
+def download_urfall(out: Path) -> None:
+    """Baixa os MP4 da câmera frontal (cam0) e os rótulos por quadro; gera os MP4 só RGB.
+
+    O site oferece cada sequência como ZIP de PNG (~50 MB) e como MP4 com profundidade e RGB
+    lado a lado (1–3 MB); usamos o MP4 e recortamos a metade RGB.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    for f in ("urfall-cam0-falls.csv", "urfall-cam0-adls.csv"):
+        fetch(URFALL_BASE + f, out / "labels" / f)
+    seqs = URFALL_FALLS + URFALL_ADLS
+
+    def one(seq: str) -> Path:
+        raw = fetch(URFALL_BASE + f"{seq}-cam0.mp4", out / "raw" / f"{seq}-cam0.mp4")
+        fetch(URFALL_BASE + f"{seq}-data.csv", out / "raw" / f"{seq}-data.csv")
+        return urfall_rgb_mp4(raw, out / "video" / f"{seq}.mp4")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        done = list(pool.map(one, seqs))
+    size = sum(p.stat().st_size for p in done)
+    print(f"ok UR Fall: {len(done)} vídeos RGB ({size / 1e6:.0f} MB) em {out / 'video'}")
 
 
 if __name__ == "__main__":
