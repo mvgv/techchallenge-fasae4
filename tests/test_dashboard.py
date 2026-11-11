@@ -214,6 +214,7 @@ def test_overview_lists_patients_and_acks_alert(app_test):
     md = " ".join(m.value for m in at.markdown)
     assert "Bruno" in md and "Risco crítico" in md
     assert md.index("Bruno") < md.index("Ana")  # ordenado pelo risco
+    assert "risco de pico 82 · risco atual 82" in md
     at.button(key=f"confirm-{ALERT['alert_id']}").click().run()
     assert not at.exception
     assert FakeApi.acks == [(ALERT["alert_id"], "confirmed", "medico.demo", "")]
@@ -232,3 +233,10 @@ def test_other_pages_render(app_test, page):
     at.sidebar.radio[0].set_value(page).run()
     assert not at.exception
     assert at.title[0].value in (page, "Sobre o MedWatch")
+
+
+def test_risk_summary_peak_and_current():
+    from medwatch.dashboard import app
+
+    assert app.risk_summary(99.4, 29.0) == "risco de pico 99 · risco atual 29"
+    assert app.risk_summary(70, None) == "risco de pico 70"

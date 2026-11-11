@@ -270,18 +270,27 @@ def overview_fragment() -> None:
     if not alerts:
         st.success("Nenhum alerta aberto.")
     names = {p["patient_id"]: p["display_name"] for p in patients or []}
+    current = {p["patient_id"]: p.get("latest_risk") for p in patients or []}
     for a in alerts:
-        render_alert(a, names.get(a["patient_id"], a["patient_id"]), api)
+        render_alert(a, names.get(a["patient_id"], a["patient_id"]), api,
+                     current.get(a["patient_id"]))
 
 
-def render_alert(alert: dict, patient_name: str, api: ApiClient) -> None:
+def risk_summary(peak: float | None, current: float | None) -> str:
+    """Texto "risco de pico X · risco atual Y" (o alerta guarda o pico; o paciente, o de agora)."""
+    text = f"risco de pico {risk_pct(peak)}"
+    return text if current is None else f"{text} · risco atual {risk_pct(current)}"
+
+
+def render_alert(alert: dict, patient_name: str, api: ApiClient,
+                 current_risk: float | None = None) -> None:
     """Cartão de alerta com nota opcional e botões Confirmar/Descartar."""
     aid = str(alert["alert_id"])
     with st.container(border=True):
         top = st.columns([4, 1])
         esc = " · escalonado" if alert.get("escalated") else ""
         top[0].markdown(f"{level_chip(alert.get('level'))} **{alert['title']}**  \n"
-                        f"{patient_name} · risco {risk_pct(alert.get('risk_score'))} · "
+                        f"{patient_name} · {risk_summary(alert.get('risk_score'), current_risk)} · "
                         f"{_ts(alert.get('event_ts'))}{esc}")
         st.write(alert.get("summary", ""))
         note = st.text_input("Nota (opcional)", key=f"note-{aid}")
