@@ -42,3 +42,17 @@ Regra geral: cada dataset tem uma parte **reservada**, nunca usada para ajustar 
 | Avaliação | `python scripts/evaluate_urfall.py` → `docs/resultados/urfall_fall.md`; anotações em `data/datasets/urfall/video_annotations.csv` |
 
 Limite importante: os clipes de queda são curtos (1–5 s) e muitos terminam logo depois de a pessoa deitar, e a pose do YOLO falha com a pessoa no chão; a regra de queda passou a tolerar lacunas de pose (`LYING_GAP_S`). A câmera `ur_fall` em `config/zones.yaml` não tem leito. Resultado no reservado: ver `docs/resultados/urfall_fall.md` (recall baixo, discutido lá).
+
+## Material para a demonstração (passo 11)
+
+Gerado por `python scripts/pick_demo_clips.py` em `data/samples/` (fora do Git). Todos vêm das partes **reservadas**:
+
+| Arquivo | Origem | Motivo |
+|---|---|---|
+| `cough.wav` | ESC-50 `4-155650-A-24.wav` (tosse, fold 4–5) | maior score de "Cough" do AST entre as tosses reservadas (0,46) |
+| `breathing.wav` | ESC-50 `5-235593-A-23.wav` (respiração) | maior score de "Gasp" entre as respirações reservadas (0,81) |
+| `snoring.wav` | ESC-50 `4-197454-A-28.wav` (ronco) | maior score de "Snoring" (0,97) |
+| `bed_fall.mp4` | UR Fall `fall-12` (cam0, reservado) | uma das 2 quedas reservadas que a regra calibrada detecta (recall reservado 0,10: dizer isso no vídeo, sem esconder as outras 18) |
+| pacientes MIMIC | `M-10002495` (alerta crítico, risco de pico 98, NEWS2 alto + IForest + z-score, 20,7 h de internação) e `M-10039831` (alerta de aviso com IForest e NEWS2 médio, 15,7 h) | reservados, com alertas de vitais legíveis para mostrar no painel (`replay --mimic-split reservado`) |
+
+`consulta_p0001.wav` (passo 10) depende da Azure e segue bloqueado.
