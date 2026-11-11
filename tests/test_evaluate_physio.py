@@ -75,6 +75,15 @@ def test_pooled_sums_parts():
     assert abs(p["precision"] - 4 / 6) < 1e-9 and p["recall"] == 0.5
 
 
+def test_pick_windows_wrong_and_correct():
+    from pick_demo_clips import pick_windows
+    reps = [{"video": "v", "rep_start_s": 3.0 * i, "rep_end_s": 3.0 * i + 2.5,
+             "label": "correct" if i < 8 else "incorrect"} for i in range(16)]
+    w = pick_windows(reps, length_s=15.0, min_reps=4)
+    assert w["wrong"][4] / w["wrong"][3] == 1.0 and w["wrong"][1] >= 24.0
+    assert w["correct"][4] == 0 and w["correct"][2] <= 24.0
+
+
 def test_blocks_group_by_orientation_and_split():
     def r(i, ori, split="calibracao", cam=18):
         return {"video": "v", "camera": cam, "subject": 1, "split": split, "orientation": ori,

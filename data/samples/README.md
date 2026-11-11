@@ -6,8 +6,8 @@ pacientes: use gravações encenadas ou datasets públicos, respeitando as licen
 
 | Arquivo | Conteúdo | Origem | Usado por |
 |---|---|---|---|
-| `physio_squat_correct.mp4` | Agachamento executado corretamente, câmera lateral, corpo inteiro visível | Gravado pelo grupo ou trecho do KIMORE / UI-PRMD | `scripts/build_exercise_reference.py` (referência do exercício) |
-| `physio_squat_wrong.mp4` | Agachamento incorreto: amplitude reduzida e joelho valgo | Gravado pelo grupo ou trecho do KIMORE / UI-PRMD | `run_demo.py`, P-0003, minuto 365 |
+| `physio_squat_correct.mp4` | 7 agachamentos corretos (30 s), voluntário 2 reservado | REHAB24-6 (Zenodo, CC BY-NC 4.0, Černek et al., SISAP 2024), câmera 18, recortado por `scripts/pick_demo_clips.py`; ver `docs/DATASETS.md` | controle da demonstração (a referência do exercício vem da calibração, `data/references/squat.json`) |
+| `physio_squat_wrong.mp4` | 5 agachamentos incorretos (18 s) segundo o fisioterapeuta, voluntário 1 reservado | REHAB24-6 (CC BY-NC 4.0), câmera 18, recortado por `scripts/pick_demo_clips.py` | `run_demo.py`, P-0003, minuto 365 |
 | `bed_fall.mp4` | Queda do leito / do plano para o chão | Le2i Fall Detection ou UR Fall Detection (verificar a licença) | `run_demo.py`, P-0004, minuto 410 |
 | `consulta_p0001.wav` | Consulta em pt-BR, 38 s, dois falantes, seguindo o roteiro da seção 7.2 do plano (com tosse e fala pausada) | Gerada por `scripts/synthesize_consulta.py` (voz da Azure + tosses reservadas do ESC-50); ver `docs/DATASETS.md` | `run_demo.py`, P-0001, minuto 370 |
 | `cough.wav` | Trecho curto de tosse | AudioSet / Freesound com licença livre (CC0 ou CC-BY, citar o autor) | teste manual do detector de sons respiratórios (T17) |

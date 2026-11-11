@@ -59,7 +59,7 @@ em português apontando as evidências. O worker de alertas notifica e, se ningu
 | Modalidade | Modelo / serviço | Entrada | Saída | Motivo da escolha | Limitações |
 |---|---|---|---|---|---|
 | Vídeo (objetos) | YOLOv8n (COCO) | frames | caixas e classes | leve, roda em CPU, pesos públicos | COCO só conhece objetos genéricos: instrumentos cirúrgicos reais não são reconhecidos; a análise de cirurgia é demonstrativa |
-| Vídeo (pose) | YOLOv8n-pose | frames | 17 keypoints | mesmo runtime do detector, sem dependências extras | menos preciso que OpenPose em oclusão; OpenPose opcional (T19b/T34) não implementado |
+| Vídeo (pose) | YOLOv8n-pose | frames | 17 keypoints | mesmo runtime do detector, sem dependências extras | precisão da pose não medida contra captura de movimento (a comparação com o OpenPose não foi feita; T19b/T34 não implementadas); no REHAB24-6 a pose bastou para contar repetições (erro médio de 1,8 por bloco), não para separar repetições corretas das incorretas |
 | Fisioterapia | Ângulos articulares + contagem de repetições + **DTW** contra referência | keypoints | ROM, assimetria, desvio de padrão, compensação de tronco | DTW compara a forma do movimento sem depender da velocidade; referência gerada de um vídeo correto | depende de câmera lateral e corpo inteiro; referência real exige gravação **[PENDENTE]** |
 | Leito | Regras sobre pose/posição do tronco | keypoints | queda, saída do leito | simples e explicável | sem validação em vídeo de queda real **[PENDENTE]**; ângulo de câmera sensível |
 | Fala | **Azure Speech** (pt-BR) | WAV 16 kHz | transcrição por segmentos | qualidade e suporte a pt-BR sem treinar modelo | custo por hora de áudio; requer chaves **[PENDENTE]**; há cliente falso para testes |
@@ -168,6 +168,7 @@ Cada dataset foi dividido por paciente, clipe, sequência ou falante em calibra�
 | MIMIC-IV Demo 2.2 (PhysioNet) | vitais (NEWS2 + z-score + Isolation Forest) | 20 pacientes, 107,7 paciente-dias | recall semissintético 0,87 (taquicardia curta 0,69); 1,09 alerta por paciente-dia só com vitais e 1,87 com prescrições | `mimic_results.md` |
 | ESC-50 | sons respiratórios (AST) | folds 4–5, 160 clipes | precisão 0,97 e recall 0,97 (respiratório × não respiratório) | `audio_events.md` |
 | UR Fall (cam0) | queda (pose YOLOv8n + regra de quadril e proporção) | quedas 11–30 e ADL 11–40 | precisão 0,67 e recall 0,10 (na calibração, recall 0,90) | `urfall_fall.md` |
+| REHAB24-6 (agachamento) | fisioterapia (pose YOLOv8n + ROM, assimetria, DTW, tronco) | 3 voluntários, 70 repetições (18 incorretas) | recall de repetição incorreta 0,61 (IC 95% de 0,39 a 0,80), precisão 0,32 (a proporção de incorretas é 0,26) e 44% das corretas sinalizadas; nenhuma combinação de limiares separou as classes na calibração e validação | `physio_rehab24.md` |
 | Common Voice pt-BR | voz saudável (linha de base e falsos alarmes) | 27 falantes | 2 de 27 (7,4%; IC 95% de 2% a 23%) dispararam `voice_fatigue`; nenhum, disartria | `voice_baseline.md` |
 | Consulta sintética (Azure) | fala → texto → termos | consulta de 38 s | separação de falantes correta nas 8 falas; 5 termos críticos, 1 falso por erro de reconhecimento | `azure_integracao.md` |
 
@@ -179,6 +180,7 @@ Leitura sem maquiagem:
 - **A queda generaliza mal:** 0,90 de recall na calibração caiu para 0,10 no reservado (clipes curtos que terminam logo
   depois de a pessoa deitar, e a pose falha com a pessoa no chão). O número da calibração não deve ser apresentado como
   desempenho.
+- **Fisioterapia:** no agachamento do REHAB24-6 (3 voluntários reservados, 70 repetições) a análise acerta a contagem com erro médio de 1,8 repetições por bloco, mas a detecção de repetição incorreta é fraca: recall 0,61, precisão 0,32 e 44% das corretas sinalizadas. Na calibração e validação nenhuma combinação de limiares separou as classes melhor que sinalizar tudo; os limiares ficaram como estavam. Causas prováveis: pose 2D em vista frontal ou meio perfil (nunca perfil), marcadores de captura no corpo e rótulos que não dizem qual foi o erro. Referência: Černek, Sedmidubsky e Budikova, "REHAB24-6", SISAP 2024 (CC BY-NC 4.0, só uso acadêmico).
 - **Voz:** só se mediu especificidade, com 27 falantes. Os limiares de ritmo de fala e de pausas não foram calibrados com
   estes dados (leitura de frases curtas, não conversa), e a linha de base vale para áudio de qualidade parecida.
 - **Áudio fora do laboratório:** o AST deu 0,97 de recall em clipes isolados do ESC-50, mas só 0,17 para tosses reais
@@ -187,8 +189,8 @@ Leitura sem maquiagem:
 ## 6. Limitações, ética e LGPD
 
 - **Não é dispositivo médico.** Alertas são apoio à decisão; a confirmação é sempre humana (ack/descartar no dashboard).
-- **Dados:** sintéticos (simulador de vitais e consulta com vozes da Azure) e públicos (MIMIC-IV Demo, ESC-50, UR Fall e
-  Common Voice pt-BR), respeitando as licenças (o Common Voice proíbe re-hospedar e identificar falantes). Nenhum
+- **Dados:** sintéticos (simulador de vitais e consulta com vozes da Azure) e públicos (MIMIC-IV Demo, ESC-50, UR Fall,
+  REHAB24-6 e Common Voice pt-BR), respeitando as licenças (o Common Voice proíbe re-hospedar e identificar falantes). Nenhum
   dado real de paciente deve ser enviado. `.env`, `data/` e `models/` ficam fora do Git.
 - **LGPD:** dados de saúde são sensíveis (art. 11). Um uso real exigiria base legal, minimização, controle de acesso,
   registro de auditoria, retenção definida, relatório de impacto e contrato com a Microsoft cobrindo o tratamento na
@@ -202,7 +204,7 @@ Leitura sem maquiagem:
 
 ## 7. Próximos passos
 
-1. Gravar a demonstração completa com os vídeos de agachamento e o Teams (a Azure real, o áudio e a queda já foram
+1. Gravar a demonstração completa (os clipes de agachamento vêm do REHAB24-6, reservados) e o Teams (a Azure real, o áudio e a queda já foram
    verificados), e preencher os custos e os prints da seção 4 e os casos da 5.3.
 2. Anotar vídeos próprios e rodar `evaluate_video.py`.
 3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e melhorar a regra de queda, que generaliza mal
