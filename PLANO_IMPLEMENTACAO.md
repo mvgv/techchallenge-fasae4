@@ -24,7 +24,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
    - Fase 5 — Fusão e alertas: T25–T27
    - Fase 6 — Saídas: T28–T30
    - Fase 7 — Avaliação e entrega: T31–T34
-   - Fase 8 — Integração, dados reais e gravação: T35–T39
+   - Fase 8 — Integração, dados reais e gravação: T35–T40
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
@@ -2168,7 +2168,7 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 
 ### Fase 8 — Integração, dados reais e gravação
 
-A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. A T39 vem da busca por datasets de vídeo: o REHAB24-6 traz agachamento real com rótulos do fisioterapeuta e substitui os vídeos que o grupo ia gravar. Ordem: T35 → T36 → T37 → T38 → T39 (a T39 pode ser feita antes da gravação do vídeo; o `ROTEIRO_VIDEO.md` já aponta para os nomes de amostra que ela produz). A T34 continua opcional e **não** precisa ser feita antes delas.
+A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. A T39 vem da busca por datasets de vídeo: o REHAB24-6 traz agachamento real com rótulos do fisioterapeuta e substitui os vídeos que o grupo ia gravar. A T40 vem do resultado fraco da T39: o Keraal traz o erro nomeado e localizado no tempo, anotado por terapeutas. Ordem: T35 → T36 → T37 → T38 → T39 → T40 (a T39 pode ser feita antes da gravação do vídeo; o `ROTEIRO_VIDEO.md` já aponta para os nomes de amostra que ela produz). A T34 continua opcional e **não** precisa ser feita antes delas.
 
 #### T35 — Integração ponta a ponta (modo falso)
 
@@ -2343,6 +2343,51 @@ A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com uni
   - `physio_squat_wrong.mp4` e `physio_squat_correct.mp4` vêm de voluntários reservados e o `preflight_demo.py` os reconhece;
   - o relatório não afirma nada sobre vídeo de fisioterapia que não tenha sido medido.
 
+#### T40 — Fisioterapia com erros nomeados (Keraal) e parte reservada
+
+- **Objetivo:** o REHAB24-6 (T39) só diz que a repetição é incorreta, não qual foi o erro, e o resultado foi fraco (recall 0,61, precisão 0,32). O **Keraal** traz vídeo RGB de pacientes reais com dor lombar e de saudáveis, anotado por um médico e um fisioterapeuta com **o erro, a parte do corpo e o intervalo de tempo**. Com isso dá para medir se a análise acerta *qual* erro aconteceu, e não só se a repetição foi marcada. Os voluntários reservados fornecem também clipes para a demonstração.
+- **Depende de:** T39 (padrão de divisão por voluntário, avaliação por repetição e cache de poses) e T21.
+- **Arquivos:** `scripts/download_datasets.py` (opção `--keraal`), `scripts/prepare_keraal.py` (novo), `scripts/make_splits.py`, `config/splits.yaml` (seção `keraal`), `config/exercises.yaml` (3 exercícios novos), `src/medwatch/video/physio.py` (só se for preciso um achado novo), `scripts/evaluate_physio.py` (generalizar para o Keraal) ou `scripts/evaluate_keraal.py` (novo), `scripts/pick_demo_clips.py`, `data/samples/README.md`, testes correspondentes, `docs/DATASETS.md`, `docs/resultados/datasets.md`, `docs/resultados/physio_keraal.md` (novo), `docs/relatorio-tecnico.md`.
+- **Fonte e termos:** página <http://nguyensmai.free.fr/KeraalDataset.html>, código e documentação em <https://github.com/nguyensmai/KeraalDataset>. Licença **CC BY-NC-SA** (só pesquisa não comercial, com atribuição e mesma licença para derivados). Citação: Nguyen, S. M., Devanne, M., Remy-Neris, O., Lempereur, M., Thepaut, A. (2024), "A Medical Low-Back Pain Physical Rehabilitation Dataset for Human Body Movement Analysis", IJCNN 2024 (arXiv:2407.00521). **São dados clínicos de pacientes** (anonimizados, com consentimento): nunca vão para o Git nem para o painel público; registre isso em `docs/DATASETS.md`.
+- **Arquivos do dataset** (HTTP simples, `.tar.xz`; extraia com o módulo `tarfile` do Python, que lê xz; confira o espaço em disco antes):
+  - `http://keraal.enstb.org/data/group1A.tar.xz` (1,4 GB): 249 gravações de pacientes, **anotadas**;
+  - `http://keraal.enstb.org/data/group2A.tar.xz` (338 MB): 51 gravações de saudáveis, **anotadas**;
+  - `http://keraal.enstb.org/data/readme_files_format.txt` (formato dos arquivos);
+  - `group3` (8,2 GB, saudáveis com erros simulados, rótulo no nome do arquivo, 960×544) e os grupos 1B e 2B (sem anotação, 14 GB) **não** entram, a não ser no passo opcional 9.
+  - Exercícios: rotação de tronco (`RTK`), alongamento lateral (`ELK`) e "esconder o rosto" (`CTK`). Vídeos dos grupos 1A e 2A: MP4 480×360 a 30 fps. Erros por exercício (de `Error1` a `Error3`, mais "Other"), cada um "pequeno" ou "grande", com a parte do corpo (braço esquerdo, direito, ambos ou coluna). Rótulos globais: correto, incorreto, **incompleto** (código 4) e **imóvel** (código 5).
+  - Anotações em XML do Anvil (`annotatorA/` e `annotatorB/`, dois anotadores). A especificação (`keraalSpec.xml` no GitHub) tem as trilhas "Global evaluation", "Global error" e "Temporal error"; o início e o fim do erro são os do próprio elemento do Anvil. O formato exato dos tempos **não está documentado**: descubra abrindo um XML real.
+- **Regras desta tarefa:** as mesmas da T39 (download só com Python ou `curl`, nada baixado no Git, **reservado não ajusta nada**, testes sem depender do download). Além disso:
+  - Use o **OpenPose do próprio dataset só como comparação**; a análise roda com o **nosso YOLOv8n-pose** nos vídeos, como no resto do projeto.
+  - Dados de pacientes: para a **demonstração use clipes de voluntários saudáveis (grupo 2A)**, não de pacientes.
+- **Passos:**
+  1. **Download e inspeção.** Baixe os três arquivos do grupo 1A, 2A e o `readme_files_format.txt`; confira se o MP4 e o XML vieram nos arquivos. Registre em `docs/DATASETS.md`: estrutura de pastas, número de voluntários, de gravações por exercício e por rótulo, e como o voluntário, o exercício e o anotador aparecem nos nomes. Leia um XML real e registre como estão codificados os tempos (unidade) e os atributos. Se os vídeos ou as anotações não vierem, registre o bloqueio e pare.
+  2. **Anotadores.** Há dois anotadores (A e B). Meça a concordância deles (por gravação: correto/incorreto e tipo de erro; reporte a proporção de acordo e o kappa) e registre. Para o rótulo de referência use o anotador A; se os dois discordarem, marque a gravação como `incerta` e **exclua do cálculo principal**, reportando também o número com elas. Registre a escolha em `docs/DECISOES.md`.
+  3. **Divisão por voluntário.** Ordene os voluntários, embaralhe com semente 42 e divida em calibração, validação e reservado de modo que o **reservado tenha pacientes e saudáveis e os dois rótulos** (corretas e incorretas). São poucos voluntários (cerca de 6 pacientes anotados e 6 saudáveis): registre o número real de cada parte e use a regra "pelo menos 2 voluntários no reservado". Grave em `config/splits.yaml`, seção `keraal`, com teste em `tests/test_splits.py`. Nunca divida por gravação dentro do mesmo voluntário.
+  4. **Preparação.** `scripts/prepare_keraal.py` lê os XML e grava `data/datasets/keraal/recs.csv` (`video, subject, group, exercise, split, evaluation, error_type, error_size, body_part, t_start_s, t_end_s, annotator, uncertain`), uma linha por intervalo de erro e uma por gravação correta. Teste com um XML mínimo criado no próprio teste.
+  5. **Exercícios novos.** Acrescente em `config/exercises.yaml` os três exercícios, com articulações no padrão COCO e, para cada um, uma nota dizendo qual achado `physio_*` deveria cobrir cada erro:
+     - rotação de tronco: `Error1` braços pouco levantados (ângulo do ombro), `Error2` pouca rotação do tronco (proporção entre a largura dos ombros e a dos quadris, vista de frente), `Error3` tronco inclinado para o lado (`trunk_angle`);
+     - alongamento lateral: `Error1` braço oposto fora do corpo, `Error2` tronco pouco inclinado (`trunk_angle`), `Error3` braço de cima não dobrado (ângulo do cotovelo);
+     - esconder o rosto: `Error1` e `Error3` braços pouco levantados, `Error2` braços pouco afastados (ângulo do ombro e distância entre cotovelos).
+     Se algum erro não tiver como ser visto com os 17 pontos do COCO em 2D, **registre como limitação** em vez de forçar. Se for preciso um achado novo (por exemplo `physio_arm_elevation`), acrescente em `physio.py`, no catálogo de evidências (seção 4) e em `fusion.yaml`, com teste e score por regra.
+  6. **Referência e limiares.** Monte a referência de cada exercício com as repetições corretas **da calibração** e ajuste os limiares de cada exercício só com calibração e validação (grade, como na T39). Grave a grade em `physio_keraal.md` e os valores em `exercises.yaml`, com uma linha em `docs/DECISOES.md`. Se nada separar as classes, mantenha os valores e registre.
+  7. **Avaliação no reservado.** Rode o pipeline com o YOLOv8n-pose (cache de poses como na T39) e reporte, com intervalo de Wilson de 95%:
+     - **correto × incorreto por gravação**: precisão, recall e falsos alarmes (saudáveis × pacientes separados);
+     - **erro certo**: dos incorretos sinalizados, em quantos o achado corresponde ao erro anotado (pela tabela do passo 5), e quantos têm o intervalo de tempo coincidindo (tolerância de ±2 s);
+     - **parte do corpo**, se o achado trouxer a articulação;
+     - **incompleto e imóvel** (códigos 4 e 5): se o sistema os distingue de um erro de execução;
+     - uma coluna comparando com a T39 (agachamento): o ganho, ou a falta dele, de ter o erro nomeado.
+     Grave `docs/resultados/physio_keraal.md` e uma linha em `docs/resultados/datasets.md`. Reporte o número como sair.
+  8. **Demonstração.** Do grupo 2A (saudáveis) reservado, escolha um clipe incorreto e um correto com intervalo de erro anotado e grave em `data/samples/` como `physio_keraal_wrong.mp4` e `physio_keraal_correct.mp4`, com um `physio_keraal_*.txt` indicando o exercício. Acrescente um passo opcional em `run_demo.py` (paciente e minuto fixos, `exercise` correspondente). Atualize `data/samples/README.md` e `docs/ROTEIRO_VIDEO.md`, dizendo no trecho de fisioterapia que o clipe é de um voluntário saudável reservado e que as anotações vêm de dois terapeutas. **O vídeo de entrega tem limite de 15 minutos**: o trecho do Keraal substitui, não se soma, ao do agachamento, a não ser que o roteiro continue cabendo.
+  9. **Opcional: grupo 3.** Se sobrar tempo e disco (8,2 GB), use o grupo 3 (saudáveis, 960×544, erro simulado com rótulo no nome do arquivo) como um segundo conjunto de erros nomeados, com a mesma divisão por voluntário.
+  10. **Documentação.** `docs/DATASETS.md` (seção Keraal: fonte, licença, aviso de dados clínicos, data, tamanho, divisão, concordância dos anotadores, limitações), `docs/relatorio-tecnico.md` (resultados com erros nomeados, separados do agachamento) e, **se o arquivo existir nesta máquina**, `docs/DEFESA.md`; senão, deixe as frases no `PROGRESSO.md`.
+- **Aceite:**
+  - dados baixados e preparados, ou bloqueio registrado com o motivo;
+  - `config/splits.yaml` com a seção `keraal` commitada, e reservado com pacientes e saudáveis e os dois rótulos;
+  - testes e lint passam sem depender do download;
+  - `docs/resultados/physio_keraal.md` com precisão e recall (com IC), acerto do tipo de erro, concordância dos anotadores e a limitação de cada erro que não dá para ver em 2D;
+  - clipes da demonstração vêm de voluntários saudáveis reservados;
+  - nenhuma afirmação sobre dados clínicos que não tenha sido medida, e nada de dados de pacientes no Git.
+
 ---
 
 ## 6. Passos manuais (somente humanos)
@@ -2421,7 +2466,7 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] Avaliação de vitais por alerta no relatório, com o método corrigido (T36).
 - [ ] PhysioNet (MIMIC-IV Demo) e AudioSet (ou ESC-50, com a escolha registrada) usados de fato, com divisão calibração / validação / reservado e resultados da parte reservada no relatório (T37).
 - [ ] `docs/ROTEIRO_VIDEO.md` pronto e `preflight_demo.py` todo em ✓ antes da gravação (T38).
-- [ ] `PROGRESSO.md` com T00–T33 e T35–T39 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
+- [ ] `PROGRESSO.md` com T00–T33 e T35–T40 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 
