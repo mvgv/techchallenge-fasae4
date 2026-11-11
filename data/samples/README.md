@@ -9,10 +9,10 @@ pacientes: use gravações encenadas ou datasets públicos, respeitando as licen
 | `physio_squat_correct.mp4` | Agachamento executado corretamente, câmera lateral, corpo inteiro visível | Gravado pelo grupo ou trecho do KIMORE / UI-PRMD | `scripts/build_exercise_reference.py` (referência do exercício) |
 | `physio_squat_wrong.mp4` | Agachamento incorreto: amplitude reduzida e joelho valgo | Gravado pelo grupo ou trecho do KIMORE / UI-PRMD | `run_demo.py`, P-0003, minuto 365 |
 | `bed_fall.mp4` | Queda do leito / do plano para o chão | Le2i Fall Detection ou UR Fall Detection (verificar a licença) | `run_demo.py`, P-0004, minuto 410 |
-| `consulta_p0001.wav` | Consulta encenada em pt-BR, 2–3 min, dois falantes, seguindo o roteiro da seção 7.2 do plano (com tosse e fala pausada) | Gravado pelo grupo | `run_demo.py`, P-0001, minuto 370 |
+| `consulta_p0001.wav` | Consulta em pt-BR, 38 s, dois falantes, seguindo o roteiro da seção 7.2 do plano (com tosse e fala pausada) | Gerada por `scripts/synthesize_consulta.py` (voz da Azure + tosses reservadas do ESC-50); ver `docs/DATASETS.md` | `run_demo.py`, P-0001, minuto 370 |
 | `cough.wav` | Trecho curto de tosse | AudioSet / Freesound com licença livre (CC0 ou CC-BY, citar o autor) | teste manual do detector de sons respiratórios (T17) |
 | `laudo_p0002.txt` | Laudo/evolução em texto (UTF-8) citando heparina, cetorolaco, ajuste de insulina e algum termo crítico (ex.: "sangramento") | Escrito pelo grupo (fictício) | `run_demo.py`, P-0002, minuto 385 |
-| `hello_ptbr.wav` | Frase curta em pt-BR ("Olá, este é um teste do MedWatch") | Gravado pelo grupo | `scripts/check_azure.py` (verificação do Azure Speech) |
+| `hello_ptbr.wav` | Frase curta em pt-BR ("Olá, este é um teste do MedWatch") | Gerada por `scripts/synthesize_consulta.py --only hello` | `scripts/check_azure.py` (verificação do Azure Speech) |
 | `voice_healthy/*.wav` | 5–10 leituras de voz saudável (mesmo texto, 20–30 s cada) | Gravado pelo grupo | `scripts/build_voice_baseline.py` (linha de base de voz) |
 | `video_annotations.csv` | Colunas `video, t_start, t_end, type` (segundos) com os eventos reais dos vídeos | Preenchido pelo grupo | `scripts/evaluate_video.py` |
 

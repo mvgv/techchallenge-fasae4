@@ -55,4 +55,16 @@ Gerado por `python scripts/pick_demo_clips.py` em `data/samples/` (fora do Git).
 | `bed_fall.mp4` | UR Fall `fall-12` (cam0, reservado) | uma das 2 quedas reservadas que a regra calibrada detecta (recall reservado 0,10: dizer isso no vídeo, sem esconder as outras 18) |
 | pacientes MIMIC | `M-10002495` (alerta crítico, risco de pico 98, NEWS2 alto + IForest + z-score, 20,7 h de internação) e `M-10039831` (alerta de aviso com IForest e NEWS2 médio, 15,7 h) | reservados, com alertas de vitais legíveis para mostrar no painel (`replay --mimic-split reservado`) |
 
-`consulta_p0001.wav` (passo 10) depende da Azure e segue bloqueado.
+## Consulta sintética pela Azure (passo 10)
+
+Gerada por `python scripts/synthesize_consulta.py` (precisa de `AZURE_SPEECH_KEY` e `USE_FAKE_AZURE=false`; ESC-50 baixado para as tosses). Gera `data/samples/consulta_p0001.wav` e `hello_ptbr.wav`, fora do Git.
+
+| Item | Valor |
+|---|---|
+| Roteiro | Seção 7.2 do plano: médica e paciente "seu João", 6 falas, 38 s |
+| Vozes | Azure neurais pt-BR: médica `pt-BR-FranciscaNeural`, paciente `pt-BR-AntonioNeural` (ritmo -20% a -25% e pausas depois das vírgulas) |
+| Tosses | 2 tosses **reais** de clipes reservados do ESC-50 (folds 4–5, ordenados pelo nome: `4-152995-A-24.wav` e `4-154443-A-24.wav`), inseridas depois da fala em que o paciente diz que tosse |
+| Formato | WAV 16 kHz mono PCM 16 bits |
+| Licença das tosses | ESC-50, CC BY-NC; citar o autor do clipe no vídeo, se aparecer |
+
+**Limitação, a dizer no vídeo:** numa voz sintética, a análise de fadiga e de alteração da fala (jitter, pausas, F0) não tem sentido clínico. Essa análise é demonstrada com vozes reais (Common Voice, passo 9). A transcrição, os termos críticos, o sentimento, as entidades de saúde e os sons respiratórios valem normalmente. Resultados da execução real: `docs/resultados/azure_integracao.md`.

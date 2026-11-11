@@ -2,14 +2,14 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-10 (T38 concluída; T37 aguarda humano)
-- **Tarefa atual:** nenhuma avançável sem humano (T37 passos 9 e 10)
-- **Estado geral:** T00–T33, T35, T36 e T38 concluídas; T37 feita até onde dá sem humano (passos 9 e 10 pendentes); T34 opcional e fora da ordem
+- **Última atualização:** 2026-11-10 (Azure real criada e verificada; consulta sintética gerada)
+- **Tarefa atual:** nenhuma avançável sem humano (T37 passo 9: Common Voice)
+- **Estado geral:** T00–T33, T35, T36 e T38 concluídas; T37 feita até onde dá sem humano (só o passo 9 pendente); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** nenhuma em andamento. T37 (passos 9 e 10) espera o humano: Common Voice (termos no site) e chaves Azure (consulta sintética `consulta_p0001.wav` e `hello_ptbr.wav`).
-- **Próximo passo exato:** quando o humano resolver os bloqueios: T37 passo 9 (Common Voice → `data/datasets/commonvoice/`, `make_splits --commonvoice`, linha de base de voz), passo 10 (consulta pela Azure), fechar a T37 com commit `T37: ...`. Depois, ensaio completo com `preflight_demo.py` e gravação (`docs/ROTEIRO_VIDEO.md`). T34 só se o humano pedir.
+- **Tarefa:** nenhuma em andamento. T37 só espera o humano no passo 9: Common Voice (aceitar os termos no site). O passo 10 (consulta sintética pela Azure) foi feito no desktop do humano em 2026-11-10: `scripts/synthesize_consulta.py`, `docs/resultados/azure_integracao.md`. As chaves da Azure estão só no `.env` do desktop; **a VPS não as tem**, então não tente chamar a Azure daqui.
+- **Próximo passo exato:** quando o humano disponibilizar o Common Voice: T37 passo 9 (`data/datasets/commonvoice/`, `make_splits --commonvoice`, linha de base de voz) e fechar a T37 com commit `T37: ...`. Depois, ensaio completo com `preflight_demo.py` e gravação (`docs/ROTEIRO_VIDEO.md`). T34 só se o humano pedir.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
 - **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`, `scripts/make_splits.py`, `config/splits.yaml`, `tests/test_splits.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `src/medwatch/anomaly/iforest.py`, `src/medwatch/anomaly/worker.py`, `src/medwatch/config.py`, `scripts/train_vitals_iforest.py`, `.env.example`, `scripts/evaluate_mimic.py`, `scripts/evaluate_vitals.py`, `tests/test_evaluate_mimic.py`, `config/thresholds.yaml`, `docs/resultados/mimic_*`
 - **Comandos longos em execução:** nenhum
@@ -57,7 +57,7 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | concluída | ver `git log` | `pytest -q` (190) e `ruff check .` passam; por alerta: recall 0,93 (ajuste) / 1,00 (conferência) e 0,10 alertas/dia em normais; recall 100% no ajuste não alcançado (hipotensão lenta, ver `vitals_tuning.md`) |
-| T37 | Datasets públicos do enunciado com partes reservadas | bloqueada (parcial) | | passos 1–8 e 11 feitos (`docs/resultados/datasets.md`); passos 9 (Common Voice) e 10 (consulta pela Azure) esperam o humano;  PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
+| T37 | Datasets públicos do enunciado com partes reservadas | bloqueada (parcial) | | passos 1–8, 10 e 11 feitos (`docs/resultados/datasets.md`, `azure_integracao.md`); só o passo 9 (Common Voice) espera o humano;  PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
 | T38 | Preparação da gravação do vídeo | concluída | ver `git log` | `pytest -q` (221) e `ruff check .` passam; `--fast-until`/`--tail-speedup`, `preflight_demo.py` (testes com clientes falsos), cartão com risco de pico e atual, `docs/ROTEIRO_VIDEO.md`; ensaio real e checagem com Azure/Teams [HUMANO]; simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
@@ -71,12 +71,13 @@ Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulad
 | `docker run` exige aprovação do humano nesta VPS; sem Python 3.11, `pytest -q` e `ruff check .` da T01 não puderam ser verificados | T01 passo 4 | 2026-11-08 | resolvido em 2026-11-08 (`.venv` com Python 3.11 disponível) |
 | `git push` falha: sem credenciais do GitHub nesta VPS (`could not read Username`); commit `T01 [wip]` existe só localmente | todos (push) | 2026-11-08 | resolvido em 2026-11-08 (push funciona; origin/main em dia) |
 | Escolher e configurar o ambiente remoto do agente (nuvem ou VPS, `docs/AMBIENTE_REMOTO.md`) | todas (opcional: dá para rodar localmente) | 2026-11-08 | resolvido em 2026-11-08 (VPS) |
-| Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05, verificações reais de T14, T15, T18 e a consulta sintética da T37 (passo 10) | — | aberto |
+| Provisionar recursos Azure e preencher `.env` (`scripts/provision_azure.sh`) | T05, verificações reais de T14, T15, T18 e a consulta sintética da T37 (passo 10) | — | resolvido em 2026-11-10 no desktop (assinatura POSTECH, `rg-medwatch`, `brazilsouth`; `check_azure.py` OK nos três serviços). A VPS não tem as chaves |
 | ~~Gravar `consulta_p0001.wav` e leituras de voz saudável~~ | T16, T18, T32 | — | substituído em 2026-11-09: a consulta e o `hello_ptbr.wav` passam a ser gerados pela Azure (T37, passo 10) e a voz saudável vem do Common Voice (linha abaixo) |
 | Common Voice (português): aceitar os termos no site oficial e disponibilizar os clipes em `data/datasets/commonvoice/` (ou o token no `.env`) | T37 passo 9 | 2026-11-09 | aberto |
 | Três vídeos de agachamento (correto para referência, correto de controle, incorreto), câmera lateral, ~30 s cada | T20, T21, T32, T38 | — | aberto |
 | ~~Vídeo de queda (Le2i ou UR Fall)~~ | T22, T32 | — | substituído em 2026-11-09: o agente baixa o UR Fall na T37 (passo 8); só volta a ser humano se o dataset estiver inacessível ou sem anotações |
 | Webhook do Teams e Logic App de e-mail | T27 | — | aberto |
+| Orçamento de alerta no portal da Azure (Cost Management) e prints do portal (recursos, métricas de uso, custo) | relatório e vídeo | 2026-11-10 | aberto |
 | Modelo OpenPose em `models/openpose/` (opcional) | T19b, T34d | — | aberto |
 | Gravar e publicar o vídeo de entrega | entrega | — | aberto |
 
@@ -148,3 +149,4 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-09 | T36 | ver `git log` | VPS. Rótulos persistentes, persistência no z-score/IForest (`p0_1`), métricas por episódio e por alerta, grade de 24 combinações (ajuste e conferência), limiares escolhidos, relatório atualizado. Próxima: T37. |
 | 2026-11-09 | T37 | ver `git log` | VPS, Opus 5.5. Em andamento. |
 | 2026-11-10 | T37 (passos 7, 8, 11), T38 | ver `git log` | VPS. ESC-50 avaliado e `audio_events` calibrado; UR Fall baixado, dividido e avaliado (queda: reservado precisão 0,67, recall 0,10; `bed.py` tolera lacunas de pose); material da demonstração e `docs/resultados/datasets.md`; T38 completa. T37 passos 9 e 10 aguardam humano. |
+| 2026-11-10 | T37 (passo 10), Azure | ver `git log` | Desktop do humano, Sonnet 5.5. Assinatura POSTECH: provedores registrados, `provision_azure.sh` criou Speech, Language e Blob em `brazilsouth`; `check_azure.py` OK nos três serviços. `scripts/synthesize_consulta.py` (voz da Azure + tosses reservadas do ESC-50) gerou `consulta_p0001.wav` e `hello_ptbr.wav`; a consulta passou pelo pipeline real: separação de falantes correta, 5 termos críticos (um falso por erro de reconhecimento), sentimento, 15 entidades de saúde, tosse detectada (score 0,17). Resultados em `docs/resultados/azure_integracao.md`. |

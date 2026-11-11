@@ -68,7 +68,10 @@ def test_real_azure_requires_keys_and_calls():
     calls = []
     res = pf.check_azure(s, lambda: calls.append(1))
     assert all(x.ok for x in res) and calls
-    res = pf.check_azure(Settings(use_fake_azure=False), lambda: calls.append(2))
+    # valores vazios explícitos: o Settings lê o .env, que pode ter chaves reais (T35/T37)
+    sem_chaves = Settings(use_fake_azure=False, azure_speech_key="", azure_language_key="",
+                          azure_language_endpoint="")
+    res = pf.check_azure(sem_chaves, lambda: calls.append(2))
     assert not res[0].ok and calls == [1]
 
 

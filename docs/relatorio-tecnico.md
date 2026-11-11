@@ -85,8 +85,12 @@ em português apontando as evidências. O worker de alertas notifica e, se ningu
 O provisionamento é feito por `scripts/provision_azure.sh` (grupo `rg-medwatch`) e a verificação por
 `scripts/check_azure.py`. Com `USE_FAKE_AZURE=true` todo o fluxo roda offline com clientes falsos.
 
-- **Custos observados:** **[PENDENTE]** — nenhuma execução real com chaves Azure foi feita nesta etapa. Registrar custo do
-  portal após a demo (Speech cobra por hora de áudio; Language por 1.000 registros).
+- **Execução real:** feita em 2026-11-10 na assinatura POSTECH (região `brazilsouth`): Speech, Language (inclusive entidades
+  de saúde em português) e Blob responderam, e uma consulta sintética de 38 s passou pelo pipeline completo, com separação de
+  falantes correta. Detalhes, a transcrição e as limitações (erro de reconhecimento que gerou um termo crítico falso) estão
+  em `docs/resultados/azure_integracao.md`.
+- **Custos observados:** **[PENDENTE]** — ler no portal (Cost Management) depois da demo; o consumo até aqui foi de poucos
+  minutos de áudio e algumas chamadas (Speech cobra por hora de áudio; Language por 1.000 registros).
 - **Prints do portal:** **[PENDENTE]** — recursos criados, métricas de uso e orçamento.
 
 ## 5. Resultados obtidos
