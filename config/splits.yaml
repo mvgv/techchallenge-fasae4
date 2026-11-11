@@ -687,3 +687,30 @@ voice:
   - f2d939a48f9da895
   - fd07ee0b5c790d9c
   - ffdc662469156d9b
+rehab24:
+  dataset: REHAB24-6 (Ex6, agachamento)
+  seed: 42
+  unit: person_id
+  rule: 4 calibração / 2 validação / 3 reservado, por voluntário (só 9 têm Ex6)
+  calibracao:
+  - '4'
+  - '5'
+  - '7'
+  - '8'
+  validacao:
+  - '3'
+  - '9'
+  reservado:
+  - '1'
+  - '2'
+  - '6'
+  videos:
+    '1': PM_008
+    '2': PM_022
+    '3': PM_029
+    '4': PM_038
+    '5': PM_043
+    '6': PM_105
+    '7': PM_126
+    '8': PM_113
+    '9': PM_118

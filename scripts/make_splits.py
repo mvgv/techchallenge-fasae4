@@ -1,6 +1,6 @@
 """Gera (ou atualiza) as divisões de config/splits.yaml a partir dos dados baixados.
 
-Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --commonvoice
+Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --commonvoice | --rehab24
 Cada opção reescreve só a sua seção; as outras ficam como estão.
 """
 import argparse
@@ -60,6 +60,25 @@ def urfall_splits() -> dict:
             "calibracao": falls[:10] + adls[:10], "reservado": falls[10:] + adls[10:]}
 
 
+def rehab24_splits(seg_csv: Path) -> dict:
+    """REHAB24-6, agachamento (Ex6): por voluntário, 4 calibração / 2 validação / 3 reservado.
+
+    O plano previa 10 voluntários (5/2/3), mas só 9 têm agachamento: o reservado fica com 3
+    e a calibração com 4. Cada voluntário tem um único vídeo (`PM_xxx`); a unidade é o voluntário.
+    """
+    import csv
+    people: dict[str, str] = {}
+    with open(seg_csv, newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh, delimiter=";"):
+            if r["exercise_id"] == "6":
+                people[r["person_id"]] = r["video_id"]
+    ids = sorted(people, key=int)
+    parts = split_ids(ids, (4 / 9, 2 / 9, 3 / 9), ("calibracao", "validacao", "reservado"))
+    return {"dataset": "REHAB24-6 (Ex6, agachamento)", "seed": SEED, "unit": "person_id",
+            "rule": "4 calibração / 2 validação / 3 reservado, por voluntário (só 9 têm Ex6)",
+            **parts, "videos": {k: people[k] for k in ids}}
+
+
 def load_splits(path: Path = SPLITS) -> dict:
     """Lê o splits.yaml (vazio se não existir)."""
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
@@ -79,6 +98,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--mimic", action="store_true")
     ap.add_argument("--esc50", action="store_true")
     ap.add_argument("--urfall", action="store_true")
+    ap.add_argument("--rehab24", action="store_true")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
     if a.mimic:
@@ -93,6 +113,10 @@ def main(argv: list[str] | None = None) -> None:
         sec = urfall_splits()
         save_section("urfall", sec)
         print({k: len(v) for k, v in sec.items() if k in ("calibracao", "reservado")})
+    if a.rehab24:
+        sec = rehab24_splits(a.data_dir / "datasets" / "rehab24" / "Segmentation.csv")
+        save_section("rehab24", sec)
+        print({k: v for k, v in sec.items() if k in ("calibracao", "validacao", "reservado")})
 
 
 if __name__ == "__main__":
