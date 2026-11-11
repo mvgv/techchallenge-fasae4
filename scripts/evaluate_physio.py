@@ -250,6 +250,81 @@ def ci(c: tuple[float, float]) -> str:
     return f"{100 * c[0]:.0f}% a {100 * c[1]:.0f}%"
 
 
+def render_report(state: dict) -> str:
+    """Markdown de docs/resultados/physio_rehab24.md a partir do estado salvo."""
+    cam, best, fin = state["camera"], state["best"], state["final"]
+    m, rows = fin["metrics"], fin["rows"]
+    p = best["pooled"]
+    params = ", ".join(f"`{k}` {v}" for k, v in best["params"].items())
+    lines = [
+        "# Fisioterapia com vídeo real: agachamento do REHAB24-6 (T39)", "",
+        "Dados: Ex6 (agachamento) do REHAB24-6, CC BY-NC 4.0 (ver `docs/DATASETS.md`). Divisão por "
+        "voluntário (semente 42): 4 calibração, 2 validação, 3 reservado. Pose: YOLOv8n-pose a 10 "
+        "quadros/s, vídeo reduzido a 960 px no maior lado. A análise roda por bloco de repetições "
+        "com a mesma orientação (1 s de margem), como num clipe curto. Uma repetição é "
+        "\"sinalizada\" se algum achado `physio_*` a cobre; o rótulo é o do fisioterapeuta.", "",
+        "## Escolha da câmera (só calibração)", "",
+        "| Câmera | Erro médio de contagem (repetições/bloco) | Orientação frontal | Meio perfil |",
+        "|---|---|---|---|"]
+    for c in ("17", "18"):
+        o = cam[c]["mae_by_orientation"]
+        lines.append(f"| {c} | {cam[c]['mae']:.1f} | {o.get('front', 0):.1f} | "
+                     f"{o.get('half-profile', 0):.1f} |")
+    lines += ["", f"Escolhida: câmera {cam['chosen']} (a 18 fica ortogonal à 17: quando a pessoa "
+              "está de frente para a 17, a 18 a vê de lado). Não há vista de perfil puro no "
+              "agachamento; o ângulo do joelho em 2D perde amplitude em meio perfil.", "",
+              "## Limiares (calibração + validação)", "",
+              f"Referência: {state['reference']['n_reps']} repetições corretas anotadas da "
+              f"calibração. Grade de {len(state['grid'])} combinações em `physio_rehab24.json`.",
+              "",
+              f"Proporção de repetições incorretas (calibração + validação): "
+              f"{pct(state['base_rate_incorrect'])}. Com os valores mantidos ({params}), as duas "
+              f"partes somadas dão precisão {pct(p['precision'])}, recall {pct(p['recall'])} e "
+              f"falsos alarmes {pct(p['false_alarm_rate'])}. "
+              + ("Alguma combinação separou as classes." if state["separates"] else
+                 "**Nenhuma combinação separou as classes**: a melhor precisão não passa, com "
+                 "IC de 95%, da proporção de incorretas (sinalizar tudo daria o mesmo). Os "
+                 "valores de `exercises.yaml` foram mantidos."), "",
+              "## Reservado (voluntários 1, 2 e 6; 70 repetições)", "",
+              f"- Repetições incorretas: {m['n_incorrect']}; corretas: {m['n_correct']}.",
+              f"- **Recall** de repetição incorreta: {m['tp']}/{m['n_incorrect']} = "
+              f"{pct(m['recall'])} (IC 95% de {ci(m['recall_ci'])}).",
+              f"- **Precisão**: {m['tp']}/{m['tp'] + m['fp']} = {pct(m['precision'])} "
+              f"(IC 95% de {ci(m['precision_ci'])}); a proporção de incorretas é "
+              f"{pct(m['n_incorrect'] / (m['n_incorrect'] + m['n_correct']))}, "
+              "então o sistema pouco supera sinalizar ao acaso.",
+              f"- **Falsos alarmes** (corretas sinalizadas): {m['fp']}/{m['n_correct']} = "
+              f"{pct(m['false_alarm_rate'])}.", "",
+              "### Contagem de repetições", "",
+              "| Voluntário | Orientação | Anotadas | Detectadas |", "|---|---|---|---|"]
+    for b in fin["counts"]["blocks"]:
+        lines.append(f"| {b['subject']} | {b['orientation']} | {b['annotated']} | "
+                     f"{b['detected']} |")
+    lines += ["", f"Erro absoluto médio por bloco: {fin['counts']['mae']:.1f} repetições. A "
+              "segmentação pico a pico tende a perder as repetições das pontas do bloco.", "",
+              "### Por voluntário", "",
+              "| Voluntário | Incorretas sinalizadas | Corretas sinalizadas |", "|---|---|---|"]
+    for s in sorted({r["subject"] for r in rows}):
+        sr = [r for r in rows if r["subject"] == s]
+        inc = [r for r in sr if r["label"] == "incorrect"]
+        cor = [r for r in sr if r["label"] == "correct"]
+        lines.append(f"| {s} | {sum(r['flagged'] for r in inc)}/{len(inc)} | "
+                     f"{sum(r['flagged'] for r in cor)}/{len(cor)} |")
+    lines += ["", "### Achados que mais disparam", "",
+              "| Achado | Em repetições incorretas | Em corretas |", "|---|---|---|"]
+    kinds = sorted({t for r in rows for t in r["types"]})
+    for k in kinds:
+        a = sum(k in r["types"] for r in rows if r["label"] == "incorrect")
+        b = sum(k in r["types"] for r in rows if r["label"] == "correct")
+        lines.append(f"| `{k}` | {a} | {b} |")
+    lines += ["", "O dataset não diz qual foi o erro encenado em cada repetição incorreta, só "
+              "que ela é incorreta; por isso não dá para checar se o achado coincide com o erro.",
+              "", "Limitações: 9 voluntários, 3 no reservado (ICs largos); marcadores de captura "
+              "de movimento no corpo; vista frontal ou meio perfil, nunca perfil; pose em 2D; "
+              "limiares de `exercises.yaml` não ajustados (nada separou as classes)."]
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> None:
     """Ponto de entrada da linha de comando."""
     ap = argparse.ArgumentParser(description=__doc__)
@@ -296,8 +371,8 @@ def main(argv: list[str] | None = None) -> None:
             r = evaluate_blocks(blocks_of(rows, cam, {"reservado"}), final, ref)
             state["final"] = {"params": best, "metrics": metrics(r), "counts": count_errors(r),
                               "rows": r}
-            print(json.dumps({k: v for k, v in state["final"].items() if k != "rows"},
-                             indent=1, default=str))
+            (OUT / "physio_rehab24.md").write_text(render_report(state), encoding="utf-8")
+            print(f"relatório em {OUT / 'physio_rehab24.md'}")
     OUT.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state, indent=1, default=str), encoding="utf-8")
 
