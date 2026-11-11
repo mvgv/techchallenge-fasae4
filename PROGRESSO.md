@@ -3,7 +3,7 @@
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
 - **Última atualização:** 2026-11-10 (Azure real criada e verificada; consulta sintética gerada)
-- **Tarefa atual:** nenhuma avançável sem humano (T37 passo 9: Common Voice)
+- **Tarefa atual:** nenhuma avançável sem humano (falta só o Common Voice, passo 9 da tarefa 37)
 - **Estado geral:** T00–T33, T35, T36 e T38 concluídas; T37 feita até onde dá sem humano (só o passo 9 pendente); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
