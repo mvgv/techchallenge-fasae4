@@ -3,14 +3,14 @@
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
 - **Última atualização:** 2026-11-09 (T37 em andamento)
-- **Tarefa atual:** T37
+- **Tarefa atual:** T38 (T37 só com os passos 9 e 10 pendentes de humano)
 - **Estado geral:** T00–T33, T35 e T36 concluídas; pendentes, nesta ordem: T37 (datasets reais com partes reservadas) e T38 (preparação da gravação); T34 opcional e fora da ordem
 
 ## Tarefa em andamento
 
-- **Tarefa:** T37 — Datasets públicos do enunciado com partes reservadas
+- **Tarefa:** T38 — Preparação da gravação do vídeo (T37: passos 9 e 10 aguardam humano)
 - **Passos concluídos:** 1 (MIMIC baixado e preparado; `docs/DATASETS.md` iniciado), 2 (`config/splits.yaml` seção mimic via `scripts/make_splits.py --mimic`), 3 (`load_mimic` com `split`, `rebase_start`, `window_hours`; replay `--mimic-split`/`--mimic-hours`), 4 (`models/vitals_iforest_mimic` treinado na calibração com limiares da validação; `VITALS_IFOREST_MODEL`; `carry_forward`), 7 (áudio: `scripts/evaluate_audio_events.py` no ESC-50; `audio_events` calibrado em `thresholds.yaml`, precisão/recall 0,97 no reservado), 8 (UR Fall: `download_urfall`, `make_splits --urfall`, `scripts/evaluate_urfall.py`, tolerância a lacunas de pose em `bed.py`, `video.fall` calibrado; reservado: precisão 0,67, recall 0,10, ver `docs/resultados/urfall_fall.md`), 5 e 6 (`scripts/evaluate_mimic.py`: carga de alarmes, injeção semissintética, `--tune` na validação; override `per_model` no worker; resultados em `docs/resultados/mimic_tuning.md` e `mimic_results.md`)
-- **Próximo passo exato:** passo 9 da T37 (Common Voice) está bloqueado por humano (termos no site; ver tabela de bloqueios) e o 10 (consulta sintética pela Azure) também (chaves). Fazer o que der sem eles: passo 11 (material da demonstração): copiar 2–3 clipes reservados de tosse/chiado do ESC-50 e `bed_fall.mp4` de uma queda reservada do UR Fall (ex.: `data/datasets/urfall/video/fall-15.mp4`) para `data/samples/`, escolher 1–2 pacientes reservados do MIMIC e registrar em `docs/DATASETS.md`; gerar `docs/resultados/datasets.md` agregando MIMIC, ESC-50 e UR Fall; depois fechar a T37 (commit final) e passar à T38.
+- **Próximo passo exato:** T38 passo 2: `scripts/preflight_demo.py` (checagem prévia com ✓/✗, código 1 se faltar algo crítico; reaproveitar `check_azure.py`; testar com clientes falsos), depois passo 3 (cartão de alerta com risco de pico e risco atual no `dashboard/app.py`) e passo 4 (`docs/ROTEIRO_VIDEO.md`, usando os clipes/pacientes de `docs/DATASETS.md`). Passo 1 (`--fast-until`/`--tail-speedup` no replay e no `run_demo.py`) concluído.
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
 - **Arquivos tocados:** `scripts/download_datasets.py`, `scripts/prepare_mimic.py` (PA arterial e °C), `tests/test_mimic.py`, `docs/DATASETS.md`, `scripts/make_splits.py`, `config/splits.yaml`, `tests/test_splits.py`, `src/medwatch/simulator/mimic.py`, `src/medwatch/simulator/replay.py`, `src/medwatch/anomaly/iforest.py`, `src/medwatch/anomaly/worker.py`, `src/medwatch/config.py`, `scripts/train_vitals_iforest.py`, `.env.example`, `scripts/evaluate_mimic.py`, `scripts/evaluate_vitals.py`, `tests/test_evaluate_mimic.py`, `config/thresholds.yaml`, `docs/resultados/mimic_*`
 - **Comandos longos em execução:** nenhum
@@ -58,8 +58,8 @@ Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEM
 | T34 | Opcionais | pendente | | opcional; fora da ordem, só se o humano pedir |
 | T35 | Integração ponta a ponta (modo falso) | concluída | ver `git log` | stack completo sobe e funciona (184 testes, zero reinícios); 4 defeitos corrigidos; falsos alarmes em P-0003/P-0005 vão para a T36; ver `docs/resultados/integracao.md`. Azure e Teams reais seguem pendentes [HUMANO] |
 | T36 | Avaliação de vitais corrigida e ajuste de limiares | concluída | ver `git log` | `pytest -q` (190) e `ruff check .` passam; por alerta: recall 0,93 (ajuste) / 1,00 (conferência) e 0,10 alertas/dia em normais; recall 100% no ajuste não alcançado (hipotensão lenta, ver `vitals_tuning.md`) |
-| T37 | Datasets públicos do enunciado com partes reservadas | em andamento | | PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
-| T38 | Preparação da gravação do vídeo | pendente | | simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
+| T37 | Datasets públicos do enunciado com partes reservadas | bloqueada (parcial) | | passos 1–8 e 11 feitos (`docs/resultados/datasets.md`); passos 9 (Common Voice) e 10 (consulta pela Azure) esperam o humano;  PhysioNet e AudioSet como dados; também UR Fall (queda), Common Voice (voz saudável) e consulta sintética pela Azure; adicionada na preparação do vídeo |
+| T38 | Preparação da gravação do vídeo | em andamento | | passo 1 feito; simulador mais rápido, checagem prévia, roteiro; adicionada na preparação do vídeo |
 
 Status possíveis: `pendente`, `em andamento`, `concluída`, `bloqueada`, `pulada` (só T34).
 

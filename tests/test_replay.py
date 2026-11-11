@@ -40,3 +40,21 @@ def test_sleeps_scaled_by_phase(tmp_path, monkeypatch):
     assert sleeps[-1] == 10.0        # 60 s simulados a 6x
     assert len(sleeps) == 479
     assert bus.r.xlen("vitals") == 5 * 480
+
+
+def test_demo_phases_tail_speedup():
+    assert replay.demo_phases() == replay.DEMO_PHASES
+    phases = replay.demo_phases(12)
+    assert replay.speedup_at(phases, 10) == 60
+    assert replay.speedup_at(phases, 400) == 12
+
+
+def test_fast_until_skips_sleep_then_follows_phases(tmp_path, monkeypatch):
+    monkeypatch.setattr(get_settings(), "local_storage_dir", tmp_path)
+    bus = Bus(fakeredis.FakeRedis(decode_responses=True))
+    sleeps: list[float] = []
+    replay.run("demo", 5, 60, START, bus=bus, sleep=sleeps.append,
+               fast_until=355, tail_speedup=12)
+    assert sleeps[0] == 1.0 and sleeps[-1] == 5.0   # 355–360 ainda a 60x; depois 60 s a 12x
+    assert len(sleeps) < 140                         # a hora inicial (360 min) foi sem espera
+    assert 9 * 60 < sum(sleeps) < 11 * 60            # trecho 360–480 em ~10 min reais

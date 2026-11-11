@@ -69,22 +69,35 @@ def speedup_at(phases: list[tuple[int, float]], sim_minute: float) -> float:
     return cur
 
 
+def demo_phases(tail_speedup: float | None = None) -> list[tuple[int, float]]:
+    """Fases do cenário `demo`; `tail_speedup` substitui a velocidade da fase final."""
+    if tail_speedup is None:
+        return list(DEMO_PHASES)
+    return [*DEMO_PHASES[:-1], (DEMO_PHASES[-1][0], tail_speedup)]
+
+
 def run(scenario: str, n_patients: int, speedup: float, start: datetime, fast: bool = False,
         bus: Bus | None = None, sleep=time.sleep, seed: int = 0,
-        mimic_split: str | None = None, mimic_hours: float | None = None) -> int:
-    """Publica os eventos; retorna quantas mensagens foram publicadas."""
+        mimic_split: str | None = None, mimic_hours: float | None = None,
+        fast_until: float | None = None, tail_speedup: float | None = None) -> int:
+    """Publica os eventos; retorna quantas mensagens foram publicadas.
+
+    `fast_until`: minuto simulado até o qual se publica sem espera; depois seguem as fases.
+    `tail_speedup`: velocidade da fase final do `demo` (padrão: a de `DEMO_PHASES`).
+    """
     bus = bus or Bus()
     events, labels = build_events(scenario, n_patients, start, seed, mimic_split, mimic_hours)
     gt_dir = get_settings().local_storage_dir / "ground_truth"
     gt_dir.mkdir(parents=True, exist_ok=True)
     (gt_dir / f"{scenario}.json").write_text(json.dumps(labels, indent=2), encoding="utf-8")
-    phases = DEMO_PHASES if scenario == "demo" else [(0, speedup)]
+    phases = demo_phases(tail_speedup) if scenario == "demo" else [(0, speedup)]
     prev: datetime | None = None
     count = 0
     i = 0
     while i < len(events):
         ts = events[i][0]
-        if prev is not None and not fast:
+        skip = fast or (fast_until is not None and (ts - start).total_seconds() / 60 <= fast_until)
+        if prev is not None and not skip:
             minute = (prev - start).total_seconds() / 60
             sleep((ts - prev).total_seconds() / speedup_at(phases, minute))
         while i < len(events) and events[i][0] == ts:
@@ -107,6 +120,10 @@ def main() -> None:
                     "config/splits.yaml (calibracao, validacao, reservado); implica cenário mimic")
     ap.add_argument("--mimic-hours", type=float, default=None,
                     help="MIMIC: só as primeiras N horas de cada paciente")
+    ap.add_argument("--fast-until", type=float, default=None, metavar="MIN",
+                    help="publica sem espera até este minuto simulado e depois segue as fases")
+    ap.add_argument("--tail-speedup", type=float, default=None, metavar="FATOR",
+                    help="substitui a velocidade da fase final do cenário demo")
     args = ap.parse_args()
     logging.basicConfig(level=st.log_level)
     scenario = "mimic" if args.mimic_split else st.sim_scenario
@@ -121,7 +138,8 @@ def main() -> None:
         for pid in split_patients(args.mimic_split):
             db.upsert_patient(pid, f"MIMIC {pid[2:]}", f"MIMIC-{args.mimic_split}")
     run(scenario, st.sim_patients, st.sim_speedup, start, fast=args.fast,
-        mimic_split=args.mimic_split, mimic_hours=args.mimic_hours)
+        mimic_split=args.mimic_split, mimic_hours=args.mimic_hours,
+        fast_until=args.fast_until, tail_speedup=args.tail_speedup)
 
 
 if __name__ == "__main__":

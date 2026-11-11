@@ -125,12 +125,16 @@ def send_step(client: httpx.Client, step: DemoStep, samples_dir: Path,
     return resp.json()
 
 
-def start_simulator(start: datetime) -> subprocess.Popen:
+def start_simulator(start: datetime, fast_until: float | None = None,
+                    tail_speedup: float | None = None) -> subprocess.Popen:
     """Inicia `medwatch.simulator.replay` com `SIM_SCENARIO=demo` e o início informado."""
     env = {**os.environ, "SIM_SCENARIO": "demo"}
-    return subprocess.Popen(
-        [sys.executable, "-m", "medwatch.simulator.replay", "--start", start.isoformat()],
-        env=env, cwd=ROOT)
+    cmd = [sys.executable, "-m", "medwatch.simulator.replay", "--start", start.isoformat()]
+    if fast_until is not None:
+        cmd += ["--fast-until", str(fast_until)]
+    if tail_speedup is not None:
+        cmd += ["--tail-speedup", str(tail_speedup)]
+    return subprocess.Popen(cmd, env=env, cwd=ROOT)
 
 
 def run_demo(client: httpx.Client, r: redis.Redis, start: datetime, samples_dir: Path,
@@ -209,6 +213,10 @@ def main() -> int:
     ap.add_argument("--start", help="início do tempo simulado (ISO 8601); padrão: o do replay")
     ap.add_argument("--external-simulator", action="store_true",
                     help="não inicia o simulador; use docker compose --profile demo up simulator")
+    ap.add_argument("--fast-until", type=float, default=None, metavar="MIN",
+                    help="simulador: sem espera até este minuto simulado (ex.: 355)")
+    ap.add_argument("--tail-speedup", type=float, default=None, metavar="FATOR",
+                    help="simulador: velocidade da fase final (ex.: 12 → minutos 360–480 em ~10 min)")
     args = ap.parse_args()
 
     client = httpx.Client(base_url=args.api, timeout=30)
@@ -233,7 +241,7 @@ def main() -> int:
             f"(início simulado esperado: {start.isoformat()})")
     else:
         log(f"3/5 iniciando o simulador (SIM_SCENARIO=demo, início {start.isoformat()})")
-        proc = start_simulator(start)
+        proc = start_simulator(start, args.fast_until, args.tail_speedup)
     log("4/5 acompanhando sim:clock; mídias serão enviadas nos minutos "
         + ", ".join(f"{s.minute} ({s.patient_id})" for s in DEMO_STEPS))
     try:
