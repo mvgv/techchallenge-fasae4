@@ -155,27 +155,58 @@ consulta em áudio (P-0001, min. 370), laudo (P-0002, min. 385), agachamento inc
 4. Agachamento com amplitude reduzida (`physio_low_rom`, `physio_pattern_deviation`) **[PENDENTE]**
 5. Alerta no Teams **[PENDENTE]**
 
-Estes casos exigem as amostras de mídia, os pesos YOLO e (para 2 e 5) chaves Azure e webhook, ainda não disponíveis.
+Dos insumos que estes casos exigem, já existem os pesos YOLO, a Azure real e as amostras de áudio e de queda (ver 5.4 e
+`docs/resultados/azure_integracao.md`); faltam os vídeos de agachamento e o webhook do Teams.
+
+### 5.4 Resultados com datasets públicos (partes reservadas)
+
+Cada dataset foi dividido por paciente, clipe, sequência ou falante em calibração, validação (quando houve) e
+**reservado**; o reservado nunca ajustou limiar nem modelo (`config/splits.yaml`, `docs/DATASETS.md`). Resumo:
+
+| Dataset | Componente | Reservado | Resultado | Detalhes |
+|---|---|---|---|---|
+| MIMIC-IV Demo 2.2 (PhysioNet) | vitais (NEWS2 + z-score + Isolation Forest) | 20 pacientes, 107,7 paciente-dias | recall semissintético 0,87 (taquicardia curta 0,69); 1,09 alerta por paciente-dia só com vitais e 1,87 com prescrições | `mimic_results.md` |
+| ESC-50 | sons respiratórios (AST) | folds 4–5, 160 clipes | precisão 0,97 e recall 0,97 (respiratório × não respiratório) | `audio_events.md` |
+| UR Fall (cam0) | queda (pose YOLOv8n + regra de quadril e proporção) | quedas 11–30 e ADL 11–40 | precisão 0,67 e recall 0,10 (na calibração, recall 0,90) | `urfall_fall.md` |
+| Common Voice pt-BR | voz saudável (linha de base e falsos alarmes) | 27 falantes | 2 de 27 (7,4%; IC 95% de 2% a 23%) dispararam `voice_fatigue`; nenhum, disartria | `voice_baseline.md` |
+| Consulta sintética (Azure) | fala → texto → termos | consulta de 38 s | separação de falantes correta nas 8 falas; 5 termos críticos, 1 falso por erro de reconhecimento | `azure_integracao.md` |
+
+Leitura sem maquiagem:
+
+- **Vitais reais geram muitos alertas:** 25 das 27 internações reservadas tiveram algum alerta quando se somam as
+  prescrições. Num uso real isso seria fadiga de alarmes. As leituras do MIMIC são em geral horárias, o que limita o atraso
+  mínimo dos alertas e explica o recall menor do `tachy_spike` (o z-score precisa de 20 leituras).
+- **A queda generaliza mal:** 0,90 de recall na calibração caiu para 0,10 no reservado (clipes curtos que terminam logo
+  depois de a pessoa deitar, e a pose falha com a pessoa no chão). O número da calibração não deve ser apresentado como
+  desempenho.
+- **Voz:** só se mediu especificidade, com 27 falantes. Os limiares de ritmo de fala e de pausas não foram calibrados com
+  estes dados (leitura de frases curtas, não conversa), e a linha de base vale para áudio de qualidade parecida.
+- **Áudio fora do laboratório:** o AST deu 0,97 de recall em clipes isolados do ESC-50, mas só 0,17 para tosses reais
+  misturadas à fala da consulta sintética.
 
 ## 6. Limitações, ética e LGPD
 
 - **Não é dispositivo médico.** Alertas são apoio à decisão; a confirmação é sempre humana (ack/descartar no dashboard).
-- **Dados:** somente sintéticos, encenados ou públicos (MIMIC-IV Demo, Le2i/UR Fall, KIMORE), respeitando licenças. Nenhum
+- **Dados:** sintéticos (simulador de vitais e consulta com vozes da Azure) e públicos (MIMIC-IV Demo, ESC-50, UR Fall e
+  Common Voice pt-BR), respeitando as licenças (o Common Voice proíbe re-hospedar e identificar falantes). Nenhum
   dado real de paciente deve ser enviado. `.env`, `data/` e `models/` ficam fora do Git.
 - **LGPD:** dados de saúde são sensíveis (art. 11). Um uso real exigiria base legal, minimização, controle de acesso,
   registro de auditoria, retenção definida, relatório de impacto e contrato com a Microsoft cobrindo o tratamento na
   nuvem (região, subprocessadores). Vídeo e voz também são dados pessoais/biométricos.
 - **Vieses e validade:** modelos COCO/AudioSet não foram treinados para ambiente hospitalar; vozes, sotaques e câmeras
   diferentes alteram o desempenho; indicadores de fadiga/disartria exigem linha de base individual.
-- **Validação:** métricas vêm de dados sintéticos; não há avaliação clínica. Pesos de fusão não são calibrados.
+- **Validação:** métricas vêm de dados sintéticos e de datasets públicos reservados (5.4); não há avaliação clínica. Pesos
+  de fusão não são calibrados.
 - **Falsos positivos** geram fadiga de alertas; cooldown e escalonamento mitigam, mas precisam de ajuste fino.
 - **Explicabilidade:** cada alerta lista as evidências e as contribuições (top 10), com `source_ref` para a mídia.
 
 ## 7. Próximos passos
 
-1. Executar a demonstração completa com amostras reais, chaves Azure e Teams, e preencher as seções 4 e 5.3.
-2. Anotar vídeos e rodar `evaluate_video.py`.
-3. Treinar o Isolation Forest com MIMIC-IV e reduzir os falsos positivos do z-score por evidência (agora só mitigados pela fusão).
+1. Gravar a demonstração completa com os vídeos de agachamento e o Teams (a Azure real, o áudio e a queda já foram
+   verificados), e preencher os custos e os prints da seção 4 e os casos da 5.3.
+2. Anotar vídeos próprios e rodar `evaluate_video.py`.
+3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e melhorar a regra de queda, que generaliza mal
+   (recall 0,10 no UR Fall reservado).
 4. Calibrar os pesos de fusão com desfechos rotulados.
 5. Substituir/complementar o YOLO COCO por detector de instrumentos cirúrgicos treinado; avaliar OpenPose.
 6. Integrar a um padrão de interoperabilidade (HL7 FHIR) e adicionar autenticação, auditoria e RBAC.

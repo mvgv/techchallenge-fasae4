@@ -600,3 +600,90 @@ urfall:
   - adl-38
   - adl-39
   - adl-40
+voice:
+  dataset: Common Voice pt-BR (recorte brasileiro, MDC)
+  unit: falante (prefixo do client_id)
+  rule: falantes com 10+ clipes; 10 clipes cada; 2/3 calibração, 1/3 reservado
+  calibracao:
+  - 01e1014e3aaca97e
+  - 033e3ec0fb285798
+  - 05533851df424003
+  - 13cc29f643e67c82
+  - 1dd1f26838a3de08
+  - 204d37bae89ccbea
+  - 207e80d01aa3ebdf
+  - 23324ba5f922d95a
+  - 2a44a41d20678a2e
+  - 2f98936a08109946
+  - 355e42b30b683eb9
+  - 394da75569f7488e
+  - 44cbd2a7407beaad
+  - 49f853ba3b282cbd
+  - 5217816f07338b09
+  - 535ad72466e1c3e7
+  - 57101843016ffd59
+  - 5b49e33f36f9bd3b
+  - 5c1bf3b021aaea27
+  - 6ae9da27edf6d641
+  - 73db82c1b193333c
+  - 78f17d96ea8211d9
+  - 7c4cc793f6e6df33
+  - 7d6a6bda070ee7cf
+  - 7d783d5c9d4adbe3
+  - 7db031bf949fce99
+  - 81a216fda63c537e
+  - 82bae61b6c43f229
+  - 9137f4fb9f04c364
+  - 9316ad5960be8d14
+  - 97cd3efc25f3ef57
+  - 9da14a084b723689
+  - 9e94f58c8c0f3db4
+  - ae0454833bb563a9
+  - b4ee153fe9db30b6
+  - b59b5827bb01ba12
+  - bafe6f99fffb941a
+  - befdbeb32601e3e7
+  - bffe3bc456c656b4
+  - c13a453087edbe95
+  - cdd6c782207abe1a
+  - d24f1f963eb978af
+  - d36c73b13b326d5d
+  - d496c9bdca5cb93a
+  - d7e415336f12cb9d
+  - da5d11ca0de6b4ac
+  - dd1da80869ab8339
+  - df268ebd4060c810
+  - df39ddc14f556a9a
+  - e4d1ad57f8c0a156
+  - e4d9e5de7d870603
+  - ed15e6124fe77dda
+  - f38d888cc3cff209
+  - f4d2516d878b2fc3
+  reservado:
+  - 0e07a6c5f94a522f
+  - 11366983dd70cc61
+  - 2abd8de8cc78ad30
+  - 301d55c255565f2b
+  - 3051c32f556e1203
+  - 419b85ff83960c9c
+  - 5dd7d5f94082dc13
+  - 5e61a703d3e61fd4
+  - 5e7d8d86471f5e3e
+  - 63850bd9f5d88828
+  - 69854a8f056192a1
+  - 709190b65caddde1
+  - 7a204cbdd6d9b08a
+  - 7b5c79d0eab18bcd
+  - 7cda18e9c585a1ba
+  - 80f9d485b120eb74
+  - 8d5be88a20e59bfd
+  - 908370525ccfb5ae
+  - ba08ae1f999f8e91
+  - d9a4c45048561f6d
+  - e4c54f9bfb2999d7
+  - e7b55184b1fc7639
+  - ea78257ceab1da09
+  - f1252f15c55d88c0
+  - f2d939a48f9da895
+  - fd07ee0b5c790d9c
+  - ffdc662469156d9b

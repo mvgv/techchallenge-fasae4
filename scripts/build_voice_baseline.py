@@ -7,8 +7,8 @@ from pathlib import Path
 from medwatch.audio.acoustic import Z_FEATURES, extract_features
 
 
-def build(wavs: list[Path]) -> dict:
-    rows = [extract_features(w, [], None) for w in wavs]
+def baseline_from_rows(rows: list[dict]) -> dict:
+    """Média e desvio de cada feature a partir de atributos já extraídos (um dict por gravação)."""
     baseline: dict = {}
     for f in Z_FEATURES + ("pause_ratio",):
         vals = [r[f] for r in rows if r.get(f) is not None]
@@ -16,6 +16,10 @@ def build(wavs: list[Path]) -> dict:
             baseline[f] = {"mean": statistics.fmean(vals),
                            "std": statistics.pstdev(vals) if len(vals) > 1 else 0.0}
     return baseline
+
+
+def build(wavs: list[Path]) -> dict:
+    return baseline_from_rows([extract_features(w, [], None) for w in wavs])
 
 
 def main() -> None:

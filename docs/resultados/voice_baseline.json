@@ -1,0 +1,140 @@
+{
+  "limiares": {
+    "speech_rate_wpm_min": 100,
+    "pause_ratio_max": 0.4,
+    "z_threshold": 2.0
+  },
+  "linha_de_base": {
+    "f0_mean": {
+      "mean": 28.236161514564795,
+      "std": 3.820087040462586
+    },
+    "f0_var": {
+      "mean": 0.19714794018202358,
+      "std": 0.07652040902516276
+    },
+    "jitter": {
+      "mean": 0.02472218298525722,
+      "std": 0.005199128025744266
+    },
+    "shimmer_db": {
+      "mean": 1.3475844352333635,
+      "std": 0.1603734369584766
+    },
+    "hnr": {
+      "mean": 5.220789723926121,
+      "std": 1.5863013154855758
+    },
+    "loudness": {
+      "mean": 0.5694360865486993,
+      "std": 0.15404649365421247
+    },
+    "pause_ratio": {
+      "mean": 0.11632252939996185,
+      "std": 0.07000413115308644
+    }
+  },
+  "calibracao": {
+    "n": 54,
+    "algum_alarme": 1,
+    "taxa": 0.019,
+    "por_tipo": {
+      "voice_fatigue": 0,
+      "voice_dysarthria_indicator": 1
+    },
+    "sinais": {
+      "jitter_high": 1,
+      "shimmer_high": 1
+    }
+  },
+  "reservado": {
+    "n": 27,
+    "algum_alarme": 2,
+    "taxa": 0.074,
+    "por_tipo": {
+      "voice_fatigue": 2,
+      "voice_dysarthria_indicator": 0
+    },
+    "sinais": {
+      "slow_speech": 2,
+      "low_loudness": 1,
+      "many_pauses": 1
+    }
+  },
+  "distribuicao": {
+    "calibracao": {
+      "speech_rate_wpm": {
+        "media": 124.519,
+        "p5": 70.819,
+        "p95": 167.598
+      },
+      "pause_ratio": {
+        "media": 0.116,
+        "p5": 0.035,
+        "p95": 0.213
+      },
+      "jitter": {
+        "media": 0.025,
+        "p5": 0.018,
+        "p95": 0.031
+      },
+      "shimmer_db": {
+        "media": 1.348,
+        "p5": 1.087,
+        "p95": 1.566
+      },
+      "hnr": {
+        "media": 5.221,
+        "p5": 3.104,
+        "p95": 8.28
+      },
+      "loudness": {
+        "media": 0.569,
+        "p5": 0.34,
+        "p95": 0.83
+      },
+      "duration_s": {
+        "media": 30.02,
+        "p5": 14.368,
+        "p95": 49.248
+      }
+    },
+    "reservado": {
+      "speech_rate_wpm": {
+        "media": 118.699,
+        "p5": 87.512,
+        "p95": 161.638
+      },
+      "pause_ratio": {
+        "media": 0.129,
+        "p5": 0.027,
+        "p95": 0.291
+      },
+      "jitter": {
+        "media": 0.023,
+        "p5": 0.016,
+        "p95": 0.033
+      },
+      "shimmer_db": {
+        "media": 1.264,
+        "p5": 0.94,
+        "p95": 1.554
+      },
+      "hnr": {
+        "media": 5.766,
+        "p5": 3.12,
+        "p95": 9.267
+      },
+      "loudness": {
+        "media": 0.556,
+        "p5": 0.265,
+        "p95": 1.422
+      },
+      "duration_s": {
+        "media": 27.682,
+        "p5": 14.656,
+        "p95": 38.472
+      }
+    }
+  }
+}

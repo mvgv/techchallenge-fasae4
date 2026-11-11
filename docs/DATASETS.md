@@ -68,3 +68,19 @@ Gerada por `python scripts/synthesize_consulta.py` (precisa de `AZURE_SPEECH_KEY
 | Licença das tosses | ESC-50, CC BY-NC; citar o autor do clipe no vídeo, se aparecer |
 
 **Limitação, a dizer no vídeo:** numa voz sintética, a análise de fadiga e de alteração da fala (jitter, pausas, F0) não tem sentido clínico. Essa análise é demonstrada com vozes reais (Common Voice, passo 9). A transcrição, os termos críticos, o sentimento, as entidades de saúde e os sons respiratórios valem normalmente. Resultados da execução real: `docs/resultados/azure_integracao.md`.
+
+## Common Voice pt-BR, recorte brasileiro (passo 9)
+
+| Campo | Valor |
+|---|---|
+| Fonte | Mozilla Data Collective, "Common Voice Scripted Speech 26.0 - Brazilian Portuguese" (MDC Curators), <https://mozilladatacollective.com/datasets/cmruxo9ew00d3md07veethj6k> |
+| Licença | CC0-1.0. Uso proibido: tentar determinar a identidade dos falantes. (O pacote completo de 27.0 também proíbe re-hospedar e recompartilhar.) |
+| Obtido em | 2026-11-10, baixado à mão pelo humano (conta no site e aceite dos termos); arquivo `1784654835483-pt-BR.tar.gz`, 122,2 MB, extraído em `data/datasets/commonvoice/extracted/pt-BR/` (fora do Git) |
+| Conteúdo | 5.051 clipes MP3 de 202 falantes: `train.tsv` (3.762), `dev.tsv` (862) e `test.tsv` (427). Só áudio validado (pelo menos 1 voto a favor e nenhum contra) de falantes de sotaque brasileiro. Colunas: `client_id`, `path`, `sentence`, `up_votes`, `down_votes`, `age`, `gender`, `accents`, `variant`, entre outras |
+| Por que o recorte | O pacote completo de português (27.0) tem 4,85 GB; o recorte brasileiro tem 122 MB e basta para a linha de base |
+| Seleção | 81 falantes com 10 ou mais clipes; de cada um, os 10 primeiros clipes (por nome), com o silêncio das pontas aparado e concatenados num trecho contínuo de 15 a 50 s. O limite por falante evita que um deles, com 658 clipes, domine a linha de base |
+| Divisão | Por falante, semente 42: 54 de calibração e 27 reservados (`config/splits.yaml`, seção `voice`, só o prefixo de 16 caracteres do `client_id`) |
+| Uso | A linha de base de voz saudável (`data/references/voice_baseline.json`, fora do Git) vem só da calibração; os falsos alarmes são medidos no reservado, com `python scripts/evaluate_voice.py` |
+| Resultado | 2 de 27 vozes reservadas (7,4%; IC 95% de 2% a 23%) dispararam `voice_fatigue`: ver `docs/resultados/voice_baseline.md` |
+
+Os áudios ficam só em `data/`. O recorte tem cerca de 71% de clipes de vozes masculinas e quase só adultos de 20 a 40 anos; isso e o fato de serem leituras de frases curtas, e não conversas, limitam o que a linha de base representa.
