@@ -47,15 +47,45 @@ def download_mimic(out: Path) -> None:
     prepare(out)
 
 
+REHAB24_BASE = "https://zenodo.org/api/records/13305826/files/"
+REHAB24_FILES = {
+    "joints_names.txt": "3f04a37cce43086b1ea1fa49f1e4514f",
+    "Segmentation.txt": "5f2a5b886c6f794f03e1a8f642738c86",
+    "Segmentation.csv": "90b8fbd7445dd050bf27b17126c78fbe",
+    "videos.zip": "ed183a245a1b171638e422f7a288e5a8",
+}
+
+
+def md5sum(path: Path) -> str:
+    """MD5 de um arquivo, lido em blocos."""
+    import hashlib
+    h = hashlib.md5()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download_rehab24(out: Path) -> None:
+    """Baixa os arquivos do REHAB24-6 (Zenodo, CC BY-NC 4.0) e confere os md5."""
+    for name, md5 in REHAB24_FILES.items():
+        p = fetch(f"{REHAB24_BASE}{name}/content", out / name)
+        if md5sum(p) != md5:
+            p.unlink()
+            raise SystemExit(f"md5 diferente em {name}: arquivo apagado, rode de novo")
+        print(f"ok {p} ({p.stat().st_size / 1e6:.1f} MB, md5 conferido)")
+
+
 def main(argv: list[str] | None = None) -> None:
     """Ponto de entrada da linha de comando."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mimic", action="store_true", help="MIMIC-IV Demo (PhysioNet)")
     ap.add_argument("--esc50", action="store_true", help="ESC-50 (sons respiratórios)")
     ap.add_argument("--urfall", action="store_true", help="UR Fall Detection (cam0)")
+    ap.add_argument("--rehab24", action="store_true", help="REHAB24-6 (fisioterapia, Zenodo)")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
-    if not (a.mimic or a.esc50 or a.urfall):
+    if not (a.mimic or a.esc50 or a.urfall or a.rehab24):
         ap.error("escolha ao menos um dataset")
     if a.mimic:
         download_mimic(a.data_dir / "mimic")
@@ -63,6 +93,8 @@ def main(argv: list[str] | None = None) -> None:
         download_esc50(a.data_dir / "datasets" / "esc50")
     if a.urfall:
         download_urfall(a.data_dir / "datasets" / "urfall")
+    if a.rehab24:
+        download_rehab24(a.data_dir / "datasets" / "rehab24")
 
 
 ESC50_BASE = "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/"

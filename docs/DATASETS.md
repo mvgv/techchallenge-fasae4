@@ -84,3 +84,16 @@ Gerada por `python scripts/synthesize_consulta.py` (precisa de `AZURE_SPEECH_KEY
 | Resultado | 2 de 27 vozes reservadas (7,4%; IC 95% de 2% a 23%) dispararam `voice_fatigue`: ver `docs/resultados/voice_baseline.md` |
 
 Os áudios ficam só em `data/`. O recorte tem cerca de 71% de clipes de vozes masculinas e quase só adultos de 20 a 40 anos; isso e o fato de serem leituras de frases curtas, e não conversas, limitam o que a linha de base representa.
+
+## REHAB24-6, fisioterapia (T39)
+
+| Item | Valor |
+|---|---|
+| Fonte | Zenodo, <https://zenodo.org/records/13305826>, DOI `10.5281/zenodo.13305826`, v1, acesso aberto sem cadastro |
+| Licença | **CC BY-NC 4.0**: só pesquisa acadêmica, não comercial. Citar: Černek, A., Sedmidubsky, J., Budikova, P., "REHAB24-6: Physical Therapy Dataset for Analyzing Pose Estimation Methods", SISAP 2024 |
+| Baixado | 2026-11-11, `python scripts/download_datasets.py --rehab24` (`videos.zip` 2,65 GB, `Segmentation.csv`, `Segmentation.txt`, `joints_names.txt`; md5 conferidos); só o Ex6 foi extraído para `data/datasets/rehab24/videos/Ex6/` |
+| Colunas de `Segmentation.csv` (separador `;`) | `video_id`, `repetition_number`, `exercise_id`, `person_id`, `first_frame`, `last_frame` (quadros a 30 fps), `cam17_orientation` (`front`, `half-profile`, `profile`), `mocap_erroneous`, `exercise_subtype`, `lights_on`, `extra_person_in_cam17`, `extra_person_in_cam18`, `correctness` (1 certa, 0 incorreta) |
+| Vídeos | Um par por voluntário e exercício: `PM_xxx-Camera17-30fps.mp4` (1920x1080) e `PM_xxx-Camera18-30fps-transposed.mp4` (1080x1920, retrato), ambos a 30 fps. A câmera 18 fica ortogonal à 17: se a pessoa está de frente para a 17, está de lado para a 18 |
+| Agachamento (Ex6) | 195 repetições (134 certas, 61 incorretas) em **9 voluntários** (`person_id` 1 a 9; um vídeo cada: PM_008, 022, 029, 038, 043, 105, 126, 113, 118), não 10 como a página sugere. Por voluntário (incorretas/certas): 1: 6/21, 2: 1/21, 3: 10/10, 4: 3/17, 5: 10/10, 6: 11/10, 7: 10/10, 8: 5/17, 9: 5/18 |
+| Orientação | No agachamento só há `front` (98 repetições) e `half-profile` (97); **não há `profile`**. A orientação muda dentro do mesmo vídeo (blocos de cerca de 10 repetições), então a câmera adequada (a 18 quando a pessoa está de frente para a 17) depende do trecho |
+| Limitações | Voluntários com marcadores de captura de movimento; sem vista lateral pura, então o ângulo do joelho em 2D perde amplitude; só 9 voluntários, e com divisão por voluntário o reservado terá poucos |
