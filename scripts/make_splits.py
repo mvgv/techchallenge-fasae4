@@ -51,6 +51,15 @@ def esc50_splits(meta_csv: Path) -> dict:
             "reservado": [r["filename"] for r in rows if int(r["fold"]) >= 4]}
 
 
+def urfall_splits() -> dict:
+    """UR Fall: quedas 01–10 e ADL 01–10 para calibração; o resto reservado (regra do plano)."""
+    falls = [f"fall-{i:02d}" for i in range(1, 31)]
+    adls = [f"adl-{i:02d}" for i in range(1, 41)]
+    return {"dataset": "UR Fall Detection (cam0)", "unit": "sequência",
+            "rule": "fall 01-10 e adl 01-10 / fall 11-30 e adl 11-40",
+            "calibracao": falls[:10] + adls[:10], "reservado": falls[10:] + adls[10:]}
+
+
 def load_splits(path: Path = SPLITS) -> dict:
     """Lê o splits.yaml (vazio se não existir)."""
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
@@ -69,6 +78,7 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mimic", action="store_true")
     ap.add_argument("--esc50", action="store_true")
+    ap.add_argument("--urfall", action="store_true")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
     if a.mimic:
@@ -78,6 +88,10 @@ def main(argv: list[str] | None = None) -> None:
     if a.esc50:
         sec = esc50_splits(a.data_dir / "datasets" / "esc50" / "meta" / "esc50.csv")
         save_section("audio", sec)
+        print({k: len(v) for k, v in sec.items() if k in ("calibracao", "reservado")})
+    if a.urfall:
+        sec = urfall_splits()
+        save_section("urfall", sec)
         print({k: len(v) for k, v in sec.items() if k in ("calibracao", "reservado")})
 
 

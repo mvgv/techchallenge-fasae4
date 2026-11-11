@@ -43,9 +43,9 @@ video:
   keypoint_min_conf: 0.5
   fall:
     window_s: 1.0
-    hip_drop_min: 0.25         # fração da altura do frame
+    hip_drop_min: 0.15         # fração da altura do frame (T37: calibrado no UR Fall)
     lying_aspect_min: 1.3      # largura/altura da bbox
-    lying_min_s: 2.0
+    lying_min_s: 0.5           # os clipes do UR Fall terminam logo após a queda (ver urfall_fall.md)
   inactivity_motion_max: 0.01  # deslocamento médio normalizado por frame
   instrument_out_min_s: 5
   count_window_s: 10

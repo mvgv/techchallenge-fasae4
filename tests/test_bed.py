@@ -39,6 +39,17 @@ def test_fall_detected():
     assert 0 <= falls[0]["frame_index"] < len(frames)
 
 
+def test_fall_tolerates_pose_gaps_while_lying():
+    frames = [person((OUT_X, 0.4 * H), 60, 200)] * 20
+    for k in range(1, 6):
+        frames.append(person((OUT_X, (0.4 + 0.08 * k) * H), 100, 150))
+    # deitado, com a pose falhando em parte dos quadros (pessoa None)
+    lying = person((OUT_X, 0.8 * H), 200, 60)
+    frames += [lying, None, None, lying, None, lying] * 8
+    res = analyze_bed(frames, times(len(frames)), W, H, {"bed": BED}, THR)
+    assert len([f for f in res.findings if f["type"] == "fall_detected"]) == 1
+
+
 def test_still_person_no_fall():
     frames = [person((OUT_X, 0.4 * H), 60, 200)] * 60
     res = analyze_bed(frames, times(60), W, H, {"bed": BED}, THR)

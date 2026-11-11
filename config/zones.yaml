@@ -5,3 +5,5 @@ default_surgery:
   instrument_tray: [[0.75, 0.55], [0.98, 0.55], [0.98, 0.95], [0.75, 0.95]]
   max_people_sterile: 3
   instrument_classes: ["scissors", "knife"]
+# UR Fall (T37): cena sem cama; sem polígono de leito a regra de queda não exige "fora do leito"
+ur_fall: {}

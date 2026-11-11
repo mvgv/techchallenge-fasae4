@@ -28,3 +28,17 @@ Regra geral: cada dataset tem uma parte **reservada**, nunca usada para ajustar 
 - um alerta não pode ter atraso menor que o intervalo até a próxima medição.
 
 **Datas.** O MIMIC desloca as datas para o futuro (anos de 2110 a 2201), de forma independente por paciente. O `load_mimic(..., rebase_start=...)` desloca cada paciente para começar numa data escolhida, mantendo os intervalos.
+
+## UR Fall Detection Dataset (Universidade de Rzeszów)
+
+| Campo | Valor |
+|---|---|
+| Fonte | <https://fenix.ur.edu.pl/~mkepski/ds/uf.html> |
+| Termos | uso acadêmico/pesquisa, citando Kwolek e Kepski, "Human fall detection on embedded platform using depth maps and wireless accelerometer", Computer Methods and Programs in Biomedicine, 117(3), 2014 |
+| Baixado em | 2026-11-10, com `python scripts/download_datasets.py --urfall` |
+| Conteúdo | câmera frontal `cam0`: 30 quedas (`fall-01`…`30`) e 40 ADL (`adl-01`…`40`); MP4 do site (profundidade e RGB lado a lado) com a metade RGB recortada para `data/datasets/urfall/video/` (H.264 640×480, 30 fps, 23 MB) |
+| Rótulos | `urfall-cam0-{falls,adls}.csv`: por quadro, -1 em pé/normal, 0 caindo, 1 deitado |
+| Divisão | quedas 01–10 e ADL 01–10 calibração; quedas 11–30 e ADL 11–40 reservadas (`config/splits.yaml`, seção `urfall`) |
+| Avaliação | `python scripts/evaluate_urfall.py` → `docs/resultados/urfall_fall.md`; anotações em `data/datasets/urfall/video_annotations.csv` |
+
+Limite importante: os clipes de queda são curtos (1–5 s) e muitos terminam logo depois de a pessoa deitar, e a pose do YOLO falha com a pessoa no chão; a regra de queda passou a tolerar lacunas de pose (`LYING_GAP_S`). A câmera `ur_fall` em `config/zones.yaml` não tem leito. Resultado no reservado: ver `docs/resultados/urfall_fall.md` (recall baixo, discutido lá).

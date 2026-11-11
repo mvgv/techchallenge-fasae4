@@ -9,6 +9,7 @@ from medwatch.video.models import Person
 HIP_IDX = (11, 12)
 BED_MIN_S = 3.0
 FALL_SCORE = 0.9
+LYING_GAP_S = 1.5   # a pose costuma falhar com a pessoa deitada: lacunas até aqui não encerram a fase
 BED_EXIT_SCORE = 0.5
 
 
@@ -55,9 +56,13 @@ def _detect_falls(hip_y, aspect, in_bed, times, fall_cfg) -> list[dict]:
         ):
             i += 1
             continue
-        end = j
-        while end + 1 < n and lying(end + 1):
-            end += 1
+        end = k = j
+        while k + 1 < n:
+            k += 1
+            if lying(k):
+                end = k
+            elif aspect[k] is not None or times[k] - times[end] > LYING_GAP_S:
+                break
         if times[end] - times[j] < lying_min:
             i += 1
             continue
