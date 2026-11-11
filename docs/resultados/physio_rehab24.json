@@ -1,0 +1,21 @@
+{
+ "camera": {
+  "17": {
+   "mae": 5.125,
+   "blocks": 8,
+   "mae_by_orientation": {
+    "front": 8.25,
+    "half-profile": 2.0
+   }
+  },
+  "18": {
+   "mae": 2.0,
+   "blocks": 8,
+   "mae_by_orientation": {
+    "front": 2.0,
+    "half-profile": 2.0
+   }
+  },
+  "chosen": 18
+ }
+}

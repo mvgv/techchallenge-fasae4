@@ -13,8 +13,32 @@ from medwatch.video.models import PoseEstimator, main_person
 from medwatch.video.reps import segment_reps
 
 
+def reference_from_intervals(
+    exercise: str,
+    series_list: list[dict[str, np.ndarray]],
+    intervals: list[list[tuple[int, int]]],
+    fps: float,
+) -> dict:
+    """Referência de vários vídeos: `intervals[i]` são as repetições (índices) de `series_list[i]`."""
+    curves: dict[str, list[np.ndarray]] = {}
+    for series, reps in zip(series_list, intervals, strict=True):
+        for a, b in reps:
+            for joint, s in series.items():
+                curves.setdefault(joint, []).append(resample(s[a : b + 1], 50))
+    n_reps = len(next(iter(curves.values()), []))
+    if n_reps == 0:
+        raise ValueError("Nenhuma repetição para montar a referência")
+    return {
+        "exercise": exercise,
+        "fps": fps,
+        "n_reps": n_reps,
+        "mean_curves": {j: np.mean(c, axis=0).tolist() for j, c in curves.items()},
+        "rom": {j: float(np.mean([c.max() - c.min() for c in cs])) for j, cs in curves.items()},
+    }
+
+
 def build_reference(exercise: str, cfg: dict, series: dict[str, np.ndarray], fps: float) -> dict:
-    """Monta a referência a partir das séries de ângulos."""
+    """Monta a referência a partir das séries de ângulos de um vídeo (repetições detectadas)."""
     reps = segment_reps(
         series[cfg["primary_joint"]],
         fps,
@@ -23,19 +47,7 @@ def build_reference(exercise: str, cfg: dict, series: dict[str, np.ndarray], fps
     )
     if not reps:
         raise ValueError("Nenhuma repetição encontrada no vídeo")
-    mean_curves: dict[str, list[float]] = {}
-    rom: dict[str, float] = {}
-    for joint, s in series.items():
-        curves = np.array([resample(s[a : b + 1], 50) for a, b in reps])
-        mean_curves[joint] = curves.mean(axis=0).tolist()
-        rom[joint] = float(np.mean([c.max() - c.min() for c in curves]))
-    return {
-        "exercise": exercise,
-        "fps": fps,
-        "n_reps": len(reps),
-        "mean_curves": mean_curves,
-        "rom": rom,
-    }
+    return reference_from_intervals(exercise, [series], [reps], fps)
 
 
 def main() -> None:
