@@ -2,7 +2,7 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-11 (T40 planejada: fisioterapia com erros nomeados, Keraal)
+- **Última atualização:** 2026-11-11 (T40 passo 4 adiantado com o grupo 2A; 1A segue bloqueado)
 - **Tarefa atual:** T40 — Fisioterapia com erros nomeados (Keraal) e parte reservada (ainda não iniciada)
 - **Estado geral:** T00–T33 e T35–T39 concluídas; T40 pendente; T34 opcional e fora da ordem; além da T40, só faltam passos humanos (gravação do vídeo, Teams/e-mail, orçamento e prints da Azure)
 
@@ -159,4 +159,5 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | 2026-11-11 | T39 | ver `git log` | VPS. REHAB24-6 baixado (md5 conferidos), divisão por voluntário 4/2/3 (só 9 têm agachamento), poses em cache, câmera 18 escolhida na calibração, referência da calibração, grade de 256 limiares sem separação (valores mantidos), avaliação no reservado, clipes da demonstração e documentação. |
 | 2026-11-11 | T40 (passo 1, parcial) | ver `git log` | VPS. `--keraal` em `download_datasets.py` (https, retomada por Range); o download rodou a ~25 KB/s (1,7 GB ≈ 19 h): T40 bloqueada até o humano trazer os arquivos. Nenhuma outra tarefa automática resta. |
 | 2026-11-11 | T40 (passo 1, 2A) | ver `git log` | VPS. `group2A` e o readme baixados e extraídos; formato do `.anvil` (UTF-16, segundos) e contagens registrados em `docs/DATASETS.md`, `scripts/inspect_keraal.py`. Grupo 1A segue bloqueado (~1 MB/min); T40 continua bloqueada, sem tarefa automática. |
+| 2026-11-11 | T40 (passo 4, 2A) | ver `git log` | VPS. `scripts/prepare_keraal.py` (um .anvil vira linhas de `recs.csv`; A de referência, `uncertain` se A e B discordam) com teste; rodado no 2A: 51 linhas em `recs_2A.csv` (fora do Git). 1A segue em ~29 MB de 1,4 GB: T40 continua bloqueada; passos 2 (kappa), 3, 5 em diante dependem do 1A para ter pacientes. |
 | 2026-11-11 | planejamento (T40) | ver `git log` | Desktop do humano, Sonnet 5.5. Resultado fraco da T39 levou ao Keraal (dor lombar; erro nomeado e localizado no tempo; CC BY-NC-SA; download direto em `keraal.enstb.org`). T40 escrita no plano e na tabela; IntelliRehabDS e UI-PRMD descartados (sem RGB). |
