@@ -110,4 +110,6 @@ Os áudios ficam só em `data/`. O recorte tem cerca de 71% de clipes de vozes m
 - **Formato do `.anvil`:** XML em **UTF-16**; `<el start end>` com tempos em **segundos**. Trilhas: `Global evaluation` (`evaluation`: Correct, Incorrect, Incomplete, Motionless), `Global error` e `Temporal error` (`type` Error1 a Error3, Other ou none; `bodyPart` BothArms, RightArm ou Spine; `Evaluation` SmallError ou LargeError).
 - **Contagens (A e B somados, 102 avaliações globais):** Correct 72, Incorrect 21, Incomplete 7, Motionless 2; 12 erros temporais com intervalo.
 - **Acordo A × B no rótulo global (2A):** 47 de 51 gravações (92%); kappa e tipo de erro ficam para o passo 2.
-- **Pendente:** grupo 1A (pacientes), `prepare_keraal.py`, divisão e avaliação. `scripts/inspect_keraal.py` reproduz as contagens.
+- **Grupo 1A (2026-11-11):** o download terminou na VPS (1,47 GB), extraído em `data/datasets/keraal/g1a/` (fora do Git): 250 gravações, 6 pacientes (R1 a R6), `recs_1A.csv` gerado por `prepare_keraal.py`.
+- **Concordância A×B** (`scripts/keraal_agreement.py`, por gravação, kappa de Cohen): grupo 1A (pacientes), global 4 classes acordo 0,756 / kappa 0,591 (n=250); correto×incorreto 0,764 / 0,540 (n=220); tipo de erro entre os dois incorretos 0,835 / 0,704 (n=79). Grupo 2A (saudáveis): 0,922 / 0,828 (n=51); 0,935 / 0,815 (n=46); tipo de erro 0,778 / 0,438 (n=9, pouco). Gravações em que A e B discordam no rótulo global ficam `uncertain=1`.
+- **Pendente:** divisão por voluntário, exercícios, limiares e avaliação. `scripts/inspect_keraal.py` reproduz as contagens.
