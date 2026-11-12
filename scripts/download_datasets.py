@@ -7,6 +7,7 @@ import argparse
 import shutil
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -24,12 +25,22 @@ def fetch(url: str, dest: Path, force: bool = False) -> Path:
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
-    req = urllib.request.Request(url, headers=UA)
     for attempt in range(4):
+        # retoma de onde parou (o servidor do Keraal é lento e cai); 416 = já completo
+        done = tmp.stat().st_size if tmp.exists() else 0
+        headers = dict(UA, **({"Range": f"bytes={done}-"} if done else {}))
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as fh:
-                shutil.copyfileobj(resp, fh, length=1 << 20)
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120) as resp:
+                mode = "ab" if done and resp.status == 206 else "wb"
+                with open(tmp, mode) as fh:
+                    shutil.copyfileobj(resp, fh, length=1 << 20)
             break
+        except urllib.error.HTTPError as exc:
+            if exc.code == 416:
+                break
+            if attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
         except OSError:
             if attempt == 3:
                 raise
@@ -76,6 +87,27 @@ def download_rehab24(out: Path) -> None:
         print(f"ok {p} ({p.stat().st_size / 1e6:.1f} MB, md5 conferido)")
 
 
+KERAAL_BASE = "https://keraal.enstb.org/data/"
+KERAAL_FILES = ("group1A.tar.xz", "group2A.tar.xz", "readme_files_format.txt")
+
+
+def download_keraal(out: Path) -> None:
+    """Baixa os grupos 1A e 2A do Keraal (CC BY-NC-SA, dados clínicos) e extrai com tarfile."""
+    import tarfile
+    free = shutil.disk_usage(out.parent if out.parent.exists() else ROOT).free
+    if free < 6 * 10**9:
+        raise SystemExit("espaço insuficiente em disco para o Keraal (precisa de ~6 GB)")
+    for name in KERAAL_FILES:
+        p = fetch(KERAAL_BASE + name, out / name)
+        print(f"ok {p} ({p.stat().st_size / 1e6:.1f} MB)")
+        if name.endswith(".tar.xz"):
+            dest = out / name.removesuffix(".tar.xz")
+            if not dest.exists():
+                dest.mkdir(parents=True)
+                with tarfile.open(p, "r:xz") as tf:
+                    tf.extractall(dest, filter="data")
+
+
 def main(argv: list[str] | None = None) -> None:
     """Ponto de entrada da linha de comando."""
     ap = argparse.ArgumentParser(description=__doc__)
@@ -83,9 +115,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--esc50", action="store_true", help="ESC-50 (sons respiratórios)")
     ap.add_argument("--urfall", action="store_true", help="UR Fall Detection (cam0)")
     ap.add_argument("--rehab24", action="store_true", help="REHAB24-6 (fisioterapia, Zenodo)")
+    ap.add_argument("--keraal", action="store_true", help="Keraal (fisioterapia, grupos 1A e 2A)")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
-    if not (a.mimic or a.esc50 or a.urfall or a.rehab24):
+    if not (a.mimic or a.esc50 or a.urfall or a.rehab24 or a.keraal):
         ap.error("escolha ao menos um dataset")
     if a.mimic:
         download_mimic(a.data_dir / "mimic")
@@ -95,6 +128,8 @@ def main(argv: list[str] | None = None) -> None:
         download_urfall(a.data_dir / "datasets" / "urfall")
     if a.rehab24:
         download_rehab24(a.data_dir / "datasets" / "rehab24")
+    if a.keraal:
+        download_keraal(a.data_dir / "datasets" / "keraal")
 
 
 ESC50_BASE = "https://raw.githubusercontent.com/karolpiczak/ESC-50/master/"
