@@ -101,3 +101,13 @@ Os áudios ficam só em `data/`. O recorte tem cerca de 71% de clipes de vozes m
 | Resultado | Reservado, 70 repetições: recall de repetição incorreta 11/18 (61%; IC 95% de 39% a 80%), precisão 11/34 (32%), falsos alarmes 23/52 (44%); contagem com erro médio de 1,8 repetições por bloco: `docs/resultados/physio_rehab24.md` |
 | Clipes da demonstração | `physio_squat_wrong.mp4` (voluntário 1, `PM_008` câmera 18, 155–172 s, 5 repetições incorretas) e `physio_squat_correct.mp4` (voluntário 2, `PM_022` câmera 18, 3–31 s, 7 corretas), por `scripts/pick_demo_clips.py` |
 | Limitações | Voluntários com marcadores de captura de movimento; sem vista lateral pura, então o ângulo do joelho em 2D perde amplitude; só 9 voluntários, e com divisão por voluntário o reservado terá poucos |
+
+## Keraal, fisioterapia com erros nomeados (T40, inspeção parcial)
+
+- **Fonte:** <https://keraal.enstb.org/data/>; licença CC BY-NC-SA. **Dados clínicos de pacientes (grupo 1A): nunca vão para o Git nem para o painel público.** A demonstração usa só saudáveis (grupo 2A).
+- **Estado em 2026-11-11:** `group2A.tar.xz` (338 MB) e `readme_files_format.txt` baixados; o 2A foi extraído em `data/datasets/keraal/g2a/` (fora do Git). `group1A.tar.xz` (1,4 GB) **não** foi baixado: o servidor entrega ~25 KB/s na VPS (bloqueio humano no `PROGRESSO.md`).
+- **Estrutura do 2A:** `annotatorA/`, `annotatorB/` (`.anvil`), `videos/` (MP4), `openpose/`, `blazepose/`, `kinect/`. Nome: `G2A-<exercício>-S<voluntário>-<local>-<id>`; exercícios `RTK`, `ELK`, `CTK`. 51 gravações de 6 voluntários (S1 a S6), cada uma com anotação A e B.
+- **Formato do `.anvil`:** XML em **UTF-16**; `<el start end>` com tempos em **segundos**. Trilhas: `Global evaluation` (`evaluation`: Correct, Incorrect, Incomplete, Motionless), `Global error` e `Temporal error` (`type` Error1 a Error3, Other ou none; `bodyPart` BothArms, RightArm ou Spine; `Evaluation` SmallError ou LargeError).
+- **Contagens (A e B somados, 102 avaliações globais):** Correct 72, Incorrect 21, Incomplete 7, Motionless 2; 12 erros temporais com intervalo.
+- **Acordo A × B no rótulo global (2A):** 47 de 51 gravações (92%); kappa e tipo de erro ficam para o passo 2.
+- **Pendente:** grupo 1A (pacientes), `prepare_keraal.py`, divisão e avaliação. `scripts/inspect_keraal.py` reproduz as contagens.
