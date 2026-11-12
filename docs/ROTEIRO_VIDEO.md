@@ -18,6 +18,8 @@ O `preflight_demo.py` precisa terminar **sem ✗** (código 0). Em modo falso el
 
 Amostras em `data/samples/` (ver `data/samples/README.md` e `docs/DATASETS.md`): `physio_squat_correct.mp4` (controle), `physio_squat_wrong.mp4` (os dois são recortes do REHAB24-6, CC BY-NC 4.0, de voluntários reservados, câmera 18; a referência do exercício vem da calibração), `bed_fall.mp4` (UR Fall `fall-12`, reservado), `consulta_p0001.wav` (gerada pela Azure, T37 passo 10), `laudo_p0002.txt`, `hello_ptbr.wav`, `cough.wav`, `breathing.wav`, `snoring.wav` (ESC-50 reservados). Pacientes MIMIC reservados para o trecho de dados reais: `M-10002495` e `M-10039831`.
 
+**Opcional (T40):** com `run_demo.py --keraal`, o trecho de fisioterapia pode usar `physio_keraal_wrong.mp4` (minuto 375) no lugar do agachamento; dizer em voz alta que o clipe é de um voluntário **saudável reservado** do Keraal e que as anotações vêm de dois terapeutas, e que no conjunto reservado o sistema acusou quase tudo (ver `docs/resultados/physio_keraal.md`). O trecho substitui o do agachamento, não se soma, para caber nos 15 minutos.
+
 Cuidados de gravação: 1080p a 30 fps, notificações do sistema desligadas, zoom do navegador a 110–125%, janelas do terminal com fonte grande, chaves e `.env` fora da tela.
 
 ## 2. Roteiro minuto a minuto

@@ -55,6 +55,12 @@ DEMO_STEPS: list[DemoStep] = [
     DemoStep(410, "P-0004", "bed_fall.mp4", "video", "queda do leito", mode="bed"),
 ]
 
+# Opcional (T40, --keraal): clipe de voluntário saudável reservado do Keraal; no vídeo de entrega
+# ele substitui o do agachamento (o limite de 15 minutos não comporta os dois).
+KERAAL_STEP = DemoStep(375, "P-0003", "physio_keraal_wrong.mp4", "video",
+                       "fisioterapia (esconder o rosto, Keraal, voluntário saudável reservado)",
+                       mode="physio", exercise="hide_face")
+
 
 def log(msg: str, clock: datetime | None = None, start: datetime | None = None) -> None:
     """Imprime uma linha com horário real e, se houver, o tempo simulado."""
@@ -217,7 +223,10 @@ def main() -> int:
                     help="simulador: sem espera até este minuto simulado (ex.: 355)")
     ap.add_argument("--tail-speedup", type=float, default=None, metavar="FATOR",
                     help="simulador: velocidade da fase final (ex.: 12 → minutos 360–480 em ~10 min)")
+    ap.add_argument("--keraal", action="store_true",
+                    help="acrescenta o clipe do Keraal (minuto 375, P-0003)")
     args = ap.parse_args()
+    steps = DEMO_STEPS + [KERAAL_STEP] if args.keraal else DEMO_STEPS
 
     client = httpx.Client(base_url=args.api, timeout=30)
     r = redis.Redis.from_url(st.redis_url, decode_responses=True)
@@ -229,7 +238,7 @@ def main() -> int:
         return 1
     log("2/5 criando pacientes P-0001..P-0005")
     seed_patients(client)
-    missing = missing_samples(args.samples)
+    missing = missing_samples(args.samples, steps)
     if missing:
         log(f"aviso: amostras ausentes em {args.samples}: {', '.join(missing)} "
             "(essas etapas serão puladas)")
@@ -243,9 +252,9 @@ def main() -> int:
         log(f"3/5 iniciando o simulador (SIM_SCENARIO=demo, início {start.isoformat()})")
         proc = start_simulator(start, args.fast_until, args.tail_speedup)
     log("4/5 acompanhando sim:clock; mídias serão enviadas nos minutos "
-        + ", ".join(f"{s.minute} ({s.patient_id})" for s in DEMO_STEPS))
+        + ", ".join(f"{s.minute} ({s.patient_id})" for s in steps))
     try:
-        result = run_demo(client, r, start, args.samples, proc=proc)
+        result = run_demo(client, r, start, args.samples, steps=steps, proc=proc)
     except KeyboardInterrupt:
         log("interrompido pelo usuário")
         if proc is not None:
