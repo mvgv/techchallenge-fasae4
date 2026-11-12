@@ -28,3 +28,63 @@ shoulder_abduction:
   asymmetry_max_deg: 15
   dtw_max: 18
   trunk_max_deg: 20
+# --- Keraal (T40): exercícios de dor lombar, vídeo frontal 480x360 a 30 fps. ---
+# `errors` diz qual achado `physio_*` deveria cobrir cada erro anotado (null = sem achado em 2D).
+# Limiares iniciais copiados de `shoulder_abduction`; a grade da calibração os ajusta (passo 6).
+trunk_rotation:        # RTK
+  label: "Rotação de tronco"
+  primary_joint: shoulder_left
+  joints:
+    shoulder_left:  [11, 5, 7]
+    shoulder_right: [12, 6, 8]
+    elbow_left:     [5, 7, 9]
+    elbow_right:    [6, 8, 10]
+  pairs: [[shoulder_left, shoulder_right]]
+  rep_min_prominence_deg: 20
+  rep_min_distance_s: 1.0
+  rom_min_ratio: 0.8
+  asymmetry_max_deg: 20
+  dtw_max: 20
+  trunk_max_deg: 20
+  errors:
+    Error1: physio_low_rom             # braços pouco levantados (ângulo do ombro)
+    Error2: null                       # pouca rotação do tronco: sem achado em 2D (limitação)
+    Error3: physio_trunk_compensation  # tronco inclinado para o lado
+lateral_stretch:       # ELK
+  label: "Alongamento lateral"
+  primary_joint: shoulder_left
+  joints:
+    shoulder_left:  [11, 5, 7]
+    shoulder_right: [12, 6, 8]
+    elbow_left:     [5, 7, 9]
+    elbow_right:    [6, 8, 10]
+  pairs: [[shoulder_left, shoulder_right]]
+  rep_min_prominence_deg: 20
+  rep_min_distance_s: 1.0
+  rom_min_ratio: 0.8
+  asymmetry_max_deg: 20
+  dtw_max: 20
+  trunk_max_deg: 15
+  errors:
+    Error1: physio_asymmetry           # braço oposto fora do corpo
+    Error2: null                       # tronco pouco inclinado: o achado de tronco só pega excesso (limitação)
+    Error3: physio_low_rom             # braço de cima não dobrado (ângulo do cotovelo)
+hide_face:             # CTK
+  label: "Esconder o rosto"
+  primary_joint: elbow_left
+  joints:
+    shoulder_left:  [11, 5, 7]
+    shoulder_right: [12, 6, 8]
+    elbow_left:     [5, 7, 9]
+    elbow_right:    [6, 8, 10]
+  pairs: [[shoulder_left, shoulder_right]]
+  rep_min_prominence_deg: 20
+  rep_min_distance_s: 1.0
+  rom_min_ratio: 0.8
+  asymmetry_max_deg: 20
+  dtw_max: 20
+  trunk_max_deg: 20
+  errors:
+    Error1: physio_low_rom             # braços pouco levantados
+    Error2: physio_low_rom             # braços pouco afastados (ombro e cotovelo)
+    Error3: physio_low_rom             # braços pouco levantados
