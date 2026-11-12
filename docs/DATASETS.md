@@ -102,14 +102,18 @@ Os áudios ficam só em `data/`. O recorte tem cerca de 71% de clipes de vozes m
 | Clipes da demonstração | `physio_squat_wrong.mp4` (voluntário 1, `PM_008` câmera 18, 155–172 s, 5 repetições incorretas) e `physio_squat_correct.mp4` (voluntário 2, `PM_022` câmera 18, 3–31 s, 7 corretas), por `scripts/pick_demo_clips.py` |
 | Limitações | Voluntários com marcadores de captura de movimento; sem vista lateral pura, então o ângulo do joelho em 2D perde amplitude; só 9 voluntários, e com divisão por voluntário o reservado terá poucos |
 
-## Keraal, fisioterapia com erros nomeados (T40, inspeção parcial)
+## Keraal, fisioterapia com erros nomeados (T40)
 
 - **Fonte:** <https://keraal.enstb.org/data/>; licença CC BY-NC-SA. **Dados clínicos de pacientes (grupo 1A): nunca vão para o Git nem para o painel público.** A demonstração usa só saudáveis (grupo 2A).
-- **Estado em 2026-11-11:** `group2A.tar.xz` (338 MB) e `readme_files_format.txt` baixados; o 2A foi extraído em `data/datasets/keraal/g2a/` (fora do Git). `group1A.tar.xz` (1,4 GB) **não** foi baixado: o servidor entrega ~25 KB/s na VPS (bloqueio humano no `PROGRESSO.md`).
+- **Estado em 2026-11-11:** grupos 1A (1,47 GB, 250 gravações, 6 pacientes) e 2A (338 MB, 51 gravações, 6 saudáveis) e o `readme_files_format.txt` baixados e extraídos em `data/datasets/keraal/g1a/` e `g2a/` (fora do Git).
 - **Estrutura do 2A:** `annotatorA/`, `annotatorB/` (`.anvil`), `videos/` (MP4), `openpose/`, `blazepose/`, `kinect/`. Nome: `G2A-<exercício>-S<voluntário>-<local>-<id>`; exercícios `RTK`, `ELK`, `CTK`. 51 gravações de 6 voluntários (S1 a S6), cada uma com anotação A e B.
 - **Formato do `.anvil`:** XML em **UTF-16**; `<el start end>` com tempos em **segundos**. Trilhas: `Global evaluation` (`evaluation`: Correct, Incorrect, Incomplete, Motionless), `Global error` e `Temporal error` (`type` Error1 a Error3, Other ou none; `bodyPart` BothArms, RightArm ou Spine; `Evaluation` SmallError ou LargeError).
 - **Contagens (A e B somados, 102 avaliações globais):** Correct 72, Incorrect 21, Incomplete 7, Motionless 2; 12 erros temporais com intervalo.
-- **Acordo A × B no rótulo global (2A):** 47 de 51 gravações (92%); kappa e tipo de erro ficam para o passo 2.
+- **Acordo A × B no rótulo global (2A):** 47 de 51 gravações (92%); kappa e tipo de erro mais abaixo.
 - **Grupo 1A (2026-11-11):** o download terminou na VPS (1,47 GB), extraído em `data/datasets/keraal/g1a/` (fora do Git): 250 gravações, 6 pacientes (R1 a R6), `recs_1A.csv` gerado por `prepare_keraal.py`.
 - **Concordância A×B** (`scripts/keraal_agreement.py`, por gravação, kappa de Cohen): grupo 1A (pacientes), global 4 classes acordo 0,756 / kappa 0,591 (n=250); correto×incorreto 0,764 / 0,540 (n=220); tipo de erro entre os dois incorretos 0,835 / 0,704 (n=79). Grupo 2A (saudáveis): 0,922 / 0,828 (n=51); 0,935 / 0,815 (n=46); tipo de erro 0,778 / 0,438 (n=9, pouco). Gravações em que A e B discordam no rótulo global ficam `uncertain=1`.
-- **Pendente:** divisão por voluntário, exercícios, limiares e avaliação. `scripts/inspect_keraal.py` reproduz as contagens.
+- **Divisão** (`config/splits.yaml`, seção `keraal`, por voluntário, semente 42): calibração R2, R3, R4, S2, S3, S4; validação R5, S5; reservado R1, R6, S1, S6 (2 pacientes e 2 saudáveis, com corretas e incorretas).
+- **Poses:** YOLOv8n-pose a 5 quadros/s (`scripts/cache_keraal_poses.py`, ~2,5 h na VPS, 301 vídeos; cache em `data/datasets/keraal/poses/`, fora do Git).
+- **Resultados:** `docs/resultados/physio_keraal.md` (limiares mantidos; reservado com precisão 12% / 52% / 36% e falsos alarmes 75% a 100%). Limitações: erros sem achado em 2D, parte do corpo não avaliada, incompleto e imóvel não distinguidos.
+- **Demonstração:** `data/samples/physio_keraal_{wrong,correct}.mp4`, só do voluntário saudável S1 (reservado, grupo 2A); `scripts/pick_keraal_clips.py`. O grupo 3 (passo opcional 9) não foi usado.
+- `scripts/inspect_keraal.py` reproduz as contagens.
