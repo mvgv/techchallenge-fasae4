@@ -1,6 +1,6 @@
 """Gera (ou atualiza) as divisões de config/splits.yaml a partir dos dados baixados.
 
-Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --commonvoice | --rehab24
+Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --commonvoice | --rehab24 | --keraal
 Cada opção reescreve só a sua seção; as outras ficam como estão.
 """
 import argparse
@@ -79,6 +79,41 @@ def rehab24_splits(seg_csv: Path) -> dict:
             **parts, "videos": {k: people[k] for k in ids}}
 
 
+def keraal_splits(recs_csvs: list[Path]) -> dict:
+    """Keraal (T40): por voluntário, estratificado por grupo (pacientes 1A, saudáveis 2A).
+
+    Cada grupo é embaralhado à parte (semente 42) e cortado em 3/1/2 (6 voluntários cada):
+    o reservado fica com 2 pacientes e 2 saudáveis. Nunca se divide dentro do mesmo voluntário.
+    `labels` guarda, por voluntário, quantas gravações corretas e incorretas ele tem.
+    """
+    import csv
+    groups: dict[str, set[str]] = {}
+    labels: dict[str, dict[str, int]] = {}
+    seen: set[str] = set()
+    for path in recs_csvs:
+        with open(path, newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                groups.setdefault(r["group"], set()).add(r["subject"])
+                if r["video"] in seen:
+                    continue
+                seen.add(r["video"])
+                cnt = labels.setdefault(r["subject"], {"corretas": 0, "incorretas": 0})
+                if r["evaluation"] == "Correct":
+                    cnt["corretas"] += 1
+                elif r["evaluation"] == "Incorrect":
+                    cnt["incorretas"] += 1
+    parts: dict[str, list[str]] = {"calibracao": [], "validacao": [], "reservado": []}
+    for g in sorted(groups):
+        sub = split_ids(sorted(groups[g]), (3 / 6, 1 / 6, 2 / 6), tuple(parts))
+        for k, v in sub.items():
+            parts[k] += v
+    return {"dataset": "Keraal (grupos 1A pacientes e 2A saudáveis)", "seed": SEED,
+            "unit": "subject",
+            "rule": "por grupo, 3 calibração / 1 validação / 2 reservado, por voluntário",
+            **{k: sorted(v) for k, v in parts.items()},
+            "labels": {k: labels[k] for k in sorted(labels)}}
+
+
 def load_splits(path: Path = SPLITS) -> dict:
     """Lê o splits.yaml (vazio se não existir)."""
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
@@ -99,6 +134,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--esc50", action="store_true")
     ap.add_argument("--urfall", action="store_true")
     ap.add_argument("--rehab24", action="store_true")
+    ap.add_argument("--keraal", action="store_true")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
     a = ap.parse_args(argv)
     if a.mimic:
@@ -116,6 +152,11 @@ def main(argv: list[str] | None = None) -> None:
     if a.rehab24:
         sec = rehab24_splits(a.data_dir / "datasets" / "rehab24" / "Segmentation.csv")
         save_section("rehab24", sec)
+        print({k: v for k, v in sec.items() if k in ("calibracao", "validacao", "reservado")})
+    if a.keraal:
+        kd = a.data_dir / "datasets" / "keraal"
+        sec = keraal_splits([kd / "recs_1A.csv", kd / "recs_2A.csv"])
+        save_section("keraal", sec)
         print({k: v for k, v in sec.items() if k in ("calibracao", "validacao", "reservado")})
 
 

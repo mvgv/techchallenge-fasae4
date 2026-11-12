@@ -714,3 +714,60 @@ rehab24:
     '7': PM_126
     '8': PM_113
     '9': PM_118
+keraal:
+  dataset: Keraal (grupos 1A pacientes e 2A saudáveis)
+  seed: 42
+  unit: subject
+  rule: por grupo, 3 calibração / 1 validação / 2 reservado, por voluntário
+  calibracao:
+  - R2
+  - R3
+  - R4
+  - S2
+  - S3
+  - S4
+  validacao:
+  - R5
+  - S5
+  reservado:
+  - R1
+  - R6
+  - S1
+  - S6
+  labels:
+    R1:
+      corretas: 18
+      incorretas: 23
+    R2:
+      corretas: 12
+      incorretas: 13
+    R3:
+      corretas: 21
+      incorretas: 13
+    R4:
+      corretas: 24
+      incorretas: 18
+    R5:
+      corretas: 26
+      incorretas: 15
+    R6:
+      corretas: 34
+      incorretas: 5
+    S1:
+      corretas: 18
+      incorretas: 3
+    S2:
+      corretas: 4
+      incorretas: 2
+    S3:
+      corretas: 4
+      incorretas: 3
+    S4:
+      corretas: 5
+      incorretas: 0
+    S5:
+      corretas: 3
+      incorretas: 0
+    S6:
+      corretas: 1
+      incorretas: 3

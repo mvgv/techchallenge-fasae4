@@ -50,3 +50,31 @@ def test_repo_splits_rehab24_disjoint():
     r = load_splits()["rehab24"]
     parts = [set(r[k]) for k in ("calibracao", "validacao", "reservado")]
     assert sum(len(p) for p in parts) == len(set().union(*parts)) == 9
+
+
+def test_keraal_splits_by_volunteer(tmp_path):
+    from make_splits import keraal_splits
+    head = "video,subject,group,evaluation\n"
+    rows = {"1A": [f"R{i}" for i in range(1, 7)], "2A": [f"S{i}" for i in range(1, 7)]}
+    paths = []
+    for g, subs in rows.items():
+        f = tmp_path / f"recs_{g}.csv"
+        lines = [f"v{s}{k}.mp4,{s},{g},{ev}" for s in subs for k, ev in enumerate(("Correct", "Incorrect"))]
+        f.write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
+        paths.append(f)
+    s = keraal_splits(paths)
+    parts = [set(s[k]) for k in ("calibracao", "validacao", "reservado")]
+    assert [len(p) for p in parts] == [6, 2, 4]
+    assert set().union(*parts) == {f"R{i}" for i in range(1, 7)} | {f"S{i}" for i in range(1, 7)}
+    assert {x[0] for x in s["reservado"]} == {"R", "S"}
+    assert keraal_splits(paths) == s
+
+
+def test_repo_splits_keraal_reserved_has_both_groups_and_labels():
+    r = load_splits()["keraal"]
+    parts = [set(r[k]) for k in ("calibracao", "validacao", "reservado")]
+    assert sum(len(p) for p in parts) == len(set().union(*parts)) == 12
+    res = r["reservado"]
+    assert len(res) >= 2 and {x[0] for x in res} == {"R", "S"}
+    assert sum(r["labels"][v]["corretas"] for v in res) > 0
+    assert sum(r["labels"][v]["incorretas"] for v in res) > 0
