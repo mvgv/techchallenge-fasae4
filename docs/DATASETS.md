@@ -41,7 +41,7 @@ Regra geral: cada dataset tem uma parte **reservada**, nunca usada para ajustar 
 | Divisão | quedas 01–10 e ADL 01–10 calibração; quedas 11–30 e ADL 11–40 reservadas (`config/splits.yaml`, seção `urfall`) |
 | Avaliação | `python scripts/evaluate_urfall.py` → `docs/resultados/urfall_fall.md`; anotações em `data/datasets/urfall/video_annotations.csv` |
 
-Limite importante: os clipes de queda são curtos (1–5 s) e muitos terminam logo depois de a pessoa deitar, e a pose do YOLO falha com a pessoa no chão; a regra de queda passou a tolerar lacunas de pose (`LYING_GAP_S`). A câmera `ur_fall` em `config/zones.yaml` não tem leito. Resultado no reservado: ver `docs/resultados/urfall_fall.md` (recall baixo, discutido lá).
+Limite importante: os clipes de queda são curtos (1–5 s) e muitos terminam logo depois de a pessoa deitar, e a pose do YOLO falha com a pessoa no chão; a regra de queda passou a tolerar lacunas de pose (`LYING_GAP_S`). A câmera `ur_fall` em `config/zones.yaml` não tem leito. Resultado no reservado: ver `docs/resultados/urfall_fall.md` (recall baixo, discutido lá). Na T41 o UR Fall inteiro passou a ser desenvolvimento (seção `fall_v2` de `config/splits.yaml`) e o reservado novo é o CAUCAFall; ver `docs/resultados/fall_v2.md`.
 
 ## CAUCAFall, reservado novo de queda (T41)
 

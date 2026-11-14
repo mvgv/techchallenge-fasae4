@@ -61,7 +61,8 @@ em português apontando as evidências. O worker de alertas notifica e, se ningu
 | Vídeo (objetos) | YOLOv8n (COCO) | frames | caixas e classes | leve, roda em CPU, pesos públicos | COCO só conhece objetos genéricos: instrumentos cirúrgicos reais não são reconhecidos; a análise de cirurgia é demonstrativa |
 | Vídeo (pose) | YOLOv8n-pose | frames | 17 keypoints | mesmo runtime do detector, sem dependências extras | precisão da pose não medida contra captura de movimento (a comparação com o OpenPose não foi feita; T19b/T34 não implementadas); no REHAB24-6 a pose bastou para contar repetições (erro médio de 1,8 por bloco), não para separar repetições corretas das incorretas |
 | Fisioterapia | Ângulos articulares + contagem de repetições + **DTW** contra referência | keypoints | ROM, assimetria, desvio de padrão, compensação de tronco | DTW compara a forma do movimento sem depender da velocidade; referência gerada de um vídeo correto | depende de câmera lateral e corpo inteiro; referência real exige gravação **[PENDENTE]** |
-| Leito | Regras sobre pose/posição do tronco | keypoints | queda, saída do leito | simples e explicável | sem validação em vídeo de queda real **[PENDENTE]**; ângulo de câmera sensível |
+| Fisioterapia (aprendizado, T41) | **Regressão logística** sobre 38 medidas por repetição (amplitudes, assimetria, DTW, tronco, razão ombros/quadris, curva reamostrada); comparada com Mahalanobis/IsolationForest só de corretas, árvore e GradientBoosting | keypoints | probabilidade de repetição incorreta → `physio_pattern_deviation` | venceu as regras na validação cruzada deixando um voluntário de fora (agachamento); coeficientes dizem que medida pesou | só no agachamento do REHAB24-6 (câmera 18); no Keraal nenhum modelo venceu e as regras continuam |
+| Leito | Regras sobre pose e caixa da pessoa; caixa do detector YOLOv8n quando a pose some (T41) | keypoints e caixas | queda, saída do leito | simples e explicável | regra 2D depende do ponto de vista: 26 de 30 quedas no UR Fall (desenvolvimento), 12 de 50 no CAUCAFall (câmera alta no canto) |
 | Fala | **Azure Speech** (pt-BR) | WAV 16 kHz | transcrição por segmentos | qualidade e suporte a pt-BR sem treinar modelo | custo por hora de áudio; requer chaves **[PENDENTE]**; há cliente falso para testes |
 | Linguagem | **Azure AI Language** + dicionário de termos críticos | transcrição / laudo | sentimento, entidades clínicas | entidades de saúde prontas; dicionário cobre termos críticos em pt-BR | entidades de saúde dependem da região; dicionário é lista fechada |
 | Voz | **openSMILE** (eGeMAPS) + pausas/velocidade | áudio | indicadores de fadiga e disartria vs. linha de base | features acústicas interpretáveis | precisa de linha de base individual; no ambiente de desenvolvimento o openSMILE não importou (pyarrow x NumPy), então só pausa/velocidade foram exercitadas |
@@ -187,12 +188,51 @@ Leitura sem maquiagem:
   fase deitada: 26 de 30 quedas no desenvolvimento com 1 falso alarme. No reservado novo (CAUCAFall, outro laboratório,
   câmera alta no canto) o ganho quase some: recall 0,24 contra 0,20, sem falsos alarmes. Vista do alto, a pessoa caída
   para frente ou para trás continua com a caixa mais alta que larga; a regra é geométrica e depende do ponto de vista.
-- **Fisioterapia:** no agachamento do REHAB24-6 (3 voluntários reservados, 70 repetições) a análise acerta a contagem com erro médio de 1,8 repetições por bloco, mas a detecção de repetição incorreta é fraca: recall 0,61, precisão 0,32 e 44% das corretas sinalizadas. Na calibração e validação nenhuma combinação de limiares separou as classes melhor que sinalizar tudo; os limiares ficaram como estavam. Causas prováveis: pose 2D em vista frontal ou meio perfil (nunca perfil), marcadores de captura no corpo e rótulos que não dizem qual foi o erro. Referência: Černek, Sedmidubsky e Budikova, "REHAB24-6", SISAP 2024 (CC BY-NC 4.0, só uso acadêmico).
-- **Fisioterapia com erro nomeado (Keraal):** os erros anotados (qual, onde, quando) permitem medir mais que "incorreto", e o resultado é duro: a análise por ângulos 2D sinaliza quase todas as gravações (falsos alarmes de 75% a 100% no reservado) e a precisão fica na proporção de incorretas ou abaixo dela. O erro certo e no tempo certo só aparece no "esconder o rosto" (8 de 10), onde o mapa de achados é grosso (`physio_low_rom` para os três erros). Dois erros não têm achado possível hoje (pouca rotação do tronco e tronco pouco inclinado: o achado de tronco só pega excesso); incompleto e imóvel não são distinguidos de erro de execução. Concordância dos terapeutas A×B: kappa 0,59 nos pacientes e 0,83 nos saudáveis, o que também limita o teto. Os dados dos pacientes são clínicos (anonimizados): ficam fora do Git, e a demonstração usa só um voluntário saudável reservado. Referência: Nguyen et al., IJCNN 2024 (CC BY-NC-SA). Detalhes em `docs/resultados/physio_keraal.md`.
+- **Fisioterapia:** no agachamento do REHAB24-6 (3 voluntários reservados, 70 repetições) a análise acerta a contagem com erro médio de 1,8 repetições por bloco, mas a detecção de repetição incorreta pelas regras é fraca: recall 0,61, precisão 0,32 e 44% das corretas sinalizadas (a T41 trocou as regras por uma regressão logística; ver 5.5). Na calibração e validação nenhuma combinação de limiares separou as classes melhor que sinalizar tudo; os limiares ficaram como estavam. Causas prováveis: pose 2D em vista frontal ou meio perfil (nunca perfil), marcadores de captura no corpo e rótulos que não dizem qual foi o erro. Referência: Černek, Sedmidubsky e Budikova, "REHAB24-6", SISAP 2024 (CC BY-NC 4.0, só uso acadêmico).
+- **Fisioterapia com erro nomeado (Keraal):** os erros anotados (qual, onde, quando) permitem medir mais que "incorreto", e o resultado é duro: a análise por ângulos 2D sinaliza quase todas as gravações (falsos alarmes de 75% a 100% no reservado) e a precisão fica na proporção de incorretas ou abaixo dela. O erro certo e no tempo certo só aparece no "esconder o rosto" (8 de 10), onde o mapa de achados é grosso (`physio_low_rom` para os três erros). Na T40 dois erros não tinham achado (pouca rotação do tronco e tronco pouco inclinado) e incompleto/imóvel se confundia com erro de execução; a T41 criou `physio_rotation_low`, `physio_trunk_insufficient` e `physio_incomplete`, que separam pouco (o tronco insuficiente pegou 6 de 14 Error2 do alongamento lateral reservado, com 1 de 11 corretas). Concordância dos terapeutas A×B: kappa 0,59 nos pacientes e 0,83 nos saudáveis, o que também limita o teto. Os dados dos pacientes são clínicos (anonimizados): ficam fora do Git, e a demonstração usa só um voluntário saudável reservado. Referência: Nguyen et al., IJCNN 2024 (CC BY-NC-SA). Detalhes em `docs/resultados/physio_keraal.md`.
 - **Voz:** só se mediu especificidade, com 27 falantes. Os limiares de ritmo de fala e de pausas não foram calibrados com
   estes dados (leitura de frases curtas, não conversa), e a linha de base vale para áudio de qualidade parecida.
 - **Áudio fora do laboratório:** o AST deu 0,97 de recall em clipes isolados do ESC-50, mas só 0,17 para tosses reais
   misturadas à fala da consulta sintética.
+
+### 5.5 Detecção de anomalias com aprendizado (T41)
+
+As regras fixas sobre ângulos 2D não separaram repetições corretas de incorretas (T39, T40). A T41 testou as
+duas técnicas clássicas de detecção de anomalias sobre as mesmas medidas da pose, calculadas por repetição
+(`physio_features.py`: amplitude e DTW por articulação, assimetria, inclinação do tronco máxima e mínima,
+razão ombros/quadris, cotovelo, duração, curva da articulação principal):
+
+- **Sem supervisão:** aprender só o movimento correto e medir a distância até ele. Distância de Mahalanobis
+  com covariância encolhida (Ledoit-Wolf, necessária com ~40 medidas e ~80 exemplos) e IsolationForest. Não
+  precisa de exemplos de erro, mas qualquer coisa diferente do treino vira anomalia, inclusive uma pessoa
+  nova que faz o exercício certo do seu jeito.
+- **Supervisionado:** aprender a fronteira entre corretas e incorretas. Regressão logística padronizada com
+  classes balanceadas, árvore rasa e GradientBoosting pequeno. Precisa de erros rotulados e só reconhece
+  erros parecidos com os do treino.
+
+**Validação:** com 6 a 8 voluntários fora do reservado, uma validação de 2 pessoas é ruído. A escolha de
+modelo e hiperparâmetros usou validação cruzada deixando um voluntário de fora (*leave-one-subject-out*):
+cada voluntário é avaliado por um modelo que nunca viu os movimentos dele, como acontecerá com um paciente
+novo. A referência do DTW foi refeita em cada dobra. O modelo só substitui as regras se, nessa validação,
+tiver F1 acima das regras e de sinalizar tudo, respeitar 20% de falsos alarmes (sem supervisão) e tiver AUC
+com IC 95% por *bootstrap* de voluntário acima de 0,5. O reservado foi medido uma vez, depois da escolha.
+
+| Exercício | Método | AUC no reservado [IC 95% por voluntário] | Recall | Precisão | Falsos alarmes |
+|---|---|---|---|---|---|
+| Agachamento (REHAB24-6, 3 voluntários, 18 incorretas e 52 corretas) | regras (T39) | 0,58 [0,21; 0,71] | 0,61 | 0,32 | 44% |
+| | **regressão logística** (vencedora na validação cruzada) | **0,85 [0,76; 0,92]** | **0,83** | **0,48** | **31%** |
+| | Mahalanobis (só corretas) | 0,80 [0,38; 0,95] | 0,78 | 0,45 | 33% |
+| Esconder o rosto (Keraal CTK, 3 voluntários, 10 incorretas e 24 corretas) | regras (T40) | 0,62 [0,50; 0,72] | 1,00 | 0,36 | 75% |
+| | regressão logística (não venceu na validação) | 0,87 [0,50; 1,00] | 0,90 | 0,50 | 38% |
+
+No agachamento a logística entrou no sistema (`model:` em `exercises.yaml`; sem o arquivo, voltam as regras)
+e cada alerta traz a probabilidade e as medidas que mais pesaram. No CTK nenhum modelo venceu na validação
+cruzada (a logística teve AUC 0,71, mas F1 abaixo de sinalizar tudo), então ficam as regras, mesmo com o
+reservado sugerindo ganho: com 3 voluntários o reservado confirma, não escolhe. O alongamento lateral e a
+rotação de tronco não têm exemplos suficientes (4 corretas certas e 5 incorretas, respectivamente). O tipo de
+erro do CTK (Error1 × Error3) não foi separado (acerto de 0,30 no reservado). Os números da validação cruzada
+são otimistas, porque a mesma validação escolhe hiperparâmetros; o do reservado não é. Detalhes em
+`docs/resultados/physio_learned.md`.
 
 ## 6. Limitações, ética e LGPD
 
