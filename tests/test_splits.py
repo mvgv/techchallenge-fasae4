@@ -78,3 +78,19 @@ def test_repo_splits_keraal_reserved_has_both_groups_and_labels():
     assert len(res) >= 2 and {x[0] for x in res} == {"R", "S"}
     assert sum(r["labels"][v]["corretas"] for v in res) > 0
     assert sum(r["labels"][v]["incorretas"] for v in res) > 0
+
+
+def test_fall_v2_splits(tmp_path):
+    from make_splits import fall_v2_splits
+    csv_path = tmp_path / "videos.csv"
+    csv_path.write_text("seq,subject\ns10-walk,10\ns02-hop,2\ns01-fall-left,1\n", encoding="utf-8")
+    sec = fall_v2_splits(csv_path)
+    assert len(sec["desenvolvimento"]) == 70
+    assert sec["reservado"] == ["s01-fall-left", "s02-hop", "s10-walk"]
+    assert not set(sec["desenvolvimento"]) & set(sec["reservado"])
+
+
+def test_repo_fall_v2_has_no_overlap():
+    sec = load_splits()["fall_v2"]
+    assert len(sec["reservado"]) == 100
+    assert not set(sec["desenvolvimento"]) & set(sec["reservado"])

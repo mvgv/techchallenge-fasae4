@@ -43,6 +43,18 @@ Regra geral: cada dataset tem uma parte **reservada**, nunca usada para ajustar 
 
 Limite importante: os clipes de queda são curtos (1–5 s) e muitos terminam logo depois de a pessoa deitar, e a pose do YOLO falha com a pessoa no chão; a regra de queda passou a tolerar lacunas de pose (`LYING_GAP_S`). A câmera `ur_fall` em `config/zones.yaml` não tem leito. Resultado no reservado: ver `docs/resultados/urfall_fall.md` (recall baixo, discutido lá).
 
+## CAUCAFall, reservado novo de queda (T41)
+
+| Campo | Valor |
+|---|---|
+| Fonte | Mendeley Data, DOI [10.17632/7w7fccy7ky.4](https://doi.org/10.17632/7w7fccy7ky.4), versão 4 |
+| Termos | CC BY 4.0; citar Eraso Guerrero et al., *Data in Brief* 45:108610, 2022 (artigo do CAUCAFall, PMC9508401) |
+| Baixado em | 2026-11-13, pelo humano, em `data/datasets/caucafall/caucafall_v4.zip` (8,3 GB) |
+| Conteúdo | 10 voluntários × 10 atividades: 5 quedas (para frente, para trás, esquerda, direita, a partir de sentado) e 5 ADL (andar, pular, pegar objeto, sentar, ajoelhar); 100 AVI 720×480 a **20 quadros/s** (o artigo diz 23), câmera no alto do canto da sala (2,15 m); nenhuma cena com cama |
+| Rótulos | um `.txt` YOLO por quadro: caixa da pessoa e classe 0 (sem queda) ou 1 (queda = corpo no chão). O rótulo `...NNNNN.txt` é o quadro NNNNN−1 do AVI (conferido casando os PNG com os quadros); o último rótulo de cada vídeo sobra e `Subject.6/Fall backwards` tem 23 rótulos além do fim do AVI (descartados); 3 `.txt` com sufixo de letra são duplicatas |
+| Preparo | `python -I scripts/prepare_caucafall.py` extrai AVI, `.txt` e o xlsx (209 MB, sem os PNG) para `raw/` e grava `videos.csv` (intervalo rotulado como queda por vídeo) e `frames.csv` (classe e caixa por quadro) |
+| Divisão | seção `fall_v2` de `config/splits.yaml`: UR Fall inteiro (70 sequências) para desenvolvimento, CAUCAFall inteiro (100 vídeos, 50 quedas) reservado |
+
 ## Material para a demonstração (passo 11)
 
 Gerado por `python scripts/pick_demo_clips.py` em `data/samples/` (fora do Git). Todos vêm das partes **reservadas**:

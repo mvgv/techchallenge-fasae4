@@ -1,6 +1,7 @@
 """Gera (ou atualiza) as divisões de config/splits.yaml a partir dos dados baixados.
 
-Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --commonvoice | --rehab24 | --keraal
+Uso: python scripts/make_splits.py --mimic | --esc50 | --urfall | --fall-v2 | --commonvoice
+     | --rehab24 | --keraal
 Cada opção reescreve só a sua seção; as outras ficam como estão.
 """
 import argparse
@@ -58,6 +59,22 @@ def urfall_splits() -> dict:
     return {"dataset": "UR Fall Detection (cam0)", "unit": "sequência",
             "rule": "fall 01-10 e adl 01-10 / fall 11-30 e adl 11-40",
             "calibracao": falls[:10] + adls[:10], "reservado": falls[10:] + adls[10:]}
+
+
+def fall_v2_splits(caucafall_videos_csv: Path) -> dict:
+    """Queda (T41): UR Fall inteiro para desenvolvimento; CAUCAFall inteiro como reservado novo.
+
+    O reservado do UR Fall já foi medido na T37; continua lá (seção `urfall`) como o número
+    da T37, mas aqui todo o UR Fall serve para diagnóstico e ajuste.
+    """
+    import csv
+    with open(caucafall_videos_csv, newline="", encoding="utf-8") as fh:
+        cauca = sorted((int(r["subject"]), r["seq"]) for r in csv.DictReader(fh))
+    ur = urfall_splits()
+    return {"dataset": "UR Fall (desenvolvimento) e CAUCAFall (reservado)", "unit": "sequência",
+            "rule": "UR Fall fall 01-30 e adl 01-40 / CAUCAFall 10 voluntários x 10 atividades",
+            "desenvolvimento": ur["calibracao"] + ur["reservado"],
+            "reservado": [q for _, q in cauca]}
 
 
 def rehab24_splits(seg_csv: Path) -> dict:
@@ -133,6 +150,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--mimic", action="store_true")
     ap.add_argument("--esc50", action="store_true")
     ap.add_argument("--urfall", action="store_true")
+    ap.add_argument("--fall-v2", action="store_true")
     ap.add_argument("--rehab24", action="store_true")
     ap.add_argument("--keraal", action="store_true")
     ap.add_argument("--data-dir", type=Path, default=ROOT / "data")
@@ -149,6 +167,10 @@ def main(argv: list[str] | None = None) -> None:
         sec = urfall_splits()
         save_section("urfall", sec)
         print({k: len(v) for k, v in sec.items() if k in ("calibracao", "reservado")})
+    if a.fall_v2:
+        sec = fall_v2_splits(a.data_dir / "datasets" / "caucafall" / "videos.csv")
+        save_section("fall_v2", sec)
+        print({k: len(v) for k, v in sec.items() if k in ("desenvolvimento", "reservado")})
     if a.rehab24:
         sec = rehab24_splits(a.data_dir / "datasets" / "rehab24" / "Segmentation.csv")
         save_section("rehab24", sec)
