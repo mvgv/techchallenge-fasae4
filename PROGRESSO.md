@@ -2,18 +2,18 @@
 
 Atualize este arquivo em **todo** commit (regras na seção 0.1 do `PLANO_IMPLEMENTACAO.md`).
 
-- **Última atualização:** 2026-11-13 (T41 passo A2: diagnóstico das quedas perdidas)
+- **Última atualização:** 2026-11-13 (T41 passo A3: regra de queda com a caixa e o detector)
 - **Tarefa atual:** T41 — Queda pela caixa da pessoa e fisioterapia com aprendizado (em andamento; sessão no Opus 5.5)
 - **Estado geral:** T00–T33 e T35–T40 concluídas; T41 em andamento; T34 opcional e fora da ordem; além da T41, só faltam passos humanos (gravação do vídeo, Teams/e-mail, orçamento e prints da Azure)
 
 ## Tarefa em andamento
 
-- **Tarefa:** T41 (seção T41 do `PLANO_IMPLEMENTACAO.md`). Passos concluídos: **A2** (diagnóstico em `docs/resultados/fall_v2.md`, `scripts/evaluate_fall_v2.py --diagnose`: a regra da T37 perde 19 de 30 quedas do UR Fall; causas (c) descida 8, (d) proporção 6, (e) permanência 5, nenhuma (a)/(b), mas a pose some depois do chão); **A1** (CAUCAFall extraído por `scripts/prepare_caucafall.py` em `data/datasets/caucafall/raw/` + `videos.csv` e `frames.csv`; rótulo `NNNNN.txt` = quadro NNNNN−1 do AVI, AVI a 20 fps; seção `fall_v2` em `config/splits.yaml`: UR Fall inteiro = desenvolvimento, CAUCAFall inteiro = reservado). Usa só dados da VPS, nada de Azure. Passos humanos seguem: Teams e e-mail, orçamento e prints da Azure, `docker compose down -v`, `preflight_demo.py`, gravar com `docs/ROTEIRO_VIDEO.md`. T34 só se o humano pedir.
-- **Próximo passo exato:** T41 passo A3 em `src/medwatch/video/bed.py` (cada mudança atrás de um parâmetro em `video.fall` de `config/thresholds.yaml`, desligada por padrão até o A4, com teste sintético em `tests/test_bed.py`): (1) descida normalizada pela altura da caixa antes da queda e centro inferior da caixa quando faltar o quadril; (2) "deitado" também quando a altura da caixa < fração da altura em pé; (3) fim do vídeo ou perda da pose com a pessoa deitada fecha a fase deitada; (4) detector de pessoas (conf 0,25) nos quadros sem pose, com cache. Saída de `analyze_bed` inalterada. Frases para o `DEFESA.md` (não existe nesta máquina): "o enunciado e o PhysioNet não trazem vídeo RGB, por isso os vídeos vêm do UR Fall, do REHAB24-6 e do Keraal"; "o agachamento real do REHAB24-6 mostrou recall 0,61, precisão 0,32 e 44% de falsos alarmes no reservado"; "no Keraal, com erro nomeado e dois terapeutas (kappa 0,59 nos pacientes), a análise 2D sinaliza quase tudo (falsos alarmes de 75% a 100%) e só acerta o erro e o tempo no esconder o rosto (8 de 10): a contagem funciona, a separação certo/incorreto ainda não".
+- **Tarefa:** T41 (seção T41 do `PLANO_IMPLEMENTACAO.md`). Passos concluídos: **A3** (`bed.py`: `drop_norm`, `hip_from_box`, `lying_height_ratio`, `skip_missing_j`, `end_closes_lying`; `models.py`: `Detector(conf=)`, `fallback_person`; worker usa `detector_fallback_conf` no leito; chaves em `video.fall` com valores da T37; `models/yolov8n.pt` baixado por `download_models.py`); **A2** (diagnóstico em `docs/resultados/fall_v2.md`, `scripts/evaluate_fall_v2.py --diagnose`: a regra da T37 perde 19 de 30 quedas do UR Fall; causas (c) descida 8, (d) proporção 6, (e) permanência 5, nenhuma (a)/(b), mas a pose some depois do chão); **A1** (CAUCAFall extraído por `scripts/prepare_caucafall.py` em `data/datasets/caucafall/raw/` + `videos.csv` e `frames.csv`; rótulo `NNNNN.txt` = quadro NNNNN−1 do AVI, AVI a 20 fps; seção `fall_v2` em `config/splits.yaml`: UR Fall inteiro = desenvolvimento, CAUCAFall inteiro = reservado). Usa só dados da VPS, nada de Azure. Passos humanos seguem: Teams e e-mail, orçamento e prints da Azure, `docker compose down -v`, `preflight_demo.py`, gravar com `docs/ROTEIRO_VIDEO.md`. T34 só se o humano pedir.
+- **Próximo passo exato:** T41 passo A4. Se faltar cache, rode `.venv/bin/python scripts/evaluate_fall_v2.py --cache` (retomável; poses do CAUCAFall em `data/datasets/caucafall/people/`, detecções em `*/det_v2/`; ~15 min). Depois: grade em `evaluate_fall_v2.py` só no desenvolvimento (UR Fall), escolha por F1 com no máximo 1 falso alarme em ADL; medir uma única vez no CAUCAFall (precisão, recall com IC de Wilson, falsos alarmes em ADL, atraso), regra da T37 ao lado; gravar os valores em `video.fall`. Exploração já feita no desenvolvimento: `hip_from_box`+`end_closes_lying` com `hip_drop_min` 0,12 dá 21/30 com 1 FP; `drop_norm: person` e `lying_height_ratio` 0,6 trazem FPs em ADL. Frases para o `DEFESA.md` (não existe nesta máquina): "o enunciado e o PhysioNet não trazem vídeo RGB, por isso os vídeos vêm do UR Fall, do REHAB24-6 e do Keraal"; "o agachamento real do REHAB24-6 mostrou recall 0,61, precisão 0,32 e 44% de falsos alarmes no reservado"; "no Keraal, com erro nomeado e dois terapeutas (kappa 0,59 nos pacientes), a análise 2D sinaliza quase tudo (falsos alarmes de 75% a 100%) e só acerta o erro e o tempo no esconder o rosto (8 de 10): a contagem funciona, a separação certo/incorreto ainda não".
 - **Ambiente:** VPS Linux, Python 3.11 em `.venv` (`.venv/bin/python`, `.venv/bin/pytest -q`, `.venv/bin/ruff check .`). `pyarrow` 17 instalado.
-- **Arquivos tocados:** `scripts/evaluate_fall_v2.py`, `tests/test_evaluate_fall_v2.py`, `docs/resultados/fall_v2.md`, `docs/resultados/fall_v2_diagnostico.json`
-- **Comandos longos em execução:** nenhum
-- **Testes falhando conhecidos:** nenhum (264 passam)
+- **Arquivos tocados:** `src/medwatch/video/bed.py`, `src/medwatch/video/models.py`, `src/medwatch/video/worker.py`, `config/thresholds.yaml`, `scripts/evaluate_fall_v2.py`, `tests/test_bed.py`, `tests/test_video_worker.py`
+- **Comandos longos em execução:** `scripts/evaluate_fall_v2.py --cache` (pode ter sido interrompido; é retomável)
+- **Testes falhando conhecidos:** nenhum (271 passam)
 - **Observações:** `docs/resultados/mimic_alarm_load.{md,json}` são sobras não versionadas de uma rodada intermediária (substituídas por `mimic_results.*`); podem ser apagadas. Resultados MIMIC: recall semissintético 0,87 no reservado (`tachy_spike` 0,69: o z-score precisa de 20 leituras ≈ 20 h), 1,09 alerta/paciente-dia só com vitais e 1,87 com prescrições. Relatório tem itens marcados [PENDENTE]. `dbg_tmp.py` e `dbg_diag.py` (vazio) na raiz são arquivos não versionados que o agente não pôde apagar (rm exige aprovação): apague à mão. `models/vitals_iforest.json` foi regravado com o campo `p0_1` (fora do Git; rode `scripts/train_vitals_iforest.py` em outra máquina para o limiar `p0_1` existir, senão o IForest cai no `threshold` antigo).
 
 ## Status das tarefas
@@ -93,7 +93,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 |---|---|---|
 | `.env` | sim | presente em 2026-11-08 (sem chaves Azure nem Teams; USE_FAKE_AZURE definido) |
 | Imagem `medwatch-app` | não | |
-| Pesos YOLO e AST | parcial | 2026-11-10: `models/yolov8n-pose.pt` baixado; AST no cache do Hugging Face; `lap` instalado na `.venv` |
+| Pesos YOLO e AST | parcial | 2026-11-10: `models/yolov8n-pose.pt` baixado; 2026-11-13: `models/yolov8n.pt` (T41); AST no cache do Hugging Face; `lap` instalado na `.venv` |
 | `data/datasets/urfall/` | sim | 2026-11-10, `scripts/download_datasets.py --urfall` (pasta `probe/` é sobra de teste; `people_v2/` é cache de poses) |
 | `models/vitals_iforest.*` | sim | 2026-11-08, sintético (sem --mimic) |
 | `data/references/*` | não | |
@@ -102,7 +102,7 @@ Ver a tabela "Estado fora do Git" na seção 0.1 do plano. Registre aqui o que j
 | `data/datasets/esc50/` (ESC-50, 10 classes, 400 clipes) | sim | 2026-11-09, `scripts/download_datasets.py --esc50` |
 | `data/datasets/rehab24/` (REHAB24-6: zip, Ex6, poses, `reps.csv`), `data/references/squat.json`, `data/samples/physio_squat_*.mp4` | sim | 2026-11-11, T39 |
 | `data/datasets/keraal/` (1A, 2A, poses, recs), `data/samples/physio_keraal_*` | sim | 2026-11-11, T40 |
-| `data/datasets/caucafall/` (zip, `raw/` com AVI e `.txt`, `videos.csv`, `frames.csv`) | sim | 2026-11-13, zip pelo humano; `scripts/prepare_caucafall.py` (T41) |
+| `data/datasets/caucafall/` (zip, `raw/` com AVI e `.txt`, `videos.csv`, `frames.csv`, `people/`, `det_v2/`; UR Fall também ganhou `det_v2/`) | sim | 2026-11-13, zip pelo humano; `scripts/prepare_caucafall.py` (T41) |
 | `data/mimic/*` (MIMIC-IV Demo 2.2 + parquets) | sim | 2026-11-09, `scripts/download_datasets.py --mimic` |
 
 ## Histórico de sessões

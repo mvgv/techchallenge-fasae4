@@ -34,39 +34,70 @@ def _aspect(p: Person | None) -> float | None:
     return float(w / h) if h > 0 else None
 
 
-def _detect_falls(hip_y, aspect, in_bed, times, fall_cfg) -> list[dict]:
+def _detect_falls(hip_y, aspect, in_bed, times, fall_cfg, box_h=None) -> list[dict]:
+    """Quedas: descida do quadril em `window_s`, seguida de fase deitada.
+
+    Opções de `fall_cfg` (T41; o padrão reproduz a regra da T37):
+    `drop_norm` "person" mede a descida em alturas da caixa no início da janela (e não do
+    quadro); `lying_height_ratio` aceita como deitado uma caixa com altura ≤ essa fração da
+    altura no início da janela (queda em direção à câmera); `skip_missing_j` usa o primeiro
+    quadro com quadril até `LYING_GAP_S` depois do fim da janela; `end_closes_lying` dispensa
+    `lying_min_s` quando a pessoa segue deitada ou sem pose até o fim do vídeo.
+    """
     win, drop_min = fall_cfg["window_s"], fall_cfg["hip_drop_min"]
     lying_aspect, lying_min = fall_cfg["lying_aspect_min"], fall_cfg["lying_min_s"]
+    by_person = fall_cfg.get("drop_norm", "frame") == "person"
+    h_ratio = fall_cfg.get("lying_height_ratio")
+    skip_j = fall_cfg.get("skip_missing_j", False)
+    end_closes = fall_cfg.get("end_closes_lying", False)
+    box_h = box_h if box_h is not None else [None] * len(times)
     out: list[dict] = []
     n = len(times)
 
-    def lying(k: int) -> bool:
-        return aspect[k] is not None and aspect[k] >= lying_aspect and in_bed[k] is not True
+    def lying(k: int, ref_h: float | None) -> bool:
+        if aspect[k] is None or in_bed[k] is True:
+            return False
+        if aspect[k] >= lying_aspect:
+            return True
+        return bool(h_ratio and ref_h and box_h[k] is not None and box_h[k] <= h_ratio * ref_h)
+
+    def drop_of(i: int, j: int) -> float | None:
+        if hip_y[i] is None or hip_y[j] is None:
+            return None
+        d = hip_y[j] - hip_y[i]
+        if by_person:
+            return d / box_h[i] if box_h[i] else None
+        return d
 
     i = 0
     while i < n:
         j = next((k for k in range(i + 1, n) if times[k] >= times[i] + win), None)
         if j is None:
             break
-        if (
-            hip_y[i] is None
-            or hip_y[j] is None
-            or hip_y[j] - hip_y[i] < drop_min
-            or not lying(j)
-        ):
+        if skip_j and hip_y[j] is None:
+            j = next((k for k in range(j, n) if hip_y[k] is not None
+                      and times[k] - times[i] - win <= LYING_GAP_S), j)
+        ref_h = box_h[i]
+        drop = drop_of(i, j)
+        if drop is None or drop < drop_min or not lying(j, ref_h):
             i += 1
             continue
         end = k = j
+        broke = False
         while k + 1 < n:
             k += 1
-            if lying(k):
+            if lying(k, ref_h):
                 end = k
             elif aspect[k] is not None or times[k] - times[end] > LYING_GAP_S:
+                broke = aspect[k] is not None
                 break
-        if times[end] - times[j] < lying_min:
+        to_end = end_closes and not broke and not any(
+            aspect[q] is not None and not lying(q, ref_h) for q in range(end + 1, n))
+        if times[end] - times[j] < lying_min and not to_end:
             i += 1
             continue
-        drop = hip_y[j] - hip_y[i]
+        if to_end:
+            end = n - 1
         out.append({
             "type": "fall_detected",
             "t_start": float(times[i]),
@@ -76,7 +107,8 @@ def _detect_falls(hip_y, aspect, in_bed, times, fall_cfg) -> list[dict]:
             "payload": {"t_video_s": float(times[j]), "hip_drop": float(drop)},
             "explanation": (
                 f"Queda em {times[j]:.1f}s: quadril desceu {drop * 100:.0f}% da altura "
-                f"e a pessoa ficou deitada por {times[end] - times[j]:.1f}s"
+                f"{'da pessoa' if by_person else 'da imagem'} e a pessoa ficou deitada por "
+                f"{times[end] - times[j]:.1f}s{' (até o fim do vídeo)' if to_end else ''}"
             ),
         })
         i = end + 1
@@ -146,8 +178,18 @@ def analyze_bed(
         for h in hips
     ]
 
+    box_h = [None if p is None else float(p.xyxy[3] - p.xyxy[1]) / height
+             for p in people_per_frame]
+    fall_hip_y = list(hip_y)
+    if thr["fall"].get("hip_from_box", False):
+        # sem os pontos do quadril, o centro da caixa faz o papel do quadril (T41)
+        fall_hip_y = [
+            hy if hy is not None or p is None else float(p.xyxy[1] + p.xyxy[3]) / 2 / height
+            for hy, p in zip(hip_y, people_per_frame, strict=True)
+        ]
+
     result = BedResult()
-    result.findings += _detect_falls(hip_y, aspect, in_bed, times, thr["fall"])
+    result.findings += _detect_falls(fall_hip_y, aspect, in_bed, times, thr["fall"], box_h)
     if bed:
         result.findings += _detect_bed_exits(in_bed, times)
     result.findings.sort(key=lambda f: f["t_start"])

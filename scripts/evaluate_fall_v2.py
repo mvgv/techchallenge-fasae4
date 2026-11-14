@@ -15,12 +15,98 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from evaluate_urfall import TOL_S, detect, extract_people, fall_intervals  # noqa: E402
+import csv  # noqa: E402
+import pickle  # noqa: E402
+
+from evaluate_urfall import TOL_S, UR, detect, extract_people, fall_intervals  # noqa: E402
 
 from medwatch.config import get_settings, load_yaml  # noqa: E402
 from medwatch.video.bed import HIP_IDX, LYING_GAP_S  # noqa: E402
+from medwatch.video.models import Detection, fallback_person  # noqa: E402
 
 OUT = ROOT / "docs" / "resultados"
+CF = ROOT / "data" / "datasets" / "caucafall"
+DET_MIN_CONF = 0.10   # o cache guarda pessoas a partir desta confiança; a grade escolhe o corte
+
+
+def cauca_videos() -> dict[str, dict]:
+    """Linhas de `videos.csv` do CAUCAFall por sequência."""
+    with open(CF / "videos.csv", newline="", encoding="utf-8") as fh:
+        return {r["seq"]: r for r in csv.DictReader(fh)}
+
+
+def cauca_intervals(row: dict) -> list[tuple[float, float]]:
+    """Intervalo (s) rotulado como queda (corpo no chão); vazio nas ADL."""
+    if not row["fall_first"]:
+        return []
+    fps = float(row["fps"])
+    return [(int(row["fall_first"]) / fps, int(row["fall_last"]) / fps)]
+
+
+def video_path(seq: str) -> Path:
+    """Caminho do vídeo de uma sequência do UR Fall (`fall-NN`, `adl-NN`) ou do CAUCAFall."""
+    if seq.startswith(("fall-", "adl-")):
+        return UR / "video" / f"{seq}.mp4"
+    return CF / cauca_videos()[seq]["avi"]
+
+
+def truth_of(seq: str) -> list[tuple[float, float]]:
+    """Verdade de campo de uma sequência de qualquer um dos dois datasets."""
+    if seq.startswith(("fall-", "adl-")):
+        return fall_intervals(seq)
+    return cauca_intervals(cauca_videos()[seq])
+
+
+def cached_people(seq: str, pose_weights: str, fps: int) -> dict:
+    """Poses por quadro: o cache do UR Fall (T37) ou um cache novo para o CAUCAFall."""
+    if seq.startswith(("fall-", "adl-")):
+        return extract_people(seq, pose_weights, fps)
+    cache = CF / "people" / f"{seq}.pkl"
+    if cache.exists():
+        return pickle.loads(cache.read_bytes())
+    from medwatch.video.frames import iter_frames, video_info
+    from medwatch.video.models import PoseEstimator, main_person
+
+    path = video_path(seq)
+    info = video_info(path)
+    pose = PoseEstimator(pose_weights)
+    people, times = [], []
+    for fr in iter_frames(path, fps):
+        people.append(main_person(pose(fr.image)[0]))
+        times.append(fr.t)
+    data = {"people": people, "times": times, "w": info["width"], "h": info["height"]}
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_bytes(pickle.dumps(data))
+    return data
+
+
+def cached_dets(seq: str, det_weights: str, fps: int, detector=None) -> list[list[Detection]]:
+    """Pessoas do detector YOLO por quadro (confiança ≥ `DET_MIN_CONF`), em cache."""
+    base = UR if seq.startswith(("fall-", "adl-")) else CF
+    cache = base / "det_v2" / f"{seq}.pkl"
+    if cache.exists():
+        return pickle.loads(cache.read_bytes())
+    from medwatch.video.frames import iter_frames
+    from medwatch.video.models import Detector
+
+    det = detector or Detector(det_weights)
+    out = []
+    for fr in iter_frames(video_path(seq), fps):
+        out.append([d for d in det(fr.image, conf=DET_MIN_CONF)[0] if d.cls == "person"])
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_bytes(pickle.dumps(out))
+    return out
+
+
+def with_fallback(data: dict, dets: list[list[Detection]] | None, min_conf: float | None) -> dict:
+    """Preenche os quadros sem pose com a caixa do detector (confiança ≥ `min_conf`)."""
+    if not dets or min_conf is None:
+        return data
+    if len(dets) != len(data["people"]):
+        raise ValueError("cache do detector e das poses com números de quadros diferentes")
+    people = [p if p is not None else fallback_person(d, min_conf)
+              for p, d in zip(data["people"], dets, strict=True)]
+    return {**data, "people": people}
 CAUSES = {
     "a": "nenhuma pessoa detectada pela pose no chão",
     "b": "pessoa detectada, mas sem os pontos do quadril",
@@ -150,11 +236,25 @@ def diagnosis_md(rows: list[dict], n_falls: int, n_adl_fp: int, thr: dict) -> li
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--diagnose", action="store_true")
+    ap.add_argument("--cache", action="store_true",
+                    help="gera os caches de pose (CAUCAFall) e de detecção (os dois datasets)")
     ap.add_argument("--out", type=Path, default=OUT)
     a = ap.parse_args()
     s = get_settings()
     thr = load_yaml("thresholds")["video"]
-    dev = load_yaml("splits")["fall_v2"]["desenvolvimento"]
+    split = load_yaml("splits")["fall_v2"]
+    dev = split["desenvolvimento"]
+    if a.cache:
+        from medwatch.video.models import Detector
+
+        det = Detector(s.yolo_det_weights)
+        for k, q in enumerate(dev + split["reservado"]):
+            d = cached_people(q, s.yolo_pose_weights, s.video_target_fps)
+            dets = cached_dets(q, s.yolo_det_weights, s.video_target_fps, det)
+            if len(dets) != len(d["people"]):
+                raise SystemExit(f"{q}: {len(dets)} detecções x {len(d['people'])} poses")
+            print(f"[{k + 1}] {q}: {len(dets)} quadros", flush=True)
+        return
     videos = {q: extract_people(q, s.yolo_pose_weights, s.video_target_fps) for q in dev}
     if a.diagnose:
         rows = run_diagnosis(videos, dev, thr)

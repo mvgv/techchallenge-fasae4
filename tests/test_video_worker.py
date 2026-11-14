@@ -129,6 +129,47 @@ def test_bed_fall_publishes_evidence_movement_and_keyframe(tmp_path):
     assert sample["source"] == "video" and sample["patient_id"] == "P-0001"
 
 
+class VanishingPose:
+    """Em pé até 1 s; depois a pose não acha ninguém (pessoa no chão)."""
+
+    def __init__(self):
+        self.n = 0
+
+    def __call__(self, img):
+        self.n += 1
+        return ([_standing()] if self.n <= FPS else []), FakeResult(img)
+
+
+class LyingDetector:
+    def __init__(self):
+        self.confs = []
+
+    def __call__(self, img, conf=0.35):
+        self.confs.append(conf)
+        return [Detection("person", 0.3, (15.0, 95.0, 145.0, 118.0))], None
+
+
+def test_bed_detector_fallback_when_pose_vanishes(tmp_path):
+    thr = {"video": {"keypoint_min_conf": 0.5, "inactivity_motion_max": 0.01,
+                     "fall": {"window_s": 1.0, "hip_drop_min": 0.15, "lying_aspect_min": 1.3,
+                              "lying_min_s": 0.5, "hip_from_box": True}}}
+    job, st, bus = _setup(tmp_path, "bed", seconds=5.0, camera="sem_zona")
+    det = LyingDetector()
+    w = VideoWorker(bus, st, FakeDb(), pose_factory=VanishingPose, detector=det,
+                    target_fps=FPS, ref_dir=Path("/nao/existe"), zones={"sem_zona": {}},
+                    thresholds=thr)
+    assert not [e for e in w.process(job) if e.type == "fall_detected"]
+    assert det.confs == []   # sem `detector_fallback_conf`, o detector não roda no leito
+    thr["video"]["fall"]["detector_fallback_conf"] = 0.25
+    (tmp_path / "b").mkdir()
+    job2, st2, bus2 = _setup(tmp_path / "b", "bed", seconds=5.0, camera="sem_zona")
+    w2 = VideoWorker(bus2, st2, FakeDb(), pose_factory=VanishingPose, detector=det,
+                     target_fps=FPS, ref_dir=Path("/nao/existe"), zones={"sem_zona": {}},
+                     thresholds=thr)
+    assert [e for e in w2.process(job2) if e.type == "fall_detected"]
+    assert det.confs and set(det.confs) == {0.25}
+
+
 def test_surgery_uses_detector(tmp_path):
     job, st, bus = _setup(tmp_path, "surgery", seconds=6.0)
     db = FakeDb()

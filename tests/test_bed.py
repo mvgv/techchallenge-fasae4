@@ -50,6 +50,82 @@ def test_fall_tolerates_pose_gaps_while_lying():
     assert len([f for f in res.findings if f["type"] == "fall_detected"]) == 1
 
 
+def _thr(**fall):
+    return {**THR, "fall": {**THR["fall"], "hip_drop_min": 0.15, "lying_min_s": 0.5, **fall}}
+
+
+def _fall_toward_camera(lying_box=(80, 70)):
+    """Queda de frente: o quadril desce pouco na imagem e a caixa fica alta e estreita."""
+    frames = [person((OUT_X, 0.57 * H), 80, 220)] * 20
+    for k in range(1, 5):
+        frames.append(person((OUT_X, (0.57 + 0.05 * k) * H), 80, 220 - 30 * k))
+    frames += [person((OUT_X, 0.80 * H), *lying_box)] * 20
+    return frames
+
+
+def test_height_ratio_accepts_fall_toward_camera():
+    frames = _fall_toward_camera()
+    t = times(len(frames))
+    assert analyze_bed(frames, t, W, H, {}, _thr()).findings == []
+    res = analyze_bed(frames, t, W, H, {}, _thr(lying_height_ratio=0.6))
+    assert [f["type"] for f in res.findings] == ["fall_detected"]
+
+
+def test_drop_normalized_by_person_height():
+    # pessoa pequena (longe): o quadril desce 10% do quadro, mas 40% da altura dela
+    frames = [person((OUT_X, 0.5 * H), 30, 0.25 * H)] * 20
+    frames += [person((OUT_X, 0.6 * H), 0.25 * H, 30)] * 20
+    t = times(len(frames))
+    assert analyze_bed(frames, t, W, H, {}, _thr()).findings == []
+    res = analyze_bed(frames, t, W, H, {}, _thr(drop_norm="person", hip_drop_min=0.3))
+    assert len(res.findings) == 1
+    assert "da pessoa" in res.findings[0]["explanation"]
+
+
+def test_hip_from_box_when_hips_missing():
+    frames = [person((OUT_X, 0.4 * H), 60, 200)] * 20
+    no_hips = person((OUT_X, 0.8 * H), 200, 60)
+    no_hips.kp_conf[[11, 12]] = 0.0
+    frames += [no_hips] * 20
+    t = times(len(frames))
+    assert analyze_bed(frames, t, W, H, {}, _thr()).findings == []
+    assert len(analyze_bed(frames, t, W, H, {}, _thr(hip_from_box=True)).findings) == 1
+
+
+def test_end_of_video_closes_lying_phase():
+    frames = [person((OUT_X, 0.4 * H), 60, 200)] * 20
+    frames += [person((OUT_X, 0.8 * H), 200, 60)] * 11 + [None] * 3   # deitado ~0,1 s e some
+    t = times(len(frames))
+    assert analyze_bed(frames, t, W, H, {}, _thr(lying_min_s=2.0)).findings == []
+    res = analyze_bed(frames, t, W, H, {}, _thr(lying_min_s=2.0, end_closes_lying=True))
+    assert len(res.findings) == 1
+    assert res.findings[0]["t_end"] == t[-1]
+    # se a pessoa se levanta antes do fim, o fim do vídeo não fecha a fase deitada
+    up = frames + [person((OUT_X, 0.4 * H), 60, 200)] * 5
+    assert analyze_bed(up, times(len(up)), W, H, {},
+                       _thr(lying_min_s=2.0, end_closes_lying=True)).findings == []
+
+
+def test_skip_missing_j_uses_next_frame_with_hip():
+    frames = [person((OUT_X, 0.4 * H), 60, 200)] * 20 + [None] * 3
+    frames += [person((OUT_X, 0.8 * H), 200, 60)] * 20
+    t = times(len(frames))
+    thr = _thr(window_s=0.2)
+    assert analyze_bed(frames, t, W, H, {}, thr).findings == []
+    assert len(analyze_bed(frames, t, W, H, {}, _thr(window_s=0.2, skip_missing_j=True))
+               .findings) == 1
+
+
+def test_fallback_person_from_detector():
+    from medwatch.video.models import Detection, fallback_person
+
+    dets = [Detection("person", 0.3, (0, 0, 10, 10)), Detection("person", 0.2, (0, 0, 50, 50)),
+            Detection("chair", 0.9, (0, 0, 99, 99))]
+    p = fallback_person(dets, 0.25)
+    assert p.xyxy == (0.0, 0.0, 10.0, 10.0) and not p.kp_conf.any()
+    assert fallback_person(dets, 0.5) is None
+
+
 def test_still_person_no_fall():
     frames = [person((OUT_X, 0.4 * H), 60, 200)] * 60
     res = analyze_bed(frames, times(60), W, H, {"bed": BED}, THR)

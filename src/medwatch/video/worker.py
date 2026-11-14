@@ -21,7 +21,7 @@ from medwatch.storage import Storage, get_storage
 from medwatch.video.annotate import AnnotatedWriter, active_findings, base_image, draw_overlay
 from medwatch.video.bed import analyze_bed
 from medwatch.video.frames import iter_frames, video_info
-from medwatch.video.models import Detector, PoseEstimator, main_person
+from medwatch.video.models import Detector, PoseEstimator, fallback_person, main_person
 from medwatch.video.physio import analyze_physio
 from medwatch.video.surgery import analyze_surgery
 
@@ -163,6 +163,9 @@ class VideoWorker:
             # Passagem 1: modelos + frames com a anotação do Ultralytics em vídeo temporário.
             pose = self.pose_factory()
             det = self.detector if mode == "surgery" else None
+            # T41: no leito, quadro sem pose usa a caixa do detector de pessoas
+            fb_conf = (self.thr.get("fall") or {}).get("detector_fallback_conf") \
+                if mode == "bed" else None
             people_all, dets_all, times = [], [], []
             base_path = tmp / "base.avi"
             base = cv2.VideoWriter(str(base_path), cv2.VideoWriter_fourcc(*"MJPG"), eff_fps, (w, h))
@@ -170,6 +173,9 @@ class VideoWorker:
                 for fr in iter_frames(src, self.target_fps):
                     people, pose_r = pose(fr.image)
                     dets, det_r = det(fr.image) if det is not None else ([], None)
+                    if fb_conf is not None and not people:
+                        fb = fallback_person(self.detector(fr.image, conf=fb_conf)[0], fb_conf)
+                        people = [fb] if fb is not None else []
                     people_all.append(people)
                     dets_all.append(dets)
                     times.append(fr.t)
