@@ -1,6 +1,10 @@
 """Medidas por repetição (ou gravação) para os modelos de fisioterapia com aprendizado (T41)."""
 from __future__ import annotations
 
+import logging
+from functools import lru_cache
+from pathlib import Path
+
 import numpy as np
 
 from medwatch.video.dtw import dtw_distance, resample
@@ -8,6 +12,7 @@ from medwatch.video.geometry import angle_series, trunk_angle
 from medwatch.video.models import Person
 from medwatch.video.reps import segment_reps
 
+log = logging.getLogger(__name__)
 CURVE_POINTS = 20
 EDGE_PAD = 2   # metade da janela do filtro de mediana de angle_series
 DTW_POINTS = 50
@@ -123,3 +128,50 @@ def feature_vector(
 def to_matrix(rows: list[dict[str, float]], names: list[str]) -> np.ndarray:
     """Matriz (amostras × medidas) na ordem de `names`."""
     return np.array([[r.get(k, np.nan) for k in names] for r in rows], dtype=float)
+
+
+@lru_cache(maxsize=8)
+def _load(path: str, mtime: float) -> dict:
+    import joblib
+
+    return joblib.load(path)
+
+
+def load_model(path: str | None) -> dict | None:
+    """Pacote salvo por scripts/train_physio_model.py --save; None se faltar ou não carregar."""
+    if not path:
+        return None
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        return _load(str(p), p.stat().st_mtime)
+    except Exception:
+        log.exception("Modelo de fisioterapia %s não carregou; usando as regras", p)
+        return None
+
+
+def model_scores(bundle: dict, rows: list[dict[str, float]]) -> np.ndarray:
+    """Probabilidade (ou escore de anomalia) de cada repetição ser incorreta."""
+    X = to_matrix(rows, bundle["features"])
+    model, family = bundle["model"], bundle.get("family")
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    if family == "mahalanobis":
+        return model[-1].mahalanobis(model[:-1].transform(X))
+    return -model.score_samples(X)
+
+
+def top_contributions(bundle: dict, row: dict[str, float], k: int = 2) -> list[str]:
+    """Medidas que mais empurram a regressão logística para "incorreta" (coeficiente × valor
+    padronizado); vazio para outros modelos."""
+    model = bundle["model"]
+    steps = getattr(model, "named_steps", {})
+    lr, sc, imp = (steps.get("logisticregression"), steps.get("standardscaler"),
+                   steps.get("simpleimputer"))
+    if lr is None or sc is None or imp is None:
+        return []
+    x = sc.transform(imp.transform(to_matrix([row], bundle["features"])))[0]
+    contrib = lr.coef_[0] * x
+    order = np.argsort(contrib)[::-1][:k]
+    return [bundle["features"][i] for i in order if contrib[i] > 0]

@@ -331,7 +331,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("stage", choices=["camera", "tune", "final"])
     a = ap.parse_args(argv)
     cfg_all = yaml.safe_load((ROOT / "config" / "exercises.yaml").read_text(encoding="utf-8"))
-    cfg = cfg_all["squat"]
+    cfg = {k: v for k, v in cfg_all["squat"].items() if k != "model"}  # mede as regras (T39)
     rows = load_reps()
     state_path = OUT / "physio_rehab24.json"
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}

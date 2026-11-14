@@ -6,8 +6,17 @@ import numpy as np
 from medwatch.video.dtw import dtw_distance, resample
 from medwatch.video.geometry import angle_series, trunk_angle
 from medwatch.video.models import Person
+from medwatch.video.physio_features import (
+    feature_vector,
+    load_model,
+    model_scores,
+    top_contributions,
+)
 from medwatch.video.reps import segment_reps
 
+MODEL_NAMES = {"logistic": "o modelo (regressão logística)", "mahalanobis": "o modelo de "
+               "corretas (Mahalanobis)", "iforest": "o modelo de corretas (IsolationForest)",
+               "tree": "o modelo (árvore)", "gbm": "o modelo (GradientBoosting)"}
 MAX_PER_TYPE = 5
 LOW_ROM_VS_MEDIAN = 0.7
 
@@ -207,6 +216,39 @@ def analyze_physio(
                 f"Rep. {n}: tronco inclinou só {m:.0f}° (esperado ≥ {trunk_min:.0f}°)",
             ))
 
+    bundle = load_model(cfg.get("model"))
+    if bundle is not None:
+        # T41: o modelo venceu as regras na validação cruzada; ele decide sozinho por repetição
+        result.findings.extend(_consolidate(
+            _model_findings(bundle, people_per_frame, frame_times, fps, cfg, segs, min_conf),
+            len(segs)))
+        return result
     for group in (low, asym, dev, trunk, trunk_low):
         result.findings.extend(_consolidate(group, len(segs)))
     return result
+
+
+def _model_findings(bundle, people, times, fps, cfg, segs, min_conf) -> list[dict]:
+    """`physio_pattern_deviation` nas repetições que o modelo julga incorretas."""
+    rows = [feature_vector(people[a:b + 1], list(times[a:b + 1]), cfg, bundle.get("reference"),
+                           min_conf, fps) for a, b in segs]
+    scores = model_scores(bundle, rows)
+    thr = float(bundle.get("threshold", 0.5))
+    prob = hasattr(bundle["model"], "predict_proba")
+    name = MODEL_NAMES.get(bundle.get("family"), bundle.get("family", "modelo"))
+    out = []
+    for i, ((a, b), s, row) in enumerate(zip(segs, scores, rows, strict=True)):
+        if s < thr:
+            continue
+        top = top_contributions(bundle, row)
+        why = f"; medidas que mais pesaram: {', '.join(top)}" if top else ""
+        out.append(_finding(
+            "physio_pattern_deviation", i + 1, times[a], times[b],
+            float(s) if prob else float(s) / (2 * thr),
+            {"dtw": row.get(f"dtw_{cfg['primary_joint']}"), "threshold": thr,
+             "probability": float(s) if prob else None, "model": bundle.get("family"),
+             "measures": top},
+            f"Rep. {i + 1}: {name} indica execução incorreta "
+            f"({'probabilidade' if prob else 'escore'} {s:.2f}){why}",
+        ))
+    return out

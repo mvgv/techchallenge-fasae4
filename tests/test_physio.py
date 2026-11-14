@@ -157,6 +157,43 @@ def test_rotation_low_when_shoulder_hip_ratio_is_flat():
     assert not new & {f["type"] for f in _run(flat).findings}
 
 
+class _FakeModel:
+    """Probabilidade alta quando a amplitude do joelho esquerdo é pequena."""
+
+    def predict_proba(self, X):
+        p = np.where(np.nan_to_num(X[:, 0]) < 50, 0.9, 0.1)
+        return np.column_stack([1 - p, p])
+
+
+def test_model_replaces_rules_when_file_exists(monkeypatch):
+    import medwatch.video.physio as physio
+    from medwatch.video.physio_features import feature_names
+
+    bundle = {"model": _FakeModel(), "family": "logistic", "features": feature_names(CFG),
+              "reference": None, "threshold": 0.5}
+    monkeypatch.setattr(physio, "load_model", lambda path: bundle if path else None)
+    people = _squats([80, 30, 80, 80])
+    r = _run_cfg(people, model="models/fake.joblib")
+    assert {f["type"] for f in r.findings} == {"physio_pattern_deviation"}
+    f = r.findings[0]
+    assert f["rep"] == 2 and abs(f["score"] - 0.9) < 1e-9
+    assert f["payload"]["probability"] == 0.9 and f["payload"]["model"] == "logistic"
+    # sem `model` no YAML, ou sem o arquivo, valem as regras
+    assert _of(_run_cfg(people), "physio_low_rom")
+    monkeypatch.setattr(physio, "load_model", lambda path: None)
+    assert _of(_run_cfg(people, model="models/nao_existe.joblib"), "physio_low_rom")
+
+
+def test_load_model_missing_file_returns_none(tmp_path):
+    from medwatch.video.physio_features import load_model
+
+    assert load_model(None) is None
+    assert load_model(str(tmp_path / "nao_existe.joblib")) is None
+    bad = tmp_path / "ruim.joblib"
+    bad.write_bytes(b"isto nao e um joblib")
+    assert load_model(str(bad)) is None
+
+
 def test_new_findings_registered_in_fusion_and_worker():
     from medwatch.config import load_yaml
     from medwatch.video.worker import SEVERITY

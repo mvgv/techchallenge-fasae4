@@ -13,6 +13,9 @@ squat:
   asymmetry_max_deg: 15
   dtw_max: 15                  # graus médios
   trunk_max_deg: 30
+  # T41: regressão logística que venceu as regras na validação cruzada (REHAB24-6, câmera 18).
+  # Gerada por `scripts/train_physio_model.py --save` (fora do Git); sem o arquivo, valem as regras.
+  model: models/physio_squat.joblib
 shoulder_abduction:
   label: "Abdução de ombro"
   primary_joint: shoulder_left

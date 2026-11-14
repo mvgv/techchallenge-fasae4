@@ -179,7 +179,8 @@ def t40_params(exercise: str) -> dict:
 
 
 def rule_flags(exercise: str, cfg: dict, units: list[dict], reference: dict) -> np.ndarray:
-    """1 se algum achado `physio_*` das regras atuais cobre a unidade."""
+    """1 se algum achado `physio_*` das regras atuais cobre a unidade (sem o modelo)."""
+    cfg = {k: v for k, v in cfg.items() if k != "model"}
     if exercise != "squat":
         cache: dict = {}
         return np.array([int(bool(ek.analyze(u["rec"], cfg, reference, cache))) for u in units])
