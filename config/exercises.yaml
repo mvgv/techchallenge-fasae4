@@ -46,9 +46,12 @@ trunk_rotation:        # RTK
   asymmetry_max_deg: 20
   dtw_max: 20
   trunk_max_deg: 20
+  # T41: limiares dos achados novos tirados das corretas fora do reservado (train_physio_model.py)
+  incomplete_rom_min_deg: 45.1         # amplitude do ombro na gravação; abaixo: physio_incomplete
+  rotation_ratio_range_min: 0.09       # faixa da razão ombros/quadris; abaixo: physio_rotation_low
   errors:
     Error1: physio_low_rom             # braços pouco levantados (ângulo do ombro)
-    Error2: null                       # pouca rotação do tronco: sem achado em 2D (limitação)
+    Error2: physio_rotation_low        # pouca rotação do tronco (T41)
     Error3: physio_trunk_compensation  # tronco inclinado para o lado
 lateral_stretch:       # ELK
   label: "Alongamento lateral"
@@ -65,9 +68,11 @@ lateral_stretch:       # ELK
   asymmetry_max_deg: 20
   dtw_max: 20
   trunk_max_deg: 15
+  incomplete_rom_min_deg: 81.5         # T41
+  trunk_min_expected_deg: 6.2          # T41: inclinação máxima por repetição; abaixo: physio_trunk_insufficient
   errors:
     Error1: physio_asymmetry           # braço oposto fora do corpo
-    Error2: null                       # tronco pouco inclinado: o achado de tronco só pega excesso (limitação)
+    Error2: physio_trunk_insufficient  # tronco pouco inclinado (T41)
     Error3: physio_low_rom             # braço de cima não dobrado (ângulo do cotovelo)
 hide_face:             # CTK
   label: "Esconder o rosto"
@@ -84,6 +89,7 @@ hide_face:             # CTK
   asymmetry_max_deg: 20
   dtw_max: 20
   trunk_max_deg: 20
+  incomplete_rom_min_deg: 68.9         # T41
   errors:
     Error1: physio_low_rom             # braços pouco levantados
     Error2: physio_low_rom             # braços pouco afastados (ombro e cotovelo)

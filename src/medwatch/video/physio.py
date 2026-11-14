@@ -79,6 +79,47 @@ def _low_rom(rep, rom_by_joint, ref_rom, median_rom, n_reps, ratio, t0, t1) -> d
     )
 
 
+def _incomplete(primary: np.ndarray, cfg: dict, t0: float, t1: float) -> dict | None:
+    """Amplitude da articulação principal na gravação abaixo de `incomplete_rom_min_deg`."""
+    limit = cfg.get("incomplete_rom_min_deg")
+    if not limit:
+        return None
+    rom = float(np.nanmax(primary) - np.nanmin(primary)) if np.isfinite(primary).any() else 0.0
+    if rom >= limit:
+        return None
+    return _finding(
+        "physio_incomplete", None, t0, t1, 1 - rom / limit,
+        {"joint": cfg["primary_joint"], "rom": rom, "expected_min_rom": limit},
+        f"Pouco movimento: amplitude de {cfg['primary_joint']} {rom:.0f}° na gravação "
+        f"(esperado ≥ {limit:.0f}°); exercício incompleto ou parado",
+    )
+
+
+def _rotation_low(people, cfg: dict, min_conf: float, t0: float, t1: float) -> dict | None:
+    """A razão entre as larguras dos ombros e dos quadris quase não muda (rotação do tronco)."""
+    limit = cfg.get("rotation_ratio_range_min")
+    if not limit:
+        return None
+    ratios = []
+    for p in people:
+        if p is None or any(p.kp_conf[i] < min_conf for i in (5, 6, 11, 12)):
+            continue
+        hip = abs(p.keypoints[11][0] - p.keypoints[12][0])
+        if hip > 1e-6:
+            ratios.append(abs(p.keypoints[5][0] - p.keypoints[6][0]) / hip)
+    if len(ratios) < 5:
+        return None
+    rng = float(np.percentile(ratios, 90) - np.percentile(ratios, 10))
+    if rng >= limit:
+        return None
+    return _finding(
+        "physio_rotation_low", None, t0, t1, 1 - rng / limit,
+        {"ratio_range": rng, "expected_min_range": limit},
+        f"Rotação do tronco pequena: a razão ombros/quadris variou {rng:.2f} "
+        f"(esperado ≥ {limit:.2f})",
+    )
+
+
 def analyze_physio(
     people_per_frame: list[Person | None],
     frame_times: list[float],
@@ -89,9 +130,21 @@ def analyze_physio(
 ) -> PhysioResult:
     """Analisa a execução de um exercício; `thr` tem `keypoint_min_conf`."""
     cfg = exercise_cfg
-    series = angle_series(people_per_frame, cfg["joints"], thr.get("keypoint_min_conf", 0.5))
+    min_conf = thr.get("keypoint_min_conf", 0.5)
+    series = angle_series(people_per_frame, cfg["joints"], min_conf)
     result = PhysioResult(series={k: [float(x) for x in v] for k, v in series.items()})
     primary = series[cfg["primary_joint"]]
+    t_all = (frame_times[0], frame_times[-1]) if frame_times else (0.0, 0.0)
+
+    incomplete = _incomplete(primary, cfg, *t_all)
+    if incomplete:
+        # pouco movimento: não é erro de execução, é exercício incompleto ou parado (T41)
+        result.findings.append(incomplete)
+        return result
+    rot = _rotation_low(people_per_frame, cfg, min_conf, *t_all)
+    if rot:
+        result.findings.append(rot)
+
     segs = segment_reps(primary, fps, cfg["rep_min_prominence_deg"], cfg["rep_min_distance_s"])
     if not segs:
         return result
@@ -100,7 +153,8 @@ def analyze_physio(
     ref_rom = (reference or {}).get("rom") or None
     median_rom = {j: float(np.median([r[j] for r in roms])) for j in series}
 
-    low, asym, dev, trunk = [], [], [], []
+    low, asym, dev, trunk, trunk_low = [], [], [], [], []
+    trunk_min = cfg.get("trunk_min_expected_deg")
     for i, (a, b) in enumerate(segs):
         n = i + 1
         t0, t1 = frame_times[a], frame_times[b]
@@ -145,7 +199,14 @@ def analyze_physio(
                 {"max_trunk_deg": m, "limit_deg": cfg["trunk_max_deg"]},
                 f"Rep. {n}: inclinação do tronco de {m:.0f}° (limite {cfg['trunk_max_deg']}°)",
             ))
+        if trunk_min and angles and max(angles) < trunk_min:
+            m = max(angles)
+            trunk_low.append(_finding(
+                "physio_trunk_insufficient", n, t0, t1, 1 - m / trunk_min,
+                {"max_trunk_deg": m, "expected_min_deg": trunk_min},
+                f"Rep. {n}: tronco inclinou só {m:.0f}° (esperado ≥ {trunk_min:.0f}°)",
+            ))
 
-    for group in (low, asym, dev, trunk):
+    for group in (low, asym, dev, trunk, trunk_low):
         result.findings.extend(_consolidate(group, len(segs)))
     return result

@@ -401,6 +401,88 @@ def cv_named_error(exercise: str, cfg: dict, units: list[dict]) -> dict:
                                      if t == a and p == b) for b in classes} for a in classes}}
 
 
+# ---------------------------------------------------------------- achados novos (B4)
+
+NEW_FINDING_TARGETS = {
+    "physio_incomplete": ("Incomplete", "Motionless"),
+    "physio_trunk_insufficient": ("Error2",),   # alongamento lateral: tronco pouco inclinado
+    "physio_rotation_low": ("Error2",),         # rotação de tronco: pouca rotação
+}
+
+
+def _recording_stats(people, fps: float, cfg: dict) -> dict:
+    """Amplitude da articulação principal, inclinação máxima por repetição e faixa da razão
+    ombros/quadris, calculadas como em `physio.py`."""
+    from medwatch.video.geometry import trunk_angle
+
+    s = angle_series(people, cfg["joints"], ek.MIN_CONF)[cfg["primary_joint"]]
+    rom = float(np.nanmax(s) - np.nanmin(s)) if np.isfinite(s).any() else 0.0
+    segs = segment_reps(s, fps, cfg["rep_min_prominence_deg"], cfg["rep_min_distance_s"])
+    trunk = []
+    for a, b in segs:
+        ang = [trunk_angle(p.keypoints) for p in people[a:b + 1] if p is not None]
+        if ang:
+            trunk.append(max(ang))
+    ratios = []
+    for p in people:
+        if p is None or any(p.kp_conf[i] < ek.MIN_CONF for i in (5, 6, 11, 12)):
+            continue
+        hip = abs(p.keypoints[11][0] - p.keypoints[12][0])
+        if hip > 1e-6:
+            ratios.append(abs(p.keypoints[5][0] - p.keypoints[6][0]) / hip)
+    rr = float(np.percentile(ratios, 90) - np.percentile(ratios, 10)) if len(ratios) >= 5 else None
+    return {"rom": rom, "trunk_reps": trunk, "ratio_range": rr}
+
+
+def calibrate_new_findings(cfgs: dict) -> dict:
+    """Limiares dos achados novos a partir das gravações corretas fora do reservado.
+
+    `incomplete_rom_min_deg`: metade da amplitude mediana das corretas (todos os exercícios do
+    Keraal); `trunk_min_expected_deg` (alongamento lateral): percentil 10 da inclinação máxima
+    por repetição das corretas; `rotation_ratio_range_min` (rotação de tronco): percentil 10 da
+    faixa da razão ombros/quadris das corretas. As corretas incertas entram aqui (no
+    alongamento lateral só 4 corretas são certas). Devolve os limiares e quanto cada um
+    sinaliza nas corretas e nos casos-alvo, ainda fora do reservado.
+    """
+    out = {}
+    recs = [r for r in ek.load_recordings() if r["split"] in TRAIN_SPLITS]
+    for name, code in KERAAL.items():
+        cfg = cfgs[name]
+        rows = []
+        for r in recs:
+            if r["exercise"] != code:
+                continue
+            _, people, fps = ek.load_poses(r["video"])
+            st = _recording_stats(people, fps, cfg)
+            rows.append({"evaluation": r["evaluation"],
+                         "error": r["errors"][0]["type"] if r["errors"] else None, **st})
+        cor = [x for x in rows if x["evaluation"] == "Correct"]
+        thr = {"incomplete_rom_min_deg": round(0.5 * float(np.median([x["rom"] for x in cor])), 1)}
+        if name == "lateral_stretch":
+            vals = [v for x in cor for v in x["trunk_reps"]]
+            thr["trunk_min_expected_deg"] = round(float(np.percentile(vals, 10)), 1)
+        if name == "trunk_rotation":
+            vals = [x["ratio_range"] for x in cor if x["ratio_range"] is not None]
+            thr["rotation_ratio_range_min"] = round(float(np.percentile(vals, 10)), 2)
+
+        def fires(x: dict, key: str, thr: dict = thr) -> bool:
+            if key == "incomplete_rom_min_deg":
+                return x["rom"] < thr[key]
+            if key == "trunk_min_expected_deg":
+                return any(v < thr[key] for v in x["trunk_reps"])
+            return x["ratio_range"] is not None and x["ratio_range"] < thr[key]
+
+        check = {}
+        targets = {"incomplete_rom_min_deg": ("Incomplete", "Motionless"),
+                   "trunk_min_expected_deg": ("Error2",), "rotation_ratio_range_min": ("Error2",)}
+        for key in thr:
+            tgt = [x for x in rows if x["evaluation"] in targets[key] or x["error"] in targets[key]]
+            check[key] = {"corretas": [sum(fires(x, key) for x in cor), len(cor)],
+                          "alvo": [sum(fires(x, key) for x in tgt), len(tgt)]}
+        out[name] = {"thresholds": thr, "check": check}
+    return out
+
+
 # ---------------------------------------------------------------- principal
 
 
@@ -439,7 +521,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--save", action="store_true")
     a = ap.parse_args(argv)
     cfgs = load_cfgs()
-    state: dict = {"exercises": {}, "skipped": {}}
+    state: dict = {"exercises": {}, "skipped": {}, "new_findings": calibrate_new_findings(cfgs)}
     for exercise in ("squat", "hide_face", "lateral_stretch", "trunk_rotation"):
         cfg = cfgs[exercise]
         units = units_for(exercise, cfg)

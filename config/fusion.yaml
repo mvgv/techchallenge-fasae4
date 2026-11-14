@@ -22,6 +22,9 @@ weights:
   physio_asymmetry: 0.25
   physio_pattern_deviation: 0.30
   physio_trunk_compensation: 0.20
+  physio_trunk_insufficient: 0.20   # T41
+  physio_rotation_low: 0.20         # T41
+  physio_incomplete: 0.25           # T41
   surgery_zone_intrusion: 0.50
   surgery_instrument_out_of_zone: 0.40
   surgery_instrument_count_mismatch: 0.70

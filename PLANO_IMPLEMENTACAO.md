@@ -749,6 +749,9 @@ Todos os produtores usam **somente** estes `type`. Pesos padrão ficam em `confi
 | `physio_asymmetry` | video | video | info | 0.25 | `{joint_pair, diff_deg, rep}` |
 | `physio_pattern_deviation` | video | video | info | 0.30 | `{dtw, threshold, rep}` |
 | `physio_trunk_compensation` | video | video | info | 0.20 | `{trunk_deg, rep}` |
+| `physio_trunk_insufficient` | video | video | info | 0.20 | `{trunk_deg, expected_min_deg, rep}` (T41) |
+| `physio_rotation_low` | video | video | info | 0.20 | `{ratio_range, expected_min_range}` (T41) |
+| `physio_incomplete` | video | video | info | 0.25 | `{joint, rom, expected_min_rom}` (T41) |
 | `surgery_zone_intrusion` | video | video | warning | 0.50 | `{zone, people, max}` |
 | `surgery_instrument_out_of_zone` | video | video | warning | 0.40 | `{cls, seconds}` |
 | `surgery_instrument_count_mismatch` | video | video | critical | 0.70 | `{start_count, end_count}` |

@@ -111,3 +111,56 @@ def test_trunk_compensation():
 def test_no_reps_returns_empty():
     r = _run([_person(170, 170)] * 30)
     assert r.reps == [] and r.findings == []
+
+
+def _run_cfg(people, **extra):
+    times = [i / FPS for i in range(len(people))]
+    return analyze_physio(people, times, FPS, {**CFG, **extra}, None, THR)
+
+
+def test_incomplete_replaces_other_findings():
+    people = [_person(170, 170)] * 30            # parado
+    r = _run_cfg(people, incomplete_rom_min_deg=40)
+    assert [f["type"] for f in r.findings] == ["physio_incomplete"]
+    assert r.findings[0]["payload"]["rom"] < 40
+    # com movimento suficiente o achado não aparece
+    assert not _of(_run_cfg(_squats([80, 80, 80, 80]), incomplete_rom_min_deg=40),
+                   "physio_incomplete")
+
+
+def test_trunk_insufficient_when_trunk_barely_leans():
+    people = _squats([80, 80, 80, 80])            # tronco vertical (0°)
+    assert _of(_run_cfg(people, trunk_min_expected_deg=10), "physio_trunk_insufficient")
+    for p in people:
+        p.keypoints[5] = p.keypoints[6] = np.array([4.0, 0.0])  # ~22° de inclinação
+    assert not _of(_run_cfg(people, trunk_min_expected_deg=10), "physio_trunk_insufficient")
+
+
+def _with_widths(people, ratios):
+    for p, r in zip(people, ratios, strict=False):
+        p.keypoints = p.keypoints.copy()
+        p.keypoints[11], p.keypoints[12] = np.array([-5.0, 10.0]), np.array([5.0, 10.0])
+        p.keypoints[5], p.keypoints[6] = np.array([-5.0 * r, 0.0]), np.array([5.0 * r, 0.0])
+    return people
+
+
+def test_rotation_low_when_shoulder_hip_ratio_is_flat():
+    people = _squats([80, 80, 80, 80])
+    flat = _with_widths([Person(None, p.xyxy, p.keypoints, p.kp_conf) for p in people],
+                        [1.0] * len(people))
+    assert _of(_run_cfg(flat, rotation_ratio_range_min=0.3), "physio_rotation_low")
+    turning = _with_widths([Person(None, p.xyxy, p.keypoints, p.kp_conf) for p in people],
+                           [1.0 + 0.5 * np.sin(k / 3) for k in range(len(people))])
+    assert not _of(_run_cfg(turning, rotation_ratio_range_min=0.3), "physio_rotation_low")
+    # sem as chaves novas no YAML, nenhum dos achados novos aparece
+    new = {"physio_incomplete", "physio_rotation_low", "physio_trunk_insufficient"}
+    assert not new & {f["type"] for f in _run(flat).findings}
+
+
+def test_new_findings_registered_in_fusion_and_worker():
+    from medwatch.config import load_yaml
+    from medwatch.video.worker import SEVERITY
+
+    weights = load_yaml("fusion")["weights"]
+    for t in ("physio_trunk_insufficient", "physio_rotation_low", "physio_incomplete"):
+        assert t in weights and t in SEVERITY

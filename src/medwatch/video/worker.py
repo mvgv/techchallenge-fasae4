@@ -40,6 +40,9 @@ SEVERITY = {
     "physio_asymmetry": Severity.info,
     "physio_pattern_deviation": Severity.info,
     "physio_trunk_compensation": Severity.info,
+    "physio_trunk_insufficient": Severity.info,
+    "physio_rotation_low": Severity.info,
+    "physio_incomplete": Severity.info,
     "surgery_zone_intrusion": Severity.warning,
     "surgery_instrument_out_of_zone": Severity.warning,
     "surgery_instrument_count_mismatch": Severity.critical,
@@ -66,7 +69,7 @@ def _catalog_payload(f: dict) -> dict:
         p.setdefault("joint_pair", p.get("pair"))
     elif t == "physio_pattern_deviation":
         p.setdefault("threshold", p.get("dtw_max"))
-    elif t == "physio_trunk_compensation":
+    elif t in ("physio_trunk_compensation", "physio_trunk_insufficient"):
         p.setdefault("trunk_deg", p.get("max_trunk_deg"))
     elif t == "surgery_zone_intrusion":
         p.setdefault("zone", "sterile_field")
