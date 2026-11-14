@@ -45,6 +45,7 @@ class DemoStep:
     description: str
     mode: str | None = None
     exercise: str | None = None
+    camera: str | None = None
 
 
 DEMO_STEPS: list[DemoStep] = [
@@ -52,7 +53,8 @@ DEMO_STEPS: list[DemoStep] = [
              "fisioterapia (agachamento incorreto)", mode="physio", exercise="squat"),
     DemoStep(370, "P-0001", "consulta_p0001.wav", "audio", "áudio da consulta encenada"),
     DemoStep(385, "P-0002", "laudo_p0002.txt", "document", "laudo em texto"),
-    DemoStep(410, "P-0004", "bed_fall.mp4", "video", "queda do leito", mode="bed"),
+    DemoStep(410, "P-0004", "bed_fall.mp4", "video", "queda do leito", mode="bed",
+             camera="ur_fall"),
 ]
 
 # Opcional (T40, --keraal): clipe de voluntário saudável reservado do Keraal; no vídeo de entrega
@@ -123,6 +125,8 @@ def send_step(client: httpx.Client, step: DemoStep, samples_dir: Path,
             data["mode"] = step.mode
         if step.exercise:
             data["exercise"] = step.exercise
+        if step.camera:
+            data["camera"] = step.camera
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         with path.open("rb") as fh:
             resp = client.post("/media", data=data, files={"file": (path.name, fh, mime)},

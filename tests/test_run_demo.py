@@ -90,6 +90,8 @@ def test_run_demo_sends_each_sample_at_its_minute(tmp_path):
     assert doc["recorded_at"] == (START + timedelta(minutes=386)).isoformat()
     fall = _media_form(rec.requests[3])
     assert "bed_fall.mp4" in fall and "P-0004" in fall and "bed" in fall
+    # a queda do UR Fall acontece dentro do polígono de default_bed: sem camera=ur_fall a regra a ignora
+    assert 'name="camera"' in fall and "ur_fall" in fall
 
 
 def test_run_demo_waits_for_clock_and_skips_missing(tmp_path):
