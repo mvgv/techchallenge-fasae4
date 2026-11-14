@@ -19,6 +19,19 @@ class Transcriber(Protocol):
     def transcribe(self, wav_path: Path) -> list[Segment]: ...
 
 
+def cancellation_error(evt) -> str | None:
+    """Texto do erro de um evento `canceled` da Azure, ou None se for só o fim do arquivo.
+
+    `EndOfStream` é o fim normal (inclusive de áudio sem fala, como uma tosse); só `Error` é falha.
+    """
+    det = getattr(evt, "cancellation_details", None)
+    reason = getattr(evt, "reason", None) or getattr(det, "reason", None)
+    if getattr(reason, "name", str(reason)).split(".")[-1] != "Error":
+        return None
+    msg = getattr(evt, "error_details", None) or getattr(det, "error_details", None)
+    return str(msg or det or reason)
+
+
 class AzureTranscriber:
     def __init__(self, key: str, region: str, language: str):
         self.key = key
@@ -45,9 +58,9 @@ class AzureTranscriber:
                                         r.offset / 1e7, r.duration / 1e7))
 
         def on_canceled(evt):
-            details = getattr(evt, "error_details", None) or getattr(evt, "cancellation_details", None)
-            if details and "EndOfStream" not in str(getattr(evt, "reason", "")):
-                errors.append(str(details))
+            msg = cancellation_error(evt)
+            if msg:
+                errors.append(msg)
             done.set()
 
         tr.transcribed.connect(on_transcribed)

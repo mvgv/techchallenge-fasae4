@@ -1,5 +1,7 @@
 # Roteiro da gravação do vídeo de entrega (T38)
 
+> **Roteiro atual da apresentação: [`ROTEIRO_APRESENTACAO.md`](ROTEIRO_APRESENTACAO.md)** (ordem: pacientes, cadastro ao vivo pela API, Azure ao vivo, código de vídeo, som e sinais, estratégia e métricas). Este arquivo continua válido para a **preparação** (seção 1), o plano B e o checklist.
+
 Meta: até 15 minutos (roteiro de ~14), mostrando os 4 itens que o enunciado exige: **(1)** exemplo prático de áudio e vídeo, **(2)** detecção e resposta a anomalias, **(3)** integração dos serviços Azure e **(4)** fluxo final do alerta à equipe médica.
 
 ## 1. Preparação (antes de gravar, fora do vídeo)
