@@ -45,7 +45,7 @@ while [ ! -f "$STOP_FILE" ]; do
     break
   fi
   case "$TASK" in
-    T24|T26|T30|T32|T35) MODEL=claude-opus-5-5 ;;
+    T24|T26|T30|T32|T35|T41) MODEL=claude-opus-5-5 ;;
     *) MODEL=claude-sonnet-5-5 ;;
   esac
 

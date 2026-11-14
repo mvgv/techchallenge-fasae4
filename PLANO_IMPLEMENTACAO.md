@@ -24,7 +24,7 @@ Este documento é a especificação executável do projeto. Ele foi escrito para
    - Fase 5 — Fusão e alertas: T25–T27
    - Fase 6 — Saídas: T28–T30
    - Fase 7 — Avaliação e entrega: T31–T34
-   - Fase 8 — Integração, dados reais e gravação: T35–T40
+   - Fase 8 — Integração, dados reais e gravação: T35–T41
 6. [Passos manuais (somente humanos)](#6-passos-manuais-somente-humanos)
 7. [Roteiro da demonstração](#7-roteiro-da-demonstração)
 8. [Checklist final de aceite](#8-checklist-final-de-aceite)
@@ -2168,7 +2168,7 @@ def teams_payload(alert: Alert, dashboard_url: str) -> dict:
 
 ### Fase 8 — Integração, dados reais e gravação
 
-A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. A T39 vem da busca por datasets de vídeo: o REHAB24-6 traz agachamento real com rótulos do fisioterapeuta e substitui os vídeos que o grupo ia gravar. A T40 vem do resultado fraco da T39: o Keraal traz o erro nomeado e localizado no tempo, anotado por terapeutas. Ordem: T35 → T36 → T37 → T38 → T39 → T40 (a T39 pode ser feita antes da gravação do vídeo; o `ROTEIRO_VIDEO.md` já aponta para os nomes de amostra que ela produz). A T34 continua opcional e **não** precisa ser feita antes delas.
+A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com unidades e modelos falsos, e a avaliação de vitais da T31 tem um erro de método. A T37 e a T38 vêm da preparação do vídeo de entrega: os datasets sugeridos no enunciado (PhysioNet e AudioSet) ainda não tinham sido usados, e a demonstração não cabia nos 15 minutos. A T39 vem da busca por datasets de vídeo: o REHAB24-6 traz agachamento real com rótulos do fisioterapeuta e substitui os vídeos que o grupo ia gravar. A T40 vem do resultado fraco da T39: o Keraal traz o erro nomeado e localizado no tempo, anotado por terapeutas. A T41 vem dos resultados fracos de queda e fisioterapia: troca regras dependentes da pose por caixa da pessoa e aprendizado. Ordem: T35 → T36 → T37 → T38 → T39 → T40 → T41 (a T39 pode ser feita antes da gravação do vídeo; o `ROTEIRO_VIDEO.md` já aponta para os nomes de amostra que ela produz). A T34 continua opcional e **não** precisa ser feita antes delas.
 
 #### T35 — Integração ponta a ponta (modo falso)
 
@@ -2388,6 +2388,59 @@ A T35 e a T36 vêm da revisão feita depois da T33: tudo foi testado só com uni
   - clipes da demonstração vêm de voluntários saudáveis reservados;
   - nenhuma afirmação sobre dados clínicos que não tenha sido medida, e nada de dados de pacientes no Git.
 
+#### T41 — Queda pela caixa da pessoa e fisioterapia com aprendizado
+
+- **Objetivo:** atacar os dois piores números do projeto com os dados que já estão na VPS. (A) **Queda:** recall 0,10 no reservado do UR Fall (calibração 0,90), porque a pose do YOLO some com a pessoa no chão e a regra depende dos pontos do quadril. (B) **Fisioterapia:** nas T39 e T40 as regras fixas sobre ângulos 2D não separaram repetições corretas das incorretas. Aqui entram as duas técnicas clássicas de detecção de anomalias com rótulo: **sem supervisão** (aprender só o movimento correto e medir a distância) e **supervisionada** (classificador sobre as medidas que já existem), comparadas com as regras no mesmo reservado.
+- **Depende de:** T37 (UR Fall e caches), T39 e T40 (caches de pose, `reps.csv`, `recs.csv`, divisões).
+- **Modelo:** recomenda-se **Opus 5.5** (desenho de método com poucos dados; ver seção 0.2).
+- **Arquivos:** `src/medwatch/video/bed.py`, `src/medwatch/video/models.py` (se precisar de caixa sem pose), `src/medwatch/video/physio.py`, `src/medwatch/video/physio_features.py` (novo), `scripts/evaluate_urfall.py`, `scripts/train_physio_model.py` (novo), `scripts/evaluate_physio_learned.py` (novo), `config/thresholds.yaml`, `config/exercises.yaml`, `config/fusion.yaml`, `config/splits.yaml`, seção 4 deste plano (catálogo de evidências), testes correspondentes, `docs/resultados/urfall_fall.md` (seção nova) ou `docs/resultados/fall_v2.md` (novo), `docs/resultados/physio_learned.md` (novo), `docs/resultados/datasets.md`, `docs/relatorio-tecnico.md`, `docs/DECISOES.md`.
+- **Regras desta tarefa:**
+  - **O reservado não ajusta nada** (regra da T37). Para a queda isso exige cuidado especial, porque o reservado do UR Fall já foi medido uma vez na T37 e o problema está justamente nele; veja o passo A1.
+  - Escolha de modelos e limiares por **validação cruzada deixando um voluntário de fora** (*leave-one-subject-out*) dentro de calibração + validação: com 4 a 6 voluntários por divisão, uma validação de 2 pessoas é ruído.
+  - Nenhum download obrigatório. Use `scikit-learn` (já é dependência) e `joblib` (vem com ele); nada de rede neural nova.
+  - Reporte o número como sair. Se o aprendizado não vencer as regras na validação cruzada, o sistema fica com as regras e o relatório diz isso.
+
+**Parte A — Queda**
+
+- **A1. Divisão para desenvolvimento.** O reservado do UR Fall (quedas 11–30, ADL 11–40) já foi medido na T37 (recall 0,10), e esse número fica no relatório como o resultado da T37. Para desenvolver sem contaminar o número novo:
+  - **Primeira opção:** obter um **segundo dataset de queda** como reservado novo e passar o UR Fall inteiro para desenvolvimento. Candidatos: CAUCAFall (10 voluntários, 5 tipos de queda e 5 de ADL, RGB; artigo em [PMC9508401](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9508401/)) ou Le2i. Confira hospedagem, licença e se há rótulo de quadro; registre em `docs/DATASETS.md`. Download só com Python ou `curl`.
+  - **Se nenhum estiver acessível:** redivida o reservado do UR Fall. Quedas 11–20 e ADL 11–25 passam a **desenvolvimento**; quedas 21–30 e ADL 26–40 ficam como **reservado novo** (10 quedas, 15 ADL). Registre em `docs/DECISOES.md` e em `config/splits.yaml` (seção `urfall_v2`), deixando claro que o reservado novo é menor e que a T37 já o tinha visto **só como número agregado**.
+- **A2. Diagnóstico (só no desenvolvimento).** Para cada queda perdida, classifique a causa e grave a tabela no relatório: (a) nenhuma pessoa detectada pela pose no chão; (b) pessoa detectada mas sem os pontos do quadril; (c) queda do quadril abaixo de `hip_drop_min`; (d) caixa sem a proporção de deitado (com a câmera de frente, quem cai **em direção** à câmera fica com a caixa alta e estreita); (e) o vídeo termina antes de `lying_min_s`. A correção depende dessa tabela: não implemente antes de vê-la.
+- **A3. Regra com a caixa.** Conforme o diagnóstico:
+  - quando faltarem os pontos do quadril, use o **centro inferior da caixa** (ou o centro da caixa) no lugar do quadril para medir a descida, normalizado pela altura da caixa antes da queda;
+  - quando a pose não achar ninguém, rode o **detector de pessoas** (`Detector`, classe `person`, confiança mais baixa, por exemplo 0,25) nesses quadros e use a caixa dele; guarde em cache como as poses;
+  - para a queda em direção à câmera, aceite como "deitado" também uma **queda grande da altura da caixa** (por exemplo, altura < 60% da altura em pé), além da proporção largura/altura;
+  - aceite o fim do vídeo como fim da fase deitada se a pessoa estava deitada até o último quadro (clipes curtos).
+  Cada mudança fica atrás de um parâmetro em `thresholds.yaml` (`video.fall`) e tem teste com sequência sintética. Mantenha a saída de `analyze_bed` igual (`fall_detected`, score 0,9) para não mexer na fusão.
+- **A4. Ajuste e medição.** Grade dos parâmetros novos e antigos **só no desenvolvimento**; escolha pelo F1 com a restrição de no máximo 1 falso alarme em ADL. Depois meça uma única vez no reservado novo: precisão, recall (IC de Wilson), falsos alarmes em ADL e atraso. Mostre lado a lado a regra da T37 e a nova, no mesmo reservado novo.
+
+**Parte B — Fisioterapia com aprendizado**
+
+- **B1. Medidas por repetição.** Crie `src/medwatch/video/physio_features.py` com uma função que, para uma repetição (REHAB24-6) ou gravação (Keraal), devolve um vetor fixo de medidas a partir das séries que `physio.py` já calcula: amplitude de cada articulação; assimetria de cada par; distância DTW de cada articulação para a referência; inclinação do tronco máxima **e mínima**; razão entre a largura dos ombros e a dos quadris (mínima e máxima: rotação vista de frente); ângulo do cotovelo (mínimo); duração; e a curva da articulação principal reamostrada para 20 pontos. NaN quando a pose faltar, com a fração de quadros sem pose como medida extra. Teste com séries sintéticas.
+- **B2. Dois modelos, mais as regras como base.**
+  - **Sem supervisão (só corretas):** distância de Mahalanobis com covariância encolhida (`sklearn.covariance.LedoitWolf`) e, como alternativa, `IsolationForest`, treinados **só com repetições corretas** da calibração. O limiar sai da validação cruzada (por exemplo, o percentil das corretas que dá no máximo 20% de falsos alarmes).
+  - **Supervisionado:** regressão logística com padronização e `class_weight="balanced"` e uma árvore rasa ou `GradientBoostingClassifier` pequeno, treinados com corretas e incorretas da calibração.
+  - **Base:** as regras atuais, com os valores de `exercises.yaml`.
+  Selecione hiperparâmetros por validação cruzada deixando um voluntário de fora, em calibração + validação. Faça isso separadamente para o agachamento (REHAB24-6) e para cada exercício do Keraal com dados suficientes (pelo menos 10 incorretas e 10 corretas fora do reservado; senão, registre que não há dados).
+- **B3. Erro nomeado (Keraal).** Para os exercícios com erros suficientes, uma regressão logística multiclasse sobre as gravações incorretas prevê o tipo de erro (`Error1`, `Error2`, `Error3`). Reporte a matriz de confusão no reservado, comparada com o mapa de regras da T40.
+- **B4. Lacunas das regras que a T40 encontrou.** Acrescente dois achados ao catálogo (seção 4), a `physio.py` e a `fusion.yaml`, com teste:
+  - `physio_trunk_insufficient`: inclinação lateral máxima **abaixo** do esperado (o `Error2` do alongamento lateral, que nenhum achado cobria);
+  - `physio_rotation_low`: a razão entre ombros e quadris quase não muda (o `Error2` da rotação de tronco).
+  E um terceiro, `physio_incomplete`, quando a gravação tem bem menos movimento ou repetições que o esperado, para separar "incompleto/imóvel" de erro de execução. Os limiares saem da calibração.
+- **B5. Medição no reservado.** Uma única vez, para cada exercício: precisão, recall e falsos alarmes com IC de Wilson, e a área sob a curva ROC com intervalo por *bootstrap* **por voluntário**. Coloque regras, sem supervisão e supervisionado lado a lado, e a matriz de confusão do erro nomeado. Grave `docs/resultados/physio_learned.md` e uma linha em `docs/resultados/datasets.md`.
+- **B6. Integração (só se ganhar na validação cruzada).** Se um modelo vencer as regras **na validação cruzada** (não no reservado), salve-o em `models/physio_<exercício>.joblib` (fora do Git, como os outros modelos) e acrescente em `exercises.yaml` o campo `model:` com o caminho. `analyze_physio` passa a emitir `physio_pattern_deviation` com o score igual à probabilidade do modelo quando o campo existir, e cai nas regras se o arquivo não estiver lá. Teste com um modelo falso. Se nenhum vencer, não integre e registre por quê.
+
+**Fechamento**
+
+- **Documentação:** `docs/relatorio-tecnico.md` ganha uma seção "detecção de anomalias com aprendizado" (o que é sem supervisão e o que é supervisionado, por que a validação deixa um voluntário de fora, resultado com IC); `docs/DECISOES.md` registra a divisão da queda e a escolha (ou não) de cada modelo; frases para o `DEFESA.md` vão para o `PROGRESSO.md` se o arquivo não existir nesta máquina.
+- **Demonstração:** se a regra de queda nova detectar quedas reservadas, troque o `bed_fall.mp4` por uma delas somente se a atual deixar de ser detectada; o roteiro passa a dizer o recall novo.
+- **Aceite:**
+  - tabela de diagnóstico das quedas perdidas (só desenvolvimento) e regra nova medida uma vez num reservado que não ajustou nada;
+  - `physio_learned.md` com regras, sem supervisão e supervisionado lado a lado, IC por voluntário e a matriz do erro nomeado;
+  - os três achados novos no catálogo, em `fusion.yaml` e com testes;
+  - modelo integrado só se venceu na validação cruzada;
+  - testes e lint passam sem depender dos downloads.
+
 ---
 
 ## 6. Passos manuais (somente humanos)
@@ -2466,7 +2519,7 @@ O worker usa o tempo do evento, então toda mídia enviada na demo usa `recorded
 - [ ] Avaliação de vitais por alerta no relatório, com o método corrigido (T36).
 - [ ] PhysioNet (MIMIC-IV Demo) e AudioSet (ou ESC-50, com a escolha registrada) usados de fato, com divisão calibração / validação / reservado e resultados da parte reservada no relatório (T37).
 - [ ] `docs/ROTEIRO_VIDEO.md` pronto e `preflight_demo.py` todo em ✓ antes da gravação (T38).
-- [ ] `PROGRESSO.md` com T00–T33 e T35–T40 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
+- [ ] `PROGRESSO.md` com T00–T33 e T35–T41 `concluída` (T34 `concluída` ou `pulada`), sem bloqueios abertos e com a seção "Tarefa em andamento" vazia.
 
 ---
 
