@@ -169,6 +169,15 @@ def matrix(units: list[dict], cfg: dict, reference: dict) -> np.ndarray:
 # ---------------------------------------------------------------- regras
 
 
+def t40_params(exercise: str) -> dict:
+    """Limiares com que a T40 mediu o reservado (`final_cfg` de physio_keraal.json, fora do Git);
+    vazio no agachamento (a T39 manteve os de exercises.yaml) ou se o JSON não existir."""
+    path = OUT / "physio_keraal.json"
+    if exercise == "squat" or not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8")).get(exercise, {}).get("final_cfg", {})
+
+
 def rule_flags(exercise: str, cfg: dict, units: list[dict], reference: dict) -> np.ndarray:
     """1 se algum achado `physio_*` das regras atuais cobre a unidade."""
     if exercise != "squat":
@@ -332,6 +341,7 @@ def cv_model(family: str, h: dict, fs: list[dict]) -> dict:
 def cv_rules(exercise: str, cfg: dict, fs: list[dict]) -> dict:
     """As regras atuais na mesma validação (referência refeita por dobra)."""
     y = np.concatenate([f["yte"] for f in fs])
+    cfg = {**cfg, **t40_params(exercise)}
     flag = np.concatenate([rule_flags(exercise, cfg, f["test"], f["ref"]) for f in fs])
     subj = [f["subject"] for f in fs for _ in f["yte"]]
     return {"family": "regras", "auc": auc(y, flag), "auc_ci": auc_ci_by_subject(y, flag, subj),
