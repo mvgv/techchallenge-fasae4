@@ -168,6 +168,7 @@ Cada dataset foi dividido por paciente, clipe, sequência ou falante em calibra�
 | MIMIC-IV Demo 2.2 (PhysioNet) | vitais (NEWS2 + z-score + Isolation Forest) | 20 pacientes, 107,7 paciente-dias | recall semissintético 0,87 (taquicardia curta 0,69); 1,09 alerta por paciente-dia só com vitais e 1,87 com prescrições | `mimic_results.md` |
 | ESC-50 | sons respiratórios (AST) | folds 4–5, 160 clipes | precisão 0,97 e recall 0,97 (respiratório × não respiratório) | `audio_events.md` |
 | UR Fall (cam0) | queda (pose YOLOv8n + regra de quadril e proporção) | quedas 11–30 e ADL 11–40 | precisão 0,67 e recall 0,10 (na calibração, recall 0,90) | `urfall_fall.md` |
+| CAUCAFall (T41, reservado novo) | queda (regra da T37 revisada: centro da caixa sem quadril, caixa do detector quando a pose some, fim do vídeo fecha a fase deitada; ajuste só no UR Fall inteiro) | 100 vídeos, 10 voluntários, 50 quedas e 50 ADL, câmera alta no canto | recall 0,24 (IC 95% de 0,14 a 0,37), precisão 1,00, nenhuma ADL com alarme (regra da T37: recall 0,20); no UR Fall inteiro, de 11 para 26 de 30 quedas | `fall_v2.md` |
 | REHAB24-6 (agachamento) | fisioterapia (pose YOLOv8n + ROM, assimetria, DTW, tronco) | 3 voluntários, 70 repetições (18 incorretas) | recall de repetição incorreta 0,61 (IC 95% de 0,39 a 0,80), precisão 0,32 (a proporção de incorretas é 0,26) e 44% das corretas sinalizadas; nenhuma combinação de limiares separou as classes na calibração e validação | `physio_rehab24.md` |
 | Keraal (dor lombar, erro nomeado; RTK, ELK, CTK) | fisioterapia (mesma pose e achados, por gravação) | 4 voluntários (2 pacientes, 2 saudáveis), 90 gravações anotadas por dois terapeutas | precisão 12% / 52% / 36% e recall 50% / 86% / 100% (RTK / ELK / CTK), falsos alarmes 75% a 100%; nenhuma combinação separou correto de incorreto melhor que sinalizar tudo; erro nomeado e no tempo certo em 8 das 10 incorretas do CTK, 2 de 6 no RTK e 0 de 14 no ELK (erro não visível com os achados atuais) | `physio_keraal.md` |
 | Common Voice pt-BR | voz saudável (linha de base e falsos alarmes) | 27 falantes | 2 de 27 (7,4%; IC 95% de 2% a 23%) dispararam `voice_fatigue`; nenhum, disartria | `voice_baseline.md` |
@@ -180,7 +181,12 @@ Leitura sem maquiagem:
   mínimo dos alertas e explica o recall menor do `tachy_spike` (o z-score precisa de 20 leituras).
 - **A queda generaliza mal:** 0,90 de recall na calibração caiu para 0,10 no reservado (clipes curtos que terminam logo
   depois de a pessoa deitar, e a pose falha com a pessoa no chão). O número da calibração não deve ser apresentado como
-  desempenho.
+  desempenho. Na T41 um diagnóstico só no UR Fall (agora todo de desenvolvimento) classificou as 19 quedas perdidas
+  (descida pequena com a câmera longe, queda em direção à câmera, clipe que acaba antes da permanência mínima) e a regra
+  ganhou o centro da caixa quando falta o quadril, a caixa do detector quando a pose some e o fim do vídeo como fim da
+  fase deitada: 26 de 30 quedas no desenvolvimento com 1 falso alarme. No reservado novo (CAUCAFall, outro laboratório,
+  câmera alta no canto) o ganho quase some: recall 0,24 contra 0,20, sem falsos alarmes. Vista do alto, a pessoa caída
+  para frente ou para trás continua com a caixa mais alta que larga; a regra é geométrica e depende do ponto de vista.
 - **Fisioterapia:** no agachamento do REHAB24-6 (3 voluntários reservados, 70 repetições) a análise acerta a contagem com erro médio de 1,8 repetições por bloco, mas a detecção de repetição incorreta é fraca: recall 0,61, precisão 0,32 e 44% das corretas sinalizadas. Na calibração e validação nenhuma combinação de limiares separou as classes melhor que sinalizar tudo; os limiares ficaram como estavam. Causas prováveis: pose 2D em vista frontal ou meio perfil (nunca perfil), marcadores de captura no corpo e rótulos que não dizem qual foi o erro. Referência: Černek, Sedmidubsky e Budikova, "REHAB24-6", SISAP 2024 (CC BY-NC 4.0, só uso acadêmico).
 - **Fisioterapia com erro nomeado (Keraal):** os erros anotados (qual, onde, quando) permitem medir mais que "incorreto", e o resultado é duro: a análise por ângulos 2D sinaliza quase todas as gravações (falsos alarmes de 75% a 100% no reservado) e a precisão fica na proporção de incorretas ou abaixo dela. O erro certo e no tempo certo só aparece no "esconder o rosto" (8 de 10), onde o mapa de achados é grosso (`physio_low_rom` para os três erros). Dois erros não têm achado possível hoje (pouca rotação do tronco e tronco pouco inclinado: o achado de tronco só pega excesso); incompleto e imóvel não são distinguidos de erro de execução. Concordância dos terapeutas A×B: kappa 0,59 nos pacientes e 0,83 nos saudáveis, o que também limita o teto. Os dados dos pacientes são clínicos (anonimizados): ficam fora do Git, e a demonstração usa só um voluntário saudável reservado. Referência: Nguyen et al., IJCNN 2024 (CC BY-NC-SA). Detalhes em `docs/resultados/physio_keraal.md`.
 - **Voz:** só se mediu especificidade, com 27 falantes. Os limiares de ritmo de fala e de pausas não foram calibrados com
@@ -209,8 +215,8 @@ Leitura sem maquiagem:
 1. Gravar a demonstração completa (os clipes de agachamento vêm do REHAB24-6, reservados) e o Teams (a Azure real, o áudio e a queda já foram
    verificados), e preencher os custos e os prints da seção 4 e os casos da 5.3.
 2. Anotar vídeos próprios e rodar `evaluate_video.py`.
-3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e melhorar a regra de queda, que generaliza mal
-   (recall 0,10 no UR Fall reservado).
+3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e trocar a regra de queda, que depende do
+   ponto de vista da câmera (recall 0,24 no CAUCAFall reservado), por um classificador treinado com várias câmeras.
 4. Calibrar os pesos de fusão com desfechos rotulados.
 5. Substituir/complementar o YOLO COCO por detector de instrumentos cirúrgicos treinado; avaliar OpenPose.
 6. Integrar a um padrão de interoperabilidade (HL7 FHIR) e adicionar autenticação, auditoria e RBAC.

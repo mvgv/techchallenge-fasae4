@@ -5,7 +5,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from evaluate_fall_v2 import diagnose  # noqa: E402
+from evaluate_fall_v2 import T37_DEFAULTS, choose, diagnose, grid_combos  # noqa: E402
 
 from medwatch.video.models import Person  # noqa: E402
 
@@ -52,3 +52,22 @@ def test_no_hips_is_cause_b_and_no_person_is_a():
     frames = [_person(0.5, 80, 220, hips=False)] * 20
     assert diagnose(_data(frames), (1.2, 2.4), THR)["gate"] == "b"
     assert diagnose(_data([None] * 20), (1.2, 2.4), THR)["gate"] == "a"
+
+
+def _g(f1, adl_fp, **opts):
+    return {**T37_DEFAULTS, "f1": f1, "adl_fp": adl_fp, "precision": 1.0, "lying_min_s": 0.5,
+            "hip_drop_min": 0.15, **opts}
+
+
+def test_choose_respects_adl_limit_and_prefers_simpler_rule():
+    grid = [_g(0.95, 3, hip_from_box=True), _g(0.9, 1, hip_from_box=True, end_closes_lying=True),
+            _g(0.9, 0, hip_from_box=True)]
+    best = choose(grid)
+    assert best["adl_fp"] <= 1 and best["f1"] == 0.9
+    assert best["end_closes_lying"] is False   # empate: menos opções novas ligadas
+
+
+def test_grid_has_both_drop_units():
+    combos = grid_combos()
+    assert {c["drop_norm"] for c in combos} == {"frame", "person"}
+    assert len(combos) == len({tuple(sorted(c.items(), key=str)) for c in combos})

@@ -385,6 +385,36 @@ def final_md(dev_t37: dict, dev_new: dict, res_t37: dict, res_new: dict, chosen:
         "falso.", ""]
 
 
+def posthoc_md(reserved: list[str], videos: dict, thr: dict, fall: dict) -> list[str]:
+    """Descrição das quedas reservadas perdidas pela regra nova (nada é ajustado com isto)."""
+    import statistics
+
+    t = {**thr, "fall": {**thr["fall"], **fall}}
+    conf = fall.get("detector_fallback_conf")
+    rows = []
+    for s in reserved:
+        truth = truth_of(s)
+        if truth and not evaluate([s], videos, t, fall)["tp"]:
+            rows.append(diagnose(videos[conf][s], truth[0], t))
+    if not rows:
+        return []
+    counts = {c: sum(r["gate"] == c for r in rows) for c in CAUSES}
+    asp = [r["aspect"] for r in rows if r["gate"] == "d" and r["aspect"] is not None]
+    return [
+        "### Por que o reservado ficou baixo (descrição posterior; nada foi ajustado)", "",
+        f"Mesma classificação do diagnóstico, aplicada à regra nova nas {len(rows)} quedas "
+        "reservadas perdidas: " + "; ".join(f"({c}) {counts[c]}" for c in CAUSES) + ". "
+        f"A pose acompanha a pessoa em {statistics.median(r['pose_after'] for r in rows):.0%} "
+        "(mediana) dos quadros depois do início da queda, ao contrário do UR Fall.",
+        "",
+        "Com a câmera no alto do canto, quem cai para frente ou para trás fica encurtado pela "
+        "perspectiva: a caixa da pessoa deitada continua mais alta que larga (largura/altura "
+        f"mediana {statistics.median(asp):.2f} nas quedas da causa d). A regra é geométrica e "
+        "2D, depende do ponto de vista da câmera, e o UR Fall (câmera frontal, baixa) não "
+        "tinha esse caso. A opção `lying_height_ratio`, que cobriria parte dele, trouxe falsos "
+        "alarmes em ADL no desenvolvimento e não foi escolhida.", ""] if asp else []
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--diagnose", action="store_true")
@@ -441,6 +471,7 @@ def main() -> None:
             res_new = evaluate(split["reservado"], vids, thr, fall_new)
             md += final_md(dev_t37, dev_new, res_t37, res_new, chosen, top, len(grid),
                            split["reservado"])
+            md += posthoc_md(split["reservado"], vids, thr, fall_new)
             payload.update(dev_t37=dev_t37, dev_new=dev_new, reservado_t37=res_t37,
                            reservado_new=res_new)
             (a.out / "fall_v2.json").write_text(json.dumps(payload, indent=1, default=str),

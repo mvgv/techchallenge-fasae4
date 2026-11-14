@@ -42,17 +42,18 @@ audio_events:
 video:
   keypoint_min_conf: 0.5
   fall:
+    # T41: grade só no UR Fall inteiro (evaluate_fall_v2.py; ver docs/resultados/fall_v2.md).
+    # Regra da T37: hip_drop_min 0.15, lying_min_s 0.5 e as opções novas desligadas.
     window_s: 1.0
-    hip_drop_min: 0.15         # fração da altura do frame (T37: calibrado no UR Fall)
+    hip_drop_min: 0.12         # fração da altura do frame
     lying_aspect_min: 1.3      # largura/altura da bbox
-    lying_min_s: 0.5           # os clipes do UR Fall terminam logo após a queda (ver urfall_fall.md)
-    # T41 (opções de bed.py; estes valores reproduzem a regra da T37 até o ajuste do passo A4)
+    lying_min_s: 1.0           # dispensado se a pessoa segue deitada (ou sem pose) até o fim
     drop_norm: frame           # frame: descida em fração do quadro; person: da altura da caixa
-    hip_from_box: false        # sem pontos do quadril, usa o centro da caixa
+    hip_from_box: true         # sem pontos do quadril, usa o centro da caixa
     lying_height_ratio: null   # deitado também se a caixa ficar com ≤ esta fração da altura em pé
     skip_missing_j: false      # fim da janela sem quadril: usa o próximo quadro com quadril
-    end_closes_lying: false    # deitado (ou sem pose) até o fim do vídeo dispensa lying_min_s
-    detector_fallback_conf: null  # quadro sem pose: caixa do detector de pessoas (worker de vídeo)
+    end_closes_lying: true     # deitado (ou sem pose) até o fim do vídeo dispensa lying_min_s
+    detector_fallback_conf: 0.25  # quadro sem pose: caixa do detector de pessoas (worker de vídeo)
   inactivity_motion_max: 0.01  # deslocamento médio normalizado por frame
   instrument_out_min_s: 5
   count_window_s: 10
