@@ -5,6 +5,7 @@ data/samples/*
 !data/samples/README.md
 models/
 docs/resultados/physio_keraal.json
+docs/resultados/physio_learned*.json
 __pycache__/
 .venv/
 *.pt

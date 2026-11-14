@@ -41,6 +41,22 @@ def _series(people: list[Person | None], joints: dict, min_conf: float) -> dict[
     return {k: v[pad:-pad] for k, v in s.items()}
 
 
+def joint_series(people: list[Person | None], cfg: dict, min_conf: float = 0.5
+                 ) -> dict[str, np.ndarray]:
+    """Séries de ângulos das articulações do exercício (para recalcular só o DTW)."""
+    return _series(people, cfg["joints"], min_conf)
+
+
+def dtw_features(series: dict[str, np.ndarray], reference: dict | None) -> dict[str, float]:
+    """DTW de cada articulação para a curva média da referência (NaN sem referência)."""
+    curves = (reference or {}).get("mean_curves", {})
+    out = {f"dtw_{j}": float("nan") for j in series}
+    for j, s in series.items():
+        if j in curves and len(s) and np.isfinite(s).all():
+            out[f"dtw_{j}"] = dtw_distance(resample(s, DTW_POINTS), np.asarray(curves[j]))
+    return out
+
+
 def feature_names(cfg: dict, reference: dict | None = None) -> list[str]:
     """Nomes das medidas, na ordem de `feature_vector`, para um exercício."""
     joints = list(cfg["joints"])
@@ -83,11 +99,8 @@ def feature_vector(
         out[f"rom_{j}"] = _nanptp(s)
     for a, b in cfg.get("pairs", []):
         out[f"asym_{a}_{b}"] = abs(out[f"rom_{a}"] - out[f"rom_{b}"])
-    curves = (reference or {}).get("mean_curves", {})
-    for j, s in series.items():
-        if j in curves and np.isfinite(s).all():
-            out[f"dtw_{j}"] = dtw_distance(resample(s, DTW_POINTS), np.asarray(curves[j]))
-    trunk = [t for t in (_trunk(p, min_conf) for p in seen) if t is not None]
+    out.update(dtw_features(series, reference))
+    trunk =[t for t in (_trunk(p, min_conf) for p in seen) if t is not None]
     if trunk:
         out["trunk_max"], out["trunk_min"] = float(max(trunk)), float(min(trunk))
     ratio = [r for r in (_width_ratio(p, min_conf) for p in seen) if r is not None]
