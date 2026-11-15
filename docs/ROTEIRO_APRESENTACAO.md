@@ -75,8 +75,12 @@ Alterne entre as janelas com `Alt+Tab`. **Nunca abra o `.env`**.
 
 - 1080p, 30 fps. Capture **a tela e o áudio do computador** (o som da consulta na parte 3 sai pelas caixas; sem captura de
   áudio do sistema ele não vai para o vídeo) e o microfone.
-- Teste: rode `.\.venv\Scripts\python.exe scripts/demo_azure_live.py data/samples/consulta_p0001.wav --no-audio` uma vez fora da gravação só
-  para ver que a Azure responde, depois grave 10 s de teste e ouça se a voz da consulta está no arquivo.
+- **Teste de áudio + transcrição (2 passos, fora da gravação definitiva):**
+  1. Só a Azure: `.\.venv\Scripts\python.exe scripts/demo_azure_live.py data/samples/consulta_p0001.wav --no-audio`. O texto aparece, **sem som**.
+  2. Som + transcrição juntos: ligue o gravador (tela + áudio do computador), suba o volume e rode o **mesmo comando sem `--no-audio`**.
+     Deixe 10 a 15 s e aperte `Ctrl+C`. Pare a gravação e abra o arquivo: você deve **ouvir a voz da consulta e ver a transcrição
+     aparecendo no mesmo momento**. Se vê o texto e não ouve nada, a captura de áudio do sistema está desligada (OBS: fonte "Áudio do
+     desktop"). Se não ouve nem ao vivo, o dispositivo de saída padrão do Windows não é o que você está usando.
 - Notificações do Windows desligadas. Feche e-mail, chat e qualquer janela com dados pessoais.
 - Cronômetro visível em outro monitor ou no celular: veja as metas de tempo abaixo.
 
