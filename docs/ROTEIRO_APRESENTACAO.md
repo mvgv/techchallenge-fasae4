@@ -14,7 +14,9 @@ Os quatro itens que o enunciado exige no vídeo e onde estão: **(1)** exemplo d
 
 ### A.1 Subir o ambiente limpo (leva ~20 min; faça uma vez, antes)
 
-Em PowerShell, na pasta do projeto, **um comando de cada vez**:
+Em PowerShell, na pasta do projeto, **um comando de cada vez**. Atenção: **não use `python` solto**, porque o Python global do
+Windows não tem o projeto instalado (erro `No module named 'medwatch'`). Os scripts rodam no Docker (`docker compose run --rm api python ...`)
+ou no ambiente do projeto (`.\.venv\Scripts\python.exe ...`), como abaixo:
 
 ```bash
 docker compose down -v
@@ -25,21 +27,25 @@ docker compose up -d --build
 ```
 
 ```bash
-python scripts/seed.py
+docker compose run --rm api python scripts/seed.py
 ```
 
 ```bash
-python scripts/train_vitals_iforest.py
+docker compose run --rm api python scripts/train_vitals_iforest.py
 ```
 
 ```bash
-python scripts/preflight_demo.py
+docker compose restart worker-anomaly
+```
+
+```bash
+docker compose run --rm api python scripts/preflight_demo.py
 ```
 
 O `preflight_demo.py` deve mostrar ✓ em tudo, exceto Teams e e-mail se ainda não estiverem configurados (✗ nesses dois é esperado).
 
 ```bash
-python scripts/run_demo.py --fast-until 355 --tail-speedup 12
+.\.venv\Scripts\python.exe scripts/run_demo.py --fast-until 355 --tail-speedup 12
 ```
 
 Esse último leva ~13 minutos. **Espere terminar** (aparece `fim do cenário demo` e a lista de alertas). Ele deixa o histórico
@@ -69,7 +75,7 @@ Alterne entre as janelas com `Alt+Tab`. **Nunca abra o `.env`**.
 
 - 1080p, 30 fps. Capture **a tela e o áudio do computador** (o som da consulta na parte 3 sai pelas caixas; sem captura de
   áudio do sistema ele não vai para o vídeo) e o microfone.
-- Teste: rode `python scripts/demo_azure_live.py data/samples/consulta_p0001.wav --no-audio` uma vez fora da gravação só
+- Teste: rode `.\.venv\Scripts\python.exe scripts/demo_azure_live.py data/samples/consulta_p0001.wav --no-audio` uma vez fora da gravação só
   para ver que a Azure responde, depois grave 10 s de teste e ouça se a voz da consulta está no arquivo.
 - Notificações do Windows desligadas. Feche e-mail, chat e qualquer janela com dados pessoais.
 - Cronômetro visível em outro monitor ou no celular: veja as metas de tempo abaixo.
@@ -239,7 +245,7 @@ caixa de e-mail com a mensagem, e diga: "O mesmo alerta chegou ao Teams e ao e-m
 **AÇÃO:** `Alt+Tab` para o **Terminal 2**. **Aumente o volume do computador.** Cole e execute:
 
 ```bash
-python scripts/demo_azure_live.py data/samples/consulta_p0001.wav --language
+.\.venv\Scripts\python.exe scripts/demo_azure_live.py data/samples/consulta_p0001.wav --language
 ```
 
 **TELA (durante ~40 s, com o áudio tocando):** o título "Azure Speech ao vivo"; uma linha cinza que se reescreve com a hipótese
