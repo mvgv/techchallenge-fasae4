@@ -112,8 +112,11 @@ Pesos padrão em `config/fusion.yaml`.
 | `bed_exit_video` | video | video | warning | 0.50 | `{t_video_s}` |
 | `physio_low_rom` | video | video | info | 0.25 | `{joint, rom, ref_rom, rep}` |
 | `physio_asymmetry` | video | video | info | 0.25 | `{joint_pair, diff_deg, rep}` |
-| `physio_pattern_deviation` | video | video | info | 0.30 | `{dtw, threshold, rep}` |
+| `physio_pattern_deviation` | video | video | info | 0.30 | `{dtw, threshold, probability, model, measures, rep}` (probabilidade do modelo de repetição incorreta, ou DTW contra a referência quando não há modelo) |
 | `physio_trunk_compensation` | video | video | info | 0.20 | `{trunk_deg, rep}` |
+| `physio_trunk_insufficient` | video | video | info | 0.20 | `{max_trunk_deg, expected_min_deg}` (inclinação lateral abaixo do esperado) |
+| `physio_rotation_low` | video | video | info | 0.20 | `{ratio_range, expected_min_range}` (pouca rotação do tronco) |
+| `physio_incomplete` | video | video | info | 0.25 | `{joint, rom, expected_min_rom}` (exercício incompleto ou parado) |
 | `surgery_zone_intrusion` | video | video | warning | 0.50 | `{zone, people, max}` |
 | `surgery_instrument_out_of_zone` | video | video | warning | 0.40 | `{cls, seconds}` |
 | `surgery_instrument_count_mismatch` | video | video | critical | 0.70 | `{start_count, end_count}` |
@@ -130,7 +133,7 @@ Pesos padrão em `config/fusion.yaml`.
 1. Cada evidência contribui com `peso × score × exp(−Δt/τ)` (τ = 15 min; janela de 360 min, em tempo do evento).
 2. Só a maior contribuição por `type` entra no cálculo.
 3. Combinação **noisy-OR**: `risco = 1 − Π(1 − contribuição)`.
-4. Regras multimodais (ex.: queda com sedativo recente, sinais neurológicos em voz e movimento) multiplicam o risco (×1,4).
+4. Regras multimodais (ex.: queda com sedativo recente, sinais neurológicos em voz e movimento) multiplicam o risco (×1,4 a ×1,5, conforme a regra em `config/fusion.yaml`).
 5. Escore 0–100 e níveis: crítico ≥ 70, atenção ≥ 40, info ≥ 20. Tipos em `floor_critical` mantêm o nível crítico enquanto recentes.
 
 O worker de fusão grava a evidência, atualiza `risk_snapshots`, cria o alerta (com cooldown), escalona quando o nível

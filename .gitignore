@@ -13,3 +13,7 @@ runs/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+
+# Material pessoal de gravação e defesa (não vai para o repositório)
+docs/ROTEIRO_*.md
+docs/DEFESA.md
