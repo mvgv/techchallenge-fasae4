@@ -8,10 +8,10 @@ combina as evidências num **escore de risco (0–100)** por paciente e cria **a
 confirma no dashboard.
 
 - Arquitetura detalhada: [`docs/arquitetura.md`](docs/arquitetura.md)
-- Relatório técnico: [`docs/relatorio-tecnico.md`](docs/relatorio-tecnico.md)
+- Relatório técnico: [`docs/relatorio-tecnico.md`](docs/relatorio-tecnico.md) · [PDF](docs/relatorio-tecnico.pdf)
 - Resultados medidos em dados reais: [`docs/resultados/datasets.md`](docs/resultados/datasets.md) · Dados: [`docs/DATASETS.md`](docs/DATASETS.md)
 - Decisões de projeto: [`docs/DECISOES.md`](docs/DECISOES.md)
-- Vídeo de demonstração: **[link a ser inserido após a publicação]**
+- Vídeo de demonstração (14 min 56 s): **<https://youtu.be/6EvuOJHmqaY>**
 
 > **Aviso de uso:** projeto acadêmico. Não é dispositivo médico, não substitui o julgamento clínico e deve usar apenas
 > dados sintéticos, encenados ou públicos. Nunca envie dados reais de pacientes (LGPD).
@@ -245,6 +245,14 @@ regras sobre o detector genérico e não foi medida com dados reais. Detalhes em
 
 > O modelo do agachamento (`models/physio_squat.joblib`) é gerado por `scripts/train_physio_model.py --save` a partir do
 > REHAB24-6 e do Keraal (veja `docs/DATASETS.md`). Sem esse arquivo o agachamento volta às regras fixas.
+
+### Regerar o PDF do relatório
+
+O PDF sai do `docs/relatorio-tecnico.md` (WeasyPrint, já na imagem Docker):
+
+```bash
+docker compose run --rm --no-deps -v "${PWD}/docs:/app/docs" -v "${PWD}/scripts:/app/scripts" api python scripts/build_report_pdf.py
+```
 
 ## Comandos do dia a dia
 

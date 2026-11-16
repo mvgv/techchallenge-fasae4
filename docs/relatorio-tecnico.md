@@ -2,7 +2,14 @@
 
 Tech Challenge IADT, Fase 4: monitoramento multimodal de pacientes com Python e Azure AI.
 
-> Itens marcados **[PENDENTE]** dependem de passos humanos (chaves Azure, gravações, prints) e não foram verificados.
+| Entregável | Onde |
+|---|---|
+| Repositório com o código-fonte completo | <https://github.com/mvgv/techchallenge-fasae4> |
+| **Vídeo de demonstração (14 min 56 s)** | **<https://youtu.be/6EvuOJHmqaY>** |
+| Relatório técnico (este documento) | `docs/relatorio-tecnico.md` e `docs/relatorio-tecnico.pdf` |
+
+O relatório descreve o fluxo multimodal (seção 2), os modelos aplicados em cada tipo de dado (seção 3), a integração com a
+Azure (seção 4) e os resultados, com exemplos de anomalias detectadas (seção 5).
 
 ## 1. Introdução e objetivo
 
@@ -20,37 +27,22 @@ O sistema é um protótipo acadêmico, não um dispositivo médico.
 
 Diagrama completo, serviços, streams e tabelas: [`arquitetura.md`](arquitetura.md).
 
-```mermaid
-sequenceDiagram
-    participant U as Usuário / Simulador
-    participant A as API
-    participant R as Redis Streams
-    participant W as Worker da modalidade
-    participant F as worker-fusion
-    participant L as worker-alerts
-    participant D as Dashboard
-    U->>A: upload de mídia (ou stream de vitais)
-    A->>R: jobs.video / jobs.audio / jobs.text
-    R->>W: job
-    W->>W: modelos (YOLO, Speech, NEWS2...)
-    W->>R: Evidence (stream evidence)
-    R->>F: Evidence
-    F->>F: noisy-OR + regras multimodais
-    F->>R: alerta (stream alerts)
-    R->>L: alerta
-    L->>D: alerta visível na API/dashboard
-    L-->>U: Teams / e-mail / console
-    D->>A: confirmar ou descartar
-```
+![Arquitetura: serviços, fluxos do Redis e banco](img/arquitetura.png)
+
+*Figura 1: arquitetura. Cada serviço lê um fluxo do Redis, processa e escreve outro; o banco guarda o estado.*
+
+![Sequência de um alerta](img/sequencia.png)
+
+*Figura 2: sequência de um alerta, do upload à confirmação pela equipe.*
 
 **Sequência de um alerta (exemplo).** Um áudio de consulta é enviado para o paciente P-0001: o worker de áudio converte
 para WAV 16 kHz, transcreve com Azure Speech, procura termos críticos (ex.: "falta de ar") e detecta tosse. Publica
 `speech_critical_term` e `respiratory_sound`. Se o paciente já tem `news2_medium` recente, o worker de fusão aplica o
-noisy-OR e a regra *respiratorio_multimodal* (×1,4), o escore cruza 70 e um alerta crítico é criado, com título e resumo
+noisy-OR e a regra *respiratorio_multimodal* (×1,5), o escore cruza 70 e um alerta crítico é criado, com título e resumo
 em português apontando as evidências. O worker de alertas notifica e, se ninguém confirmar em
 `ALERT_ESCALATION_MINUTES`, escalona.
 
-**Contrato de evidências.** Toda saída vira uma `Evidence` com `type` do catálogo (29 tipos, `arquitetura.md`), `score`
+**Contrato de evidências.** Toda saída vira uma `Evidence` com `type` do catálogo (32 tipos, `arquitetura.md`), `score`
 0–1, `severity`, intervalo de tempo, `explanation` em pt-BR, `source_ref` (ex.: `media:<uuid>#t=130`), `model_name`,
 `model_version` e `payload`. O contrato desacopla os produtores da fusão: um novo modelo só precisa emitir evidências.
 
@@ -60,16 +52,16 @@ em português apontando as evidências. O worker de alertas notifica e, se ningu
 |---|---|---|---|---|---|
 | Vídeo (objetos) | YOLOv8n (COCO) | frames | caixas e classes | leve, roda em CPU, pesos públicos | COCO só conhece objetos genéricos: instrumentos cirúrgicos reais não são reconhecidos; a análise de cirurgia é demonstrativa |
 | Vídeo (pose) | YOLOv8n-pose | frames | 17 keypoints | mesmo runtime do detector, sem dependências extras | precisão da pose não medida contra captura de movimento (a comparação com o OpenPose não foi feita; T19b/T34 não implementadas); no REHAB24-6 a pose bastou para contar repetições (erro médio de 1,8 por bloco), não para separar repetições corretas das incorretas |
-| Fisioterapia | Ângulos articulares + contagem de repetições + **DTW** contra referência | keypoints | ROM, assimetria, desvio de padrão, compensação de tronco | DTW compara a forma do movimento sem depender da velocidade; referência gerada de um vídeo correto | depende de câmera lateral e corpo inteiro; referência real exige gravação **[PENDENTE]** |
+| Fisioterapia | Ângulos articulares + contagem de repetições + **DTW** contra referência | keypoints | ROM, assimetria, desvio de padrão, compensação de tronco | DTW compara a forma do movimento sem depender da velocidade; referência gerada de um vídeo correto | depende de câmera lateral e corpo inteiro; a referência vem das repetições corretas dos voluntários de calibração do REHAB24-6 |
 | Fisioterapia (aprendizado, T41) | **Regressão logística** sobre 38 medidas por repetição (amplitudes, assimetria, DTW, tronco, razão ombros/quadris, curva reamostrada); comparada com Mahalanobis/IsolationForest só de corretas, árvore e GradientBoosting | keypoints | probabilidade de repetição incorreta → `physio_pattern_deviation` | venceu as regras na validação cruzada deixando um voluntário de fora (agachamento); coeficientes dizem que medida pesou | só no agachamento do REHAB24-6 (câmera 18); no Keraal nenhum modelo venceu e as regras continuam |
 | Leito | Regras sobre pose e caixa da pessoa; caixa do detector YOLOv8n quando a pose some (T41) | keypoints e caixas | queda, saída do leito | simples e explicável | regra 2D depende do ponto de vista: 26 de 30 quedas no UR Fall (desenvolvimento), 12 de 50 no CAUCAFall (câmera alta no canto) |
-| Fala | **Azure Speech** (pt-BR) | WAV 16 kHz | transcrição por segmentos | qualidade e suporte a pt-BR sem treinar modelo | custo por hora de áudio; requer chaves **[PENDENTE]**; há cliente falso para testes |
+| Fala | **Azure Speech** (pt-BR) | WAV 16 kHz | transcrição por segmentos | qualidade e suporte a pt-BR sem treinar modelo | custo por hora de áudio; requer chaves da Azure (há cliente falso para testes); erra palavras, e um erro vira termo crítico falso ("mau tontura") |
 | Linguagem | **Azure AI Language** + dicionário de termos críticos | transcrição / laudo | sentimento, entidades clínicas | entidades de saúde prontas; dicionário cobre termos críticos em pt-BR | entidades de saúde dependem da região; dicionário é lista fechada |
-| Voz | **openSMILE** (eGeMAPS) + pausas/velocidade | áudio | indicadores de fadiga e disartria vs. linha de base | features acústicas interpretáveis | precisa de linha de base individual; no ambiente de desenvolvimento o openSMILE não importou (pyarrow x NumPy), então só pausa/velocidade foram exercitadas |
-| Sons respiratórios | **AST** (`MIT/ast-finetuned-audioset-10-10-0.4593`) | janelas de áudio | tosse, espirro etc. com score | modelo treinado no AudioSet, sem treino próprio | ~350 MB; só eventos de classe respiratória com score ≥ 0,6 viram evidência; teste com modelo real não executado |
+| Voz | **openSMILE** (eGeMAPS) + pausas/velocidade | áudio | indicadores de fadiga e disartria vs. linha de base | features acústicas interpretáveis | precisa de linha de base: a de voz saudável vem do Common Voice (recorte brasileiro, 54 falantes) e só a especificidade foi medida (27 falantes reservados, 5.4); a sensibilidade não foi medida |
+| Sons respiratórios | **AST** (`MIT/ast-finetuned-audioset-10-10-0.4593`) | janelas de áudio | tosse, espirro etc. com score | modelo treinado no AudioSet, sem treino próprio | ~350 MB; limiar de score calibrado no ESC-50 (5.4); a tosse real misturada à fala da consulta teve score só 0,17 |
 | Vitais (regra) | **NEWS2** + filtro fisiológico | FC, PA, SpO₂, FR, T, consciência, O₂ | escore 0–20 e evidências | padrão clínico conhecido e explicável | não substitui avaliação clínica; filtro descarta valores impossíveis (artefato de sensor) |
 | Vitais (estatística) | **EWMA z-score** em streaming | série de cada sinal | desvio relativo ao próprio paciente | adapta-se a cada paciente, custo constante | limiar 3,0 gera falsos positivos em séries de baixa variância |
-| Vitais (ML) | **Isolation Forest** | janela de features por minuto | score de anomalia | não supervisionado, não exige rótulos | treinado em dados sintéticos; `--mimic` não testado; muitos falsos positivos |
+| Vitais (ML) | **Isolation Forest** | janela de features por minuto | score de anomalia | não supervisionado, não exige rótulos | dois modelos: um sintético e outro treinado com a calibração do MIMIC (5.4); por evidência gera muitos falsos positivos, que a fusão filtra (5.1) |
 | Prescrições | Regras + `config/drugs.yaml` | eventos de prescrição | mudança de dose, medicamento de alta vigilância, interação, classe duplicada, rajada | explicável, baseado em listas curadas | lista pequena e não clínica; não cobre todas as interações |
 | Movimentação | Regras sobre contagem de atividade | `MovementSample` | inatividade, agitação noturna, saída do leito | simples | noite definida em UTC na demo |
 | Fusão | **noisy-OR** com decaimento exponencial e regras multimodais | evidências | risco 0–100, nível, contribuições | probabilístico, monotônico, cada contribuição explicável | pesos definidos por julgamento, não calibrados com desfechos reais |
@@ -90,9 +82,19 @@ O provisionamento é feito por `scripts/provision_azure.sh` (grupo `rg-medwatch`
   de saúde em português) e Blob responderam, e uma consulta sintética de 38 s passou pelo pipeline completo, com separação de
   falantes correta. Detalhes, a transcrição e as limitações (erro de reconhecimento que gerou um termo crítico falso) estão
   em `docs/resultados/azure_integracao.md`.
-- **Custos observados:** **[PENDENTE]** — ler no portal (Cost Management) depois da demo; o consumo até aqui foi de poucos
-  minutos de áudio e algumas chamadas (Speech cobra por hora de áudio; Language por 1.000 registros).
-- **Prints do portal:** **[PENDENTE]** — recursos criados, métricas de uso e orçamento.
+- **Custos:** a API de consumo da assinatura (`az consumption usage list`) não retornou valores por recurso, então o custo
+  exato deve ser lido no Cost Management do portal. O consumo foi pequeno: menos de uma hora de áudio na Speech (consultas
+  de 38 s, verificações, execuções da demonstração e a transcrição do vídeo de entrega) e algumas centenas de registros no
+  Language, o que fica na faixa de poucos dólares nas tarifas de tabela (Speech cobra por hora de áudio; Language por 1.000
+  registros). Recomenda-se criar um alerta de orçamento no portal.
+- **Evidência da verificação** (`docker compose run --rm api python scripts/check_azure.py`, com as chaves reais):
+
+```
+[speech] OK: Olá, este é um teste do med Watt.
+[language] OK: negative {'positive': 0.0, 'neutral': 0.0, 'negative': 1.0}
+[storage] pulado: STORAGE_BACKEND != azure
+Tudo OK
+```
 
 ## 5. Resultados obtidos
 
@@ -140,24 +142,67 @@ gerando muitas detecções em normais (21 episódios por paciente-dia); elas nã
 
 ### 5.2 Vídeo
 
-`scripts/evaluate_video.py` está pronto e compara detecções com `data/samples/video_annotations.csv`, mas não foi
-executado: faltam vídeos anotados **[PENDENTE]**. Os módulos de vídeo foram verificados com keypoints e detecções
-sintéticas (testes automatizados), não com vídeos reais.
+O vídeo foi medido com dados reais de quatro datasets públicos, sempre na parte reservada de cada um: UR Fall e CAUCAFall
+para queda, REHAB24-6 e Keraal para fisioterapia (seções 5.4 e 5.5). O `scripts/evaluate_video.py` da primeira versão
+dependia de anotações gravadas pelo grupo e foi substituído por avaliações por dataset (`evaluate_urfall.py`,
+`evaluate_fall_v2.py`, `evaluate_physio.py`, `evaluate_keraal.py`, `evaluate_physio_learned.py`). A análise de **cirurgia**
+usa regras sobre o detector genérico e **não foi medida com dados reais**.
 
 ### 5.3 Exemplos de anomalias detectadas
 
-O roteiro `scripts/run_demo.py` injeta, em momentos definidos da linha do tempo simulada, as mídias de demonstração:
-consulta em áudio (P-0001, min. 370), laudo (P-0002, min. 385), agachamento incorreto (P-0003, min. 365) e queda
-(P-0004, min. 410), além da deterioração dos vitais. Os casos a documentar, com prints do dashboard:
+Os exemplos vêm de uma execução da demonstração (`scripts/run_demo.py --fast-until 355 --tail-speedup 12`) com a Azure
+real. O roteiro injeta, em momentos definidos da linha do tempo simulada, a consulta (P-0001, min. 370), o laudo (P-0002,
+385), o agachamento incorreto (P-0003, 365) e a queda (P-0004, 410), enquanto o simulador alimenta os sinais vitais. Os
+valores de risco variam um pouco entre execuções.
 
-1. Frame anotado de queda do leito (`fall_detected`) **[PENDENTE]**
-2. Transcrição com termos críticos destacados (`speech_critical_term`) **[PENDENTE]**
-3. Gráfico de vitais com NEWS2 e evidências (`news2_*`; exemplo sintético em `docs/resultados/vitals_example.png`)
-4. Agachamento com amplitude reduzida (`physio_low_rom`, `physio_pattern_deviation`) **[PENDENTE]**
-5. Alerta no Teams **[PENDENTE]**
+![Painel geral](img/exemplo_painel_geral.jpg)
 
-Dos insumos que estes casos exigem, já existem os pesos YOLO, a Azure real e as amostras de áudio e de queda (ver 5.4 e
-`docs/resultados/azure_integracao.md`); faltam os vídeos de agachamento e o webhook do Teams.
+*Figura 3: painel geral. O Paciente 06 foi cadastrado ao vivo pela API; a consulta enviada gerou o alerta "[ATENÇÃO] ...
+Termo crítico na fala" (risco de pico 61).*
+
+**Exemplo 1: piora respiratória em sinais vitais e voz (P-0001).** O NEWS2 chegou a 10 (alto) e o Isolation Forest apontou
+um padrão multivariado anômalo; a consulta trouxe "falta de ar", "dor no peito" e "febre" e uma tosse. A regra multimodal
+*Piora respiratória confirmada por sinais vitais e voz* multiplicou o risco, que cruzou a linha crítica (70) e chegou a 100.
+
+![Risco ao longo do tempo e evidências do paciente 01](img/exemplo_vitais_risco.jpg)
+
+*Figura 4: risco do P-0001 ao longo do tempo e a linha do tempo de evidências (NEWS2 alto, padrão multivariado anômalo,
+tosse).*
+
+![Transcrição com termos críticos e sentimento](img/exemplo_transcricao.jpg)
+
+*Figura 5: transcrição da Azure Speech com os falantes separados, o sentimento de cada fala (Azure Language) e os termos
+críticos em negrito. "Mau tontura" é um erro de reconhecimento que virou um termo crítico falso; "Febre, não sei" foi
+marcado como febre porque ainda não tratamos negação.*
+
+**Exemplo 2: queda (P-0004).** No vídeo do UR Fall, o detector gerou `fall_detected` com score 0,90 e severidade crítica:
+"Queda em 1.9s: quadril desceu 18% da altura da imagem e a pessoa ficou deitada por 1.7s (até o fim do vídeo)". Como a
+queda é um tipo de evidência com piso crítico, o paciente entra em nível crítico mesmo com poucas outras evidências.
+
+![Frame anotado da queda](img/exemplo_queda_frame.jpg)
+
+*Figura 6: frame anotado de `fall_detected`, com a pose (17 pontos), a caixa da pessoa e a explicação em vermelho.*
+
+**Exemplo 3: agachamento incorreto (P-0003).** O modelo de regressão logística indicou a repetição incorreta com
+probabilidade 0,95 ("Rep. 1: o modelo (regressão logística) indica execução incorreta (probabilidade 0.95)"). O clipe é de
+um voluntário reservado do REHAB24-6. A evidência tem severidade informativa e **não vira alerta**, de propósito: no
+reservado o modelo ainda sinaliza 31% das repetições corretas (5.5).
+
+![Agachamento anotado](img/exemplo_agachamento_frame.jpg)
+
+*Figura 7: agachamento no ponto mais baixo, com a pose e a explicação do modelo.*
+
+**Exemplo 4: o alerta chega à equipe.** O canal de console, que usa o mesmo caminho dos canais externos, registrou:
+
+```
+ALERTA [ATENÇÃO] Paciente 06 (ao vivo) (P-0006) – Termo crítico na fala
+Risco 40/100.
+• Termo crítico na fala: Paciente relatou 'falta de ar' (00:07)
+```
+
+O webhook do Teams e a Logic App de e-mail **não foram configurados** nesta execução. O código dos canais é coberto por
+testes com transporte simulado (`tests/test_channels.py`), e o escalonamento por falta de confirmação aparece no painel
+como "escalonado". A equipe confirma ou descarta o alerta no painel, com uma nota opcional.
 
 ### 5.4 Resultados com datasets públicos (partes reservadas)
 
@@ -238,8 +283,10 @@ são otimistas, porque a mesma validação escolhe hiperparâmetros; o do reserv
 
 - **Não é dispositivo médico.** Alertas são apoio à decisão; a confirmação é sempre humana (ack/descartar no dashboard).
 - **Dados:** sintéticos (simulador de vitais e consulta com vozes da Azure) e públicos (MIMIC-IV Demo, ESC-50, UR Fall,
-  REHAB24-6 e Common Voice pt-BR), respeitando as licenças (o Common Voice proíbe re-hospedar e identificar falantes). Nenhum
-  dado real de paciente deve ser enviado. `.env`, `data/` e `models/` ficam fora do Git.
+  CAUCAFall, REHAB24-6, Keraal e Common Voice pt-BR), respeitando as licenças (o Common Voice proíbe re-hospedar e
+  identificar falantes; REHAB24-6 e Keraal são só para pesquisa não comercial). O Keraal traz dados clínicos anonimizados
+  de pacientes, que ficam fora do Git e não aparecem na demonstração. Nenhum dado real de paciente deve ser enviado.
+  `.env`, `data/` e `models/` ficam fora do Git.
 - **LGPD:** dados de saúde são sensíveis (art. 11). Um uso real exigiria base legal, minimização, controle de acesso,
   registro de auditoria, retenção definida, relatório de impacto e contrato com a Microsoft cobrindo o tratamento na
   nuvem (região, subprocessadores). Vídeo e voz também são dados pessoais/biométricos.
@@ -252,11 +299,13 @@ são otimistas, porque a mesma validação escolhe hiperparâmetros; o do reserv
 
 ## 7. Próximos passos
 
-1. Gravar a demonstração completa (os clipes de agachamento vêm do REHAB24-6, reservados) e o Teams (a Azure real, o áudio e a queda já foram
-   verificados), e preencher os custos e os prints da seção 4 e os casos da 5.3.
-2. Anotar vídeos próprios e rodar `evaluate_video.py`.
-3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e trocar a regra de queda, que depende do
-   ponto de vista da câmera (recall 0,24 no CAUCAFall reservado), por um classificador treinado com várias câmeras.
-4. Calibrar os pesos de fusão com desfechos rotulados.
-5. Substituir/complementar o YOLO COCO por detector de instrumentos cirúrgicos treinado; avaliar OpenPose.
-6. Integrar a um padrão de interoperabilidade (HL7 FHIR) e adicionar autenticação, auditoria e RBAC.
+1. Configurar o webhook do Teams e a Logic App de e-mail e medir a entrega e o tempo até a confirmação.
+2. Trocar a regra de queda, que depende do ponto de vista da câmera (recall 0,24 no CAUCAFall reservado), por um
+   classificador treinado com várias câmeras.
+3. Reduzir o ruído do z-score por evidência (hoje só mitigado pela fusão) e calibrar os pesos de fusão com desfechos
+   rotulados.
+4. Cirurgia: ajustar o YOLO a instrumentos cirúrgicos (por exemplo, com o Cholec80-Boxes) e medir a análise com dados
+   reais; estudo em `docs/VIABILIDADE_CIRURGIA.md`.
+5. Fisioterapia: comparar com o OpenPose e coletar mais voluntários, para aprender também o tipo de erro.
+6. Tratar negação nos termos críticos ("febre, não sei") e integrar a um padrão de interoperabilidade (HL7 FHIR), com
+   autenticação, auditoria e controle de acesso.
