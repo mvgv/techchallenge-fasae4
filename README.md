@@ -196,14 +196,14 @@ No `.env`, confirme `USE_FAKE_AZURE=false` e que `AZURE_SPEECH_KEY`, `AZURE_SPEE
 docker compose up -d
 ```
 
-**3. Verificar** (Speech, Language e Storage):
+**3. Verificar** (Speech e Language; o Storage só é testado com `STORAGE_BACKEND=azure`):
 
 ```bash
 docker compose run --rm api python scripts/synthesize_consulta.py --only hello   # gera data/samples/hello_ptbr.wav com a própria Azure
 docker compose run --rm api python scripts/check_azure.py
 ```
 
-O `check_azure.py` termina com código 0 se tudo responde. A transcrição só é testada se existir `data/samples/hello_ptbr.wav`.
+O `check_azure.py` termina com código 0 se tudo responde (saída esperada: `[speech] OK`, `[language] OK` e `Tudo OK`). A transcrição só é testada se existir `data/samples/hello_ptbr.wav`.
 
 **4. Ver a Azure em ação** (toca o áudio e mostra a transcrição aparecendo em paralelo; roda no ambiente local com
 `pip install -e ".[audio,dev]"`):
